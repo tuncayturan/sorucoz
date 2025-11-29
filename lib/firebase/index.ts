@@ -23,12 +23,12 @@ function getApp(): FirebaseApp {
     // Build sırasında environment variables yoksa hata verme
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
       // Build sırasında dummy app döndür (runtime'da tekrar denenecek)
-      if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+      // Sadece development'ta logla
+      if (process.env.NODE_ENV === "development") {
         console.warn("Firebase config not available during build - this is OK, will retry at runtime");
-        // Dummy app instance döndür
-        return {} as FirebaseApp;
       }
-      throw new Error("Firebase config is not available. Environment variables may not be set.");
+      // Dummy app instance döndür
+      return {} as FirebaseApp;
     }
     app = !getApps().length 
       ? initializeApp(firebaseConfig) 
@@ -44,7 +44,10 @@ export const auth: Auth = (() => {
       authInstance = getAuth(getApp());
     } catch (error) {
       // Build sırasında hata olabilir, runtime'da tekrar denenecek
-      console.warn("Firebase Auth initialization failed (this is OK during build):", error);
+      // Sadece development'ta logla, production build'de sessiz kal
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Firebase Auth initialization failed (this is OK during build):", error);
+      }
       // Dummy auth instance döndür (build sırasında)
       return {} as Auth;
     }
@@ -65,7 +68,10 @@ export const db: Firestore = (() => {
     try {
       dbInstance = getFirestore(getApp());
     } catch (error) {
-      console.warn("Firebase Firestore initialization failed (this is OK during build):", error);
+      // Sadece development'ta logla, production build'de sessiz kal
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Firebase Firestore initialization failed (this is OK during build):", error);
+      }
       // Dummy db instance döndür (build sırasında)
       return {} as Firestore;
     }
@@ -79,7 +85,10 @@ export const storage: FirebaseStorage = (() => {
     try {
       storageInstance = getStorage(getApp());
     } catch (error) {
-      console.warn("Firebase Storage initialization failed (this is OK during build):", error);
+      // Sadece development'ta logla, production build'de sessiz kal
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Firebase Storage initialization failed (this is OK during build):", error);
+      }
       // Dummy storage instance döndür (build sırasında)
       return {} as FirebaseStorage;
     }
