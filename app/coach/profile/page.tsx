@@ -607,8 +607,7 @@ export default function CoachProfilePage() {
       {whatsappConnecting && !whatsappConnected && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Bağlantı Kuruluyor</h3>
+            <div className="flex justify-end items-center mb-4">
               <button
                 onClick={() => {
                   setWhatsappConnecting(false);
@@ -624,9 +623,6 @@ export default function CoachProfilePage() {
             <div className="flex flex-col items-center gap-4">
               {whatsappQRCode ? (
                 <>
-                  <p className="text-sm text-gray-600 text-center mb-2">
-                    Uygulamanızı açın → Bağlı Cihazlar → Cihaz Bağla
-                  </p>
                   <div className="p-4 bg-white rounded-xl border-2 border-gray-200">
                     <img
                       src={whatsappQRCode}
