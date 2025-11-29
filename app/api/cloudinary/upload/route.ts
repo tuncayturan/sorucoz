@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // PDF için resource_type: "raw", resim için "image"
     const resourceType = isPDF ? "raw" : "image";
 
-    return new Promise((resolve, reject) => {
+    return new Promise<NextResponse>((resolve, reject) => {
       cloudinary.uploader
         .upload_stream(
           {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
           (error, result) => {
             if (error) {
               console.error("Cloudinary upload error:", error);
-              reject(NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 }));
+              resolve(NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 }));
             } else {
               resolve(
                 NextResponse.json({
