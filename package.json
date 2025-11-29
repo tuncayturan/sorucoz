@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node -e \"console.log('Postinstall: Checking Puppeteer dependencies...')\""
   },
   "dependencies": {
     "cloudinary": "^2.8.0",

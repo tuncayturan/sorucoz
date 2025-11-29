@@ -73,7 +73,11 @@ export async function GET(request: NextRequest) {
     console.log(`🚀 WhatsApp başlatılıyor (Coach: ${coachId})...`);
     
     // Serverless ortam kontrolü (Vercel, AWS Lambda, vb.)
-    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTION_TARGET;
+    // Railway ve Render gibi ortamlar serverless değildir, bu yüzden çalışır
+    const isServerless = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTION_TARGET) 
+      && !process.env.RAILWAY_ENVIRONMENT 
+      && !process.env.RENDER;
+    
     if (isServerless) {
       console.warn(`⚠️ Serverless ortam tespit edildi (Coach: ${coachId}), WhatsApp bağlantısı desteklenmemektedir`);
       return NextResponse.json(
@@ -83,6 +87,11 @@ export async function GET(request: NextRequest) {
         },
         { status: 503 }
       );
+    }
+    
+    // Railway ortamı kontrolü
+    if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID) {
+      console.log(`🚂 Railway ortamı tespit edildi (Coach: ${coachId}), WhatsApp bağlantısı desteklenmektedir`);
     }
     
     try {

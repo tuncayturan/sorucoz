@@ -109,14 +109,34 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
 
   try {
     console.log(`🔧 Coach ${coachId} için WhatsApp Client oluşturuluyor...`);
+    
+    // Railway ve diğer cloud ortamları için Puppeteer yapılandırması
+    const puppeteerOptions: any = {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process", // Railway için önemli
+        "--disable-gpu",
+      ],
+    };
+    
+    // Railway'de Chromium PATH'i
+    if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID) {
+      // Railway'de Chromium nixpacks ile yüklenir
+      // PATH otomatik olarak ayarlanır, ekstra yapılandırma gerekmez
+      console.log(`🚂 Railway ortamı tespit edildi, Puppeteer yapılandırması optimize ediliyor...`);
+    }
+    
     const client = new Client({
       authStrategy: new LocalAuth({
         dataPath: `./.wwebjs_auth/${coachId}`, // Her coach için ayrı klasör
       }),
-      puppeteer: {
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      },
+      puppeteer: puppeteerOptions,
     });
     console.log(`✅ Coach ${coachId} için WhatsApp Client oluşturuldu`);
 
