@@ -22,6 +22,12 @@ function getApp(): FirebaseApp {
   if (!app) {
     // Build sırasında environment variables yoksa hata verme
     if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+      // Build sırasında dummy app döndür (runtime'da tekrar denenecek)
+      if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+        console.warn("Firebase config not available during build - this is OK, will retry at runtime");
+        // Dummy app instance döndür
+        return {} as FirebaseApp;
+      }
       throw new Error("Firebase config is not available. Environment variables may not be set.");
     }
     app = !getApps().length 
