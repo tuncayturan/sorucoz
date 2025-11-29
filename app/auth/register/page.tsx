@@ -1,0 +1,273 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+  signInWithPopup,
+} from "firebase/auth";
+import { auth, db, googleProvider } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
+import { createTrialData } from "@/lib/subscriptionUtils";
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // ----------------------------------------------------
+  // GOOGLE REGISTER / LOGIN
+  // ----------------------------------------------------
+  const registerWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+
+      // İlk giriş ise Firestore'a kaydet
+      if (!snap.exists()) {
+        const trialData = createTrialData();
+        await setDoc(ref, {
+          name: user.displayName,
+          email: user.email,
+          role: "student", // Tüm yeni kayıtlar student rolünde
+          premium: false,
+          createdAt: serverTimestamp(),
+          emailVerified: true, // Google verified
+          photoURL: user.photoURL || null, // Google profil resmini kaydet
+          fcmTokens: [], // FCM token'ları için array
+          ...trialData, // 7 günlük trial başlat
+        });
+      } else {
+        // Mevcut kullanıcı için photoURL güncelle (eğer yoksa)
+        const existingData = snap.data();
+        if (user.photoURL && !existingData.photoURL) {
+          await setDoc(ref, {
+            photoURL: user.photoURL,
+          }, { merge: true });
+        }
+      }
+
+      // FCM token'ı al ve kaydet (async, register'i bloklamaz)
+      requestNotificationPermission()
+        .then((token) => {
+          if (token) {
+            console.log("[Google Register] FCM token received, saving to Firestore...");
+            return saveFCMTokenToUser(user.uid, token);
+          } else {
+            console.warn("[Google Register] No FCM token received");
+          }
+        })
+        .catch((error) => {
+          console.error("[Google Register] Error in FCM token process:", error);
+          // Token kaydetme hatası kayıt işlemini durdurmaz
+        });
+
+      const role = snap.exists() ? snap.data().role : "student";
+
+      if (role === "admin") router.replace("/admin");
+      else if (role === "coach") router.replace("/coach");
+      else router.replace("/home");
+    } catch (err: any) {
+      // Popup kapatıldığında sessizce görmezden gel
+      if (err?.code === "auth/cancelled-popup-request" || err?.code === "auth/popup-closed-by-user") {
+        console.log("Google popup kapatıldı");
+        return;
+      }
+      
+      console.error("Google Register Error:", err);
+      alert("Google ile kayıt başarısız. Lütfen tekrar deneyin.");
+    }
+  };
+
+  // ----------------------------------------------------
+  // EMAIL REGISTER + VERIFICATION
+  // ----------------------------------------------------
+  const register = async () => {
+    if (!name || !email || !pass) return alert("Tüm alanlar zorunlu.");
+
+    try {
+      setLoading(true);
+
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+
+      // profil adı
+      await updateProfile(cred.user, { displayName: name });
+
+      // EMAIL DOĞRULAMA GÖNDER
+      await sendEmailVerification(cred.user);
+
+      // Firestore kaydı
+      const trialData = createTrialData();
+      await setDoc(doc(db, "users", cred.user.uid), {
+        name,
+        email,
+        role: "student", // Tüm yeni kayıtlar student rolünde
+        premium: false,
+        createdAt: serverTimestamp(),
+        emailVerified: false,
+        fcmTokens: [], // FCM token'ları için array
+        ...trialData, // 7 günlük trial başlat
+      });
+
+      // FCM token'ı al ve kaydet (async, register'i bloklamaz)
+      requestNotificationPermission()
+        .then((token) => {
+          if (token) {
+            console.log("[Email Register] FCM token received, saving to Firestore...");
+            return saveFCMTokenToUser(cred.user.uid, token);
+          } else {
+            console.warn("[Email Register] No FCM token received");
+          }
+        })
+        .catch((error) => {
+          console.error("[Email Register] Error in FCM token process:", error);
+          // Token kaydetme hatası kayıt işlemini durdurmaz
+        });
+
+      router.replace("/auth/verify-email");
+
+    } catch (err) {
+      console.error("REGISTER ERROR:", err);
+      alert("Kayıt başarısız.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="h-screen w-full flex justify-center items-center bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] px-6 overflow-hidden relative">
+      {/* Decorative gradient circles */}
+      <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl"></div>
+      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
+
+      <div className="w-full max-w-sm animate-slideFade relative z-10">
+        {/* LOGO */}
+        <div className="flex justify-center mb-8">
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-indigo-400/30 rounded-3xl blur-xl transform scale-110"></div>
+            <Image
+              src="/img/logo.png"
+              alt="SoruÇöz"
+              width={80}
+              height={80}
+              className="relative rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)]"
+            />
+          </div>
+        </div>
+
+        {/* TITLE */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
+            Kayıt Ol
+          </h1>
+          <p className="text-gray-600 text-base">
+            SoruÇöz hesabını oluştur, koç ve yapay zekâ ile çalışmaya başla.
+          </p>
+        </div>
+
+        {/* GOOGLE BUTTON */}
+        <button
+          onClick={registerWithGoogle}
+          className="w-full py-4 rounded-2xl text-gray-900 font-semibold text-base 
+                   bg-white/80 backdrop-blur-xl border border-white/60 
+                   shadow-[0_10px_40px_rgba(0,0,0,0.08)]
+                   active:scale-[0.98] transition-all duration-300 
+                   hover:shadow-[0_15px_50px_rgba(0,0,0,0.12)]
+                   hover:scale-[1.01] flex items-center justify-center gap-3 mb-6"
+        >
+          <Image src="/img/google.png" width={22} height={22} alt="Google" />
+          Google ile Kayıt Ol
+        </button>
+
+        {/* DIVIDER */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+          <span className="text-gray-500 text-sm">veya</span>
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+        </div>
+
+        {/* INPUTS */}
+        <div className="space-y-4 mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Ad Soyad"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-white/80 backdrop-blur-xl p-4 rounded-2xl 
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 
+                       border border-white/60 shadow-[0_10px_40px_rgba(0,0,0,0.08)]
+                       transition-all duration-300
+                       placeholder:text-gray-400"
+            />
+          </div>
+
+          <div className="relative">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-white/80 backdrop-blur-xl p-4 rounded-2xl 
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 
+                       border border-white/60 shadow-[0_10px_40px_rgba(0,0,0,0.08)]
+                       transition-all duration-300
+                       placeholder:text-gray-400"
+            />
+          </div>
+
+          <div className="relative">
+            <input
+              type="password"
+              placeholder="Şifre"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && register()}
+              className="w-full bg-white/80 backdrop-blur-xl p-4 rounded-2xl 
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/50 
+                       border border-white/60 shadow-[0_10px_40px_rgba(0,0,0,0.08)]
+                       transition-all duration-300
+                       placeholder:text-gray-400"
+            />
+          </div>
+        </div>
+
+        {/* REGISTER BUTTON */}
+        <button
+          onClick={register}
+          disabled={loading}
+          className="w-full group relative overflow-hidden py-4 rounded-3xl text-white font-bold text-lg
+                   bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600
+                   shadow-[0_20px_50px_rgba(59,130,246,0.4)]
+                   active:scale-[0.98] transition-all duration-300
+                   hover:shadow-[0_25px_60px_rgba(59,130,246,0.5)]
+                   hover:scale-[1.02]
+                   disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-[0_20px_50px_rgba(59,130,246,0.4)] mb-6"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+          <span className="relative z-10">{loading ? "Kaydediliyor..." : "Kayıt Ol"}</span>
+        </button>
+
+        {/* LOGIN LINK */}
+        <div className="text-center text-gray-600 text-sm">
+          Zaten hesabın var mı?{" "}
+          <span
+            className="text-blue-600 font-semibold cursor-pointer hover:text-blue-700 transition-colors"
+            onClick={() => router.push("/auth/login")}
+          >
+            Giriş Yap
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
