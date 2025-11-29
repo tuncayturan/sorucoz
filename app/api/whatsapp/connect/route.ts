@@ -38,6 +38,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Firestore'dan bağlantı durumunu kontrol et
+    const coachData = coachSnap.data();
+    const wasConnectedBefore = coachData.whatsappConnected && coachData.whatsappConnectedAt;
+    
     // Mevcut durumu kontrol et
     let status = await getWhatsAppStatusForCoach(coachId);
     
@@ -45,6 +49,7 @@ export async function GET(request: NextRequest) {
       isReady: status.isReady,
       isInitializing: status.isInitializing,
       hasQRCode: !!status.qrCode,
+      wasConnectedBefore: wasConnectedBefore,
     });
     
     // Eğer zaten başlatılmışsa ve hazırsa, mevcut durumu döndür
@@ -67,6 +72,11 @@ export async function GET(request: NextRequest) {
         isInitializing: status.isInitializing,
         qrCode: status.qrCode,
       });
+    }
+    
+    // Eğer daha önce bağlanmışsa otomatik bağlanmayı dene
+    if (wasConnectedBefore && !status.isReady && !status.isInitializing) {
+      console.log(`🔄 Daha önce bağlanmış (Coach: ${coachId}), otomatik bağlanma deneniyor...`);
     }
 
     // WhatsApp'ı başlat (async - hemen dön, QR kod sonra gelecek)

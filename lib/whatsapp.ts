@@ -96,6 +96,25 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     }
   }
 
+  // Firestore'dan bağlantı durumunu kontrol et
+  let shouldAutoConnect = false;
+  try {
+    await loadWhatsAppModules();
+    const { db } = await import("@/lib/firebase");
+    const { doc, getDoc } = await import("firebase/firestore");
+    const coachDoc = await getDoc(doc(db, "users", coachId));
+    if (coachDoc.exists()) {
+      const coachData = coachDoc.data();
+      // Eğer daha önce bağlanmışsa ve session varsa otomatik bağlanmayı dene
+      if (coachData.whatsappConnected && coachData.whatsappConnectedAt) {
+        shouldAutoConnect = true;
+        console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (daha önce bağlanmış)`);
+      }
+    }
+  } catch (error) {
+    console.error("Firestore bağlantı durumu kontrol hatası:", error);
+  }
+
   // Yeni client oluştur
   const clientData = {
     client: null as any,
