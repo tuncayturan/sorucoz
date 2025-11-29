@@ -330,6 +330,12 @@ export default function CoachProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Bildirimleri WhatsApp'tan Al <span className="text-gray-500 font-normal">(Opsiyonel)</span>
             </label>
+            <div className="mb-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                <strong>Not:</strong> WhatsApp bağlantısı şu anda serverless ortamda (Vercel) çalışmamaktadır. 
+                Bu özellik için ayrı bir sunucu (VPS, Railway, Render) gereklidir.
+              </p>
+            </div>
             <button
               onClick={async () => {
                 if (!user || whatsappConnected) return; // Zaten bağlıysa işlem yapma
@@ -402,12 +408,21 @@ export default function CoachProfilePage() {
                                   if (timeoutId) clearTimeout(timeoutId);
                                   setWhatsappConnecting(false);
                                   setWhatsappQRCode(null);
-                                  showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
+                                  showToast("QR kod oluşturulamadı. Serverless ortamda WhatsApp bağlantısı desteklenmemektedir.", "error");
                                   return;
                                 }
                               } else {
                                 const errorText = await statusResponse.text();
                                 console.error("Durum kontrolü başarısız:", statusResponse.status, errorText);
+                                // Hata durumunda serverless uyarısı göster
+                                if (statusResponse.status === 500 && attempts > 5) {
+                                  if (checkInterval) clearInterval(checkInterval);
+                                  if (timeoutId) clearTimeout(timeoutId);
+                                  setWhatsappConnecting(false);
+                                  setWhatsappQRCode(null);
+                                  showToast("WhatsApp bağlantısı serverless ortamda çalışmamaktadır. Ayrı bir sunucu gereklidir.", "error");
+                                  return;
+                                }
                               }
                             } catch (error) {
                               console.error("Durum kontrolü hatası:", error);
@@ -420,17 +435,22 @@ export default function CoachProfilePage() {
                             if (checkInterval) clearInterval(checkInterval);
                             setWhatsappConnecting(false);
                             setWhatsappQRCode(null);
-                            showToast("WhatsApp bağlantısı zaman aşımına uğradı. Lütfen tekrar deneyin.", "error");
+                            showToast("WhatsApp bağlantısı zaman aşımına uğradı. Serverless ortamda WhatsApp bağlantısı desteklenmemektedir.", "error");
                           }, 60000); // 60 saniye
                         } else {
                           const errorData = await response.json().catch(() => ({}));
                           console.error("WhatsApp bağlantı hatası:", errorData);
-                          showToast(errorData.error || "WhatsApp bağlantısı başlatılamadı", "error");
+                          const errorMessage = errorData.error || "WhatsApp bağlantısı başlatılamadı";
+                          if (errorMessage.includes("Puppeteer") || errorMessage.includes("serverless") || errorMessage.includes("timeout")) {
+                            showToast("WhatsApp bağlantısı serverless ortamda (Vercel) çalışmamaktadır. Ayrı bir sunucu gereklidir.", "error");
+                          } else {
+                            showToast(errorMessage, "error");
+                          }
                           setWhatsappConnecting(false);
                         }
                 } catch (error) {
                   console.error("WhatsApp bağlantı hatası:", error);
-                  showToast("WhatsApp bağlantısı başlatılamadı", "error");
+                  showToast("WhatsApp bağlantısı serverless ortamda çalışmamaktadır. Ayrı bir sunucu gereklidir.", "error");
                   setWhatsappConnecting(false);
                   if (checkInterval) clearInterval(checkInterval);
                   if (timeoutId) clearTimeout(timeoutId);

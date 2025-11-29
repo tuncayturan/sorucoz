@@ -72,6 +72,19 @@ export async function GET(request: NextRequest) {
     // WhatsApp'ı başlat (async - hemen dön, QR kod sonra gelecek)
     console.log(`🚀 WhatsApp başlatılıyor (Coach: ${coachId})...`);
     
+    // Serverless ortam kontrolü (Vercel, AWS Lambda, vb.)
+    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTION_TARGET;
+    if (isServerless) {
+      console.warn(`⚠️ Serverless ortam tespit edildi (Coach: ${coachId}), WhatsApp bağlantısı desteklenmemektedir`);
+      return NextResponse.json(
+        {
+          error: "WhatsApp bağlantısı serverless ortamda (Vercel) çalışmamaktadır. Bu özellik için ayrı bir sunucu (VPS, Railway, Render) gereklidir. WhatsApp Web.js Puppeteer gerektirir ve serverless ortamlarda çalışmaz.",
+          isServerless: true,
+        },
+        { status: 503 }
+      );
+    }
+    
     try {
       // initializeWhatsAppForCoach'ı await etmeden çağır (async işlem)
       const initPromise = initializeWhatsAppForCoach(coachId);
@@ -98,6 +111,19 @@ export async function GET(request: NextRequest) {
     } catch (error: any) {
       console.error(`❌ initializeWhatsAppForCoach çağrı hatası (Coach: ${coachId}):`, error);
       console.error(`❌ Hata detayı:`, error?.stack || error?.message || error);
+      
+      // Puppeteer veya serverless ile ilgili hata kontrolü
+      const errorMessage = error?.message || String(error);
+      if (errorMessage.includes("Puppeteer") || errorMessage.includes("serverless") || errorMessage.includes("timeout")) {
+        return NextResponse.json(
+          {
+            error: "WhatsApp bağlantısı serverless ortamda çalışmamaktadır. Bu özellik için ayrı bir sunucu gereklidir.",
+            isServerless: true,
+          },
+          { status: 503 }
+        );
+      }
+      
       // Hata durumunda durumu kontrol et
       status = await getWhatsAppStatusForCoach(coachId);
     }
