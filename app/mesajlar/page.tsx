@@ -312,9 +312,9 @@ export default function MesajlarPage() {
   // Auto-scroll to bottom when messages load or change
   useEffect(() => {
     if (mesajlar.length > 0 && !loading) {
-      setTimeout(() => scrollToBottom(), 200);
-      setTimeout(() => scrollToBottom(), 400);
-      setTimeout(() => scrollToBottom(), 600);
+      // Sadece bir kez scroll yap, kısa bir gecikme ile
+      const timeoutId = setTimeout(() => scrollToBottom(), 100);
+      return () => clearTimeout(timeoutId);
     }
   }, [mesajlar, loading]);
 
@@ -327,22 +327,11 @@ export default function MesajlarPage() {
   }, [yeniMesaj]);
 
   const scrollToBottom = () => {
-    requestAnimationFrame(() => {
-      if (messagesContainerRef.current) {
-        const container = messagesContainerRef.current;
-        if (container.offsetHeight > 0 && container.scrollHeight > container.offsetHeight) {
-          container.scrollTop = container.scrollHeight;
-        }
-        setTimeout(() => {
-          if (container.scrollHeight > 0) {
-            container.scrollTop = container.scrollHeight;
-          }
-        }, 50);
-      }
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
-      }
-    });
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      // Sadece scrollTop kullan, tek seferde scroll yap
+      container.scrollTop = container.scrollHeight;
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -477,9 +466,8 @@ export default function MesajlarPage() {
       setSelectedFiles([]);
       setFilePreviews([]);
       
-      setTimeout(() => scrollToBottom(), 200);
-      setTimeout(() => scrollToBottom(), 400);
-      setTimeout(() => scrollToBottom(), 600);
+      // Mesaj gönderildikten sonra scroll yap (sadece bir kez)
+      setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error("Mesaj gönderilirken hata:", error);
       alert("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.");
