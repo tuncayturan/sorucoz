@@ -85,7 +85,7 @@ export const storage: FirebaseStorage = (() => {
 export const getMessagingInstance = (): Messaging | null => {
   if (typeof window !== "undefined" && "serviceWorker" in navigator) {
     try {
-      return getMessaging(app);
+      return getMessaging(getApp());
     } catch (error) {
       console.error("Error initializing messaging:", error);
       return null;
@@ -95,5 +95,5 @@ export const getMessagingInstance = (): Messaging | null => {
 };
 
 // App instance (gerekirse export edilebilir)
-export { app };
+export { getApp as getFirebaseApp };
 
