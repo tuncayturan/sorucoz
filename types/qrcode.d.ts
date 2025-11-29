@@ -6,7 +6,7 @@ declare module "qrcode" {
       margin?: number;
     }
   ): Promise<string>;
-  export default {
+  const qrcode: {
     toDataURL: (
       text: string,
       options?: {
@@ -15,5 +15,6 @@ declare module "qrcode" {
       }
     ) => Promise<string>;
   };
+  export default qrcode;
 }
 

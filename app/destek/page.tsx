@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
@@ -40,7 +40,7 @@ interface DestekMesaji {
   readByStudent?: boolean; // Admin yanıtı öğrenci tarafından okundu mu (legacy)
 }
 
-export default function DestekPage() {
+function DestekPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -1315,5 +1315,20 @@ export default function DestekPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function DestekPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    }>
+      <DestekPageContent />
+    </Suspense>
   );
 }
