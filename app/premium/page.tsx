@@ -9,6 +9,7 @@ import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import Toast from "@/components/ui/Toast";
+import StudentFooter from "@/components/StudentFooter";
 
 export default function PremiumPage() {
   const router = useRouter();
@@ -408,6 +409,8 @@ export default function PremiumPage() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+      
+      <StudentFooter />
     </div>
   );
 }

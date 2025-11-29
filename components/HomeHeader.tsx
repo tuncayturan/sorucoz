@@ -41,6 +41,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
   const isPremium = userData?.premium || false;
   const displayPhoto = userData?.photoURL || user?.photoURL || null;
   const logoUrl = settings.logo || null;
+  const siteName = settings.siteName || "SoruÇöz"; // Site adı, yoksa varsayılan "SoruÇöz"
 
   // Bildirimleri çek
   useEffect(() => {
@@ -185,7 +186,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
                   <span className="text-white font-bold text-sm">SÇ</span>
                 </div>
               )}
-              <span className="font-semibold text-gray-900 hidden sm:inline">SoruÇöz</span>
+              <span className="font-semibold text-gray-900 hidden sm:inline">{siteName}</span>
             </button>
           </div>
 

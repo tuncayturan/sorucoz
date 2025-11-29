@@ -6,6 +6,9 @@ interface SiteSettings {
   logo?: string;
   icon?: string;
   favicon?: string;
+  siteName?: string;
+  footerCopyright?: string;
+  footerDescription?: string;
 }
 
 export function useSiteSettings() {

@@ -8,6 +8,7 @@ import { doc, collection, addDoc, Timestamp, updateDoc } from "firebase/firestor
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
+import StudentFooter from "@/components/StudentFooter";
 import Toast from "@/components/ui/Toast";
 import { canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { checkSubscriptionStatus } from "@/lib/subscriptionUtils";
@@ -493,6 +494,8 @@ export default function SoruSorPage() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+      
+      <StudentFooter />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import Image from "next/image";
+import StudentFooter from "@/components/StudentFooter";
 
 interface Soru {
   id: string;
@@ -362,6 +363,8 @@ export default function SorularimPage() {
           />
         </svg>
       </button>
+      
+      <StudentFooter />
     </div>
   );
 }

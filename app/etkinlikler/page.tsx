@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
+import StudentFooter from "@/components/StudentFooter";
 import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -387,6 +388,8 @@ export default function EtkinliklerPage() {
           />
         </svg>
       </button>
+      
+      <StudentFooter />
     </div>
   );
 }

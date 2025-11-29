@@ -8,6 +8,7 @@ import { collection, addDoc, Timestamp, query, orderBy, getDocs, doc, updateDoc,
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
+import StudentFooter from "@/components/StudentFooter";
 
 interface DestekMesaji {
   id: string;
@@ -1314,6 +1315,8 @@ function DestekPageContent() {
           </div>
         </div>
       )}
+      
+      <StudentFooter />
     </div>
   );
 }

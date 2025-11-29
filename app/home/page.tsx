@@ -8,6 +8,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import PopupMessage from "@/components/PopupMessage";
+import StudentFooter from "@/components/StudentFooter";
 import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -884,6 +885,8 @@ export default function HomePage() {
           />
         </svg>
       </button>
+      
+      <StudentFooter />
     </div>
   );
 }

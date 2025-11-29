@@ -8,6 +8,7 @@ import { collection, query, orderBy, getDocs, Timestamp, where } from "firebase/
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
+import StudentFooter from "@/components/StudentFooter";
 
 interface Soru {
   id: string;
@@ -550,6 +551,8 @@ export default function IstatistiklerPage() {
           />
         </svg>
       </button>
+      
+      <StudentFooter />
     </div>
   );
 }

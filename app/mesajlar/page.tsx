@@ -1,5 +1,7 @@
 "use client";
 
+import StudentFooter from "@/components/StudentFooter";
+
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -25,6 +27,7 @@ import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import Toast from "@/components/ui/Toast";
 import Image from "next/image";
+import StudentFooter from "@/components/StudentFooter";
 
 interface Mesaj {
   id: string;
@@ -900,6 +903,8 @@ export default function MesajlarPage() {
           />
         </div>
       )}
+      
+      <StudentFooter />
     </div>
   );
 }

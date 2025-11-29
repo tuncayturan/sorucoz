@@ -10,6 +10,9 @@ interface SiteSettings {
   logo?: string;
   icon?: string;
   favicon?: string;
+  siteName?: string;
+  footerCopyright?: string;
+  footerDescription?: string;
 }
 
 export default function AdminAyarlarPage() {
@@ -125,7 +128,7 @@ export default function AdminAyarlarPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Site Ayarları</h1>
-        <p className="text-gray-600 mb-4">Logo, ikon ve favicon yönetimi</p>
+        <p className="text-gray-600 mb-4">Logo, ikon, favicon ve site bilgileri yönetimi</p>
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-gray-700">
           <p className="font-semibold mb-2">ℹ️ Bilgi:</p>
           <ul className="list-disc list-inside space-y-1 text-gray-600">
@@ -139,6 +142,48 @@ export default function AdminAyarlarPage() {
 
       {/* Settings Cards */}
       <div className="space-y-6">
+        {/* Site Adı */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-200/20 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">🏷️</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Site Adı</h2>
+                <p className="text-sm text-gray-600">Header'da görünen site adı</p>
+                <p className="text-xs text-gray-500 mt-1">Logo yanında görünen site/marka adı. Boş bırakılırsa varsayılan "SoruÇöz" kullanılır.</p>
+              </div>
+            </div>
+            <div>
+              <input
+                type="text"
+                value={settings.siteName || ""}
+                onChange={(e) => setSettings((prev) => ({ ...prev, siteName: e.target.value }))}
+                onBlur={async () => {
+                  try {
+                    const settingsRef = doc(db, "siteSettings", "main");
+                    await setDoc(
+                      settingsRef,
+                      {
+                        siteName: settings.siteName || null,
+                        updatedAt: new Date(),
+                      },
+                      { merge: true }
+                    );
+                    showToast("Site adı güncellendi!", "success");
+                  } catch (error: any) {
+                    showToast(error.message || "Güncelleme başarısız", "error");
+                  }
+                }}
+                placeholder="SoruÇöz"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Logo */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-200/20 rounded-full blur-3xl"></div>
@@ -311,6 +356,83 @@ export default function AdminAyarlarPage() {
                     </div>
                   </div>
                 </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Ayarları */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-200/20 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">📄</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Footer Ayarları</h2>
+                <p className="text-sm text-gray-600">Alt bilgi metinleri</p>
+                <p className="text-xs text-gray-500 mt-1">Öğrenci sayfalarının altında görünen footer bilgileri</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Copyright Metni
+                </label>
+                <input
+                  type="text"
+                  value={settings.footerCopyright || ""}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, footerCopyright: e.target.value }))}
+                  onBlur={async () => {
+                    try {
+                      const settingsRef = doc(db, "siteSettings", "main");
+                      await setDoc(
+                        settingsRef,
+                        {
+                          footerCopyright: settings.footerCopyright || null,
+                          updatedAt: new Date(),
+                        },
+                        { merge: true }
+                      );
+                      showToast("Copyright metni güncellendi!", "success");
+                    } catch (error: any) {
+                      showToast(error.message || "Güncelleme başarısız", "error");
+                    }
+                  }}
+                  placeholder="© 2024 SoruÇöz. Tüm hakları saklıdır."
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Boş bırakılırsa varsayılan metin kullanılır</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Açıklama Metni
+                </label>
+                <input
+                  type="text"
+                  value={settings.footerDescription || ""}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, footerDescription: e.target.value }))}
+                  onBlur={async () => {
+                    try {
+                      const settingsRef = doc(db, "siteSettings", "main");
+                      await setDoc(
+                        settingsRef,
+                        {
+                          footerDescription: settings.footerDescription || null,
+                          updatedAt: new Date(),
+                        },
+                        { merge: true }
+                      );
+                      showToast("Açıklama metni güncellendi!", "success");
+                    } catch (error: any) {
+                      showToast(error.message || "Güncelleme başarısız", "error");
+                    }
+                  }}
+                  placeholder="AI destekli soru çözme platformu"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Boş bırakılırsa varsayılan metin kullanılır</p>
               </div>
             </div>
           </div>

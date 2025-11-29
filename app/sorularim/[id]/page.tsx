@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import Image from "next/image";
 import Toast from "@/components/ui/Toast";
+import StudentFooter from "@/components/StudentFooter";
 
 interface Soru {
   id: string;
@@ -388,6 +389,8 @@ export default function SoruDetayPage() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+      
+      <StudentFooter />
     </div>
   );
 }

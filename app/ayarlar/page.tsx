@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
+import StudentFooter from "@/components/StudentFooter";
 import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
@@ -802,6 +803,8 @@ export default function AyarlarPage() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+      
+      <StudentFooter />
     </div>
   );
 }
