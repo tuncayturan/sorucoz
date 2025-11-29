@@ -37,6 +37,8 @@ interface DestekMesaji {
   }>;
   readByAdmin?: boolean; // İlk mesaj admin tarafından okundu mu
   readByStudent?: boolean; // Admin yanıtı öğrenci tarafından okundu mu (legacy)
+  viewedByAdmin?: boolean; // Admin tarafından görüntülendi mi
+  viewedByAdminAt?: Timestamp; // Admin tarafından görüntülenme tarihi
 }
 
 interface UserProfile {
