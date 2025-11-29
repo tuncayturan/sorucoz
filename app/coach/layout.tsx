@@ -15,6 +15,7 @@ interface CoachBildirim {
   body: string;
   read: boolean;
   createdAt: Timestamp;
+  type?: string;
   data?: {
     type?: string;
     conversationId?: string;
