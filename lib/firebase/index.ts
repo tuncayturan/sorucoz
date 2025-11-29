@@ -20,45 +20,75 @@ let googleProviderInstance: GoogleAuthProvider | null = null;
 
 function getApp(): FirebaseApp {
   if (!app) {
+    // Mevcut app varsa onu kullan
+    const existingApps = getApps();
+    if (existingApps.length > 0) {
+      app = existingApps[0];
+      // App'in düzgün initialize edildiğini kontrol et
+      if (app && 'options' in app) {
+        return app;
+      }
+      // Eğer mevcut app düzgün değilse, yeni oluştur
+      app = null;
+    }
+    
     // Runtime'da (browser'da) config kontrolü yap
     if (typeof window !== "undefined") {
       // Browser'da çalışıyorsak, config olmalı
       if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        throw new Error(
-          "Firebase configuration is missing. Please check your environment variables."
-        );
+        const errorMsg = "Firebase configuration is missing. Please check your environment variables. " +
+          `Missing: ${!firebaseConfig.apiKey ? 'NEXT_PUBLIC_FIREBASE_API_KEY' : ''} ${!firebaseConfig.projectId ? 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' : ''}`;
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      // Yeni app initialize et
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error) {
+        console.error("Failed to initialize Firebase app:", error);
+        throw error;
       }
     } else {
-      // Build sırasında environment variables yoksa hata verme
+      // Server-side (build zamanı veya API route)
       if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-        // Build sırasında dummy app döndür (runtime'da tekrar denenecek)
-        // Sadece development'ta logla
+        // Build sırasında environment variables yoksa hata verme
         if (process.env.NODE_ENV === "development") {
           console.warn("Firebase config not available during build - this is OK, will retry at runtime");
         }
         // Dummy app instance döndür (sadece build sırasında)
         return {} as FirebaseApp;
       }
-    }
-    
-    // Mevcut app varsa onu kullan, yoksa yeni initialize et
-    const existingApps = getApps();
-    if (existingApps.length > 0) {
-      app = existingApps[0];
-    } else {
-      app = initializeApp(firebaseConfig);
+      
+      try {
+        app = initializeApp(firebaseConfig);
+      } catch (error) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Firebase initialization failed (this is OK during build):", error);
+        }
+        return {} as FirebaseApp;
+      }
     }
   }
   
   // Runtime'da app'in düzgün initialize edildiğini kontrol et
-  if (typeof window !== "undefined" && (!app || !('options' in app))) {
-    // App düzgün initialize edilmemişse, tekrar dene
-    if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      throw new Error(
-        "Firebase app not properly initialized. Please check your environment variables."
-      );
+  if (typeof window !== "undefined") {
+    if (!app || !('options' in app)) {
+      // App düzgün initialize edilmemişse, tekrar dene
+      if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+        try {
+          app = initializeApp(firebaseConfig);
+        } catch (error) {
+          console.error("Failed to re-initialize Firebase app:", error);
+          throw new Error(
+            "Firebase app not properly initialized. Please check your environment variables."
+          );
+        }
+      } else {
+        throw new Error(
+          "Firebase app not properly initialized. Please check your environment variables."
+        );
+      }
     }
   }
   
@@ -120,22 +150,94 @@ export const googleProvider: GoogleAuthProvider = (() => {
   return googleProviderInstance;
 })();
 
-// Firestore - lazy load
-export const db: Firestore = (() => {
+// Firestore - lazy load (getter function)
+export function getDbInstance(): Firestore {
   if (!dbInstance) {
     try {
-      dbInstance = getFirestore(getApp());
-    } catch (error) {
-      // Sadece development'ta logla, production build'de sessiz kal
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Firebase Firestore initialization failed (this is OK during build):", error);
+      const app = getApp();
+      // App'in düzgün initialize edildiğini kontrol et
+      if (!app || !('options' in app)) {
+        throw new Error("Firebase app not properly initialized");
       }
-      // Dummy db instance döndür (build sırasında)
-      return {} as Firestore;
+      dbInstance = getFirestore(app);
+      
+      // Runtime'da db instance'ın düzgün oluşturulduğunu kontrol et
+      if (typeof window !== "undefined" && !dbInstance) {
+        throw new Error("Firebase Firestore instance is null");
+      }
+    } catch (error) {
+      // Runtime'da tekrar dene
+      if (typeof window !== "undefined") {
+        // Browser'da çalışıyorsak tekrar dene
+        try {
+          // Önce mevcut app'leri kontrol et
+          const existingApps = getApps();
+          if (existingApps.length > 0) {
+            dbInstance = getFirestore(existingApps[0]);
+          } else {
+            // Config'i kontrol et
+            if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+              throw new Error("Firebase configuration is missing. Please check environment variables.");
+            }
+            const app = initializeApp(firebaseConfig);
+            dbInstance = getFirestore(app);
+          }
+        } catch (retryError) {
+          console.error("Firebase Firestore initialization failed:", retryError);
+          throw retryError;
+        }
+      } else {
+        // Build sırasında hata olabilir, runtime'da tekrar denenecek
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Firebase Firestore initialization failed (this is OK during build):", error);
+        }
+        throw error;
+      }
     }
   }
+  
+  if (!dbInstance) {
+    throw new Error("Firebase Firestore instance could not be initialized");
+  }
+  
   return dbInstance;
-})();
+}
+
+// Firestore instance export - Proxy ile lazy loading
+// Bu yaklaşım, her db kullanımında runtime'da gerçek instance'ı alır
+export const db: Firestore = new Proxy({} as Firestore, {
+  get(target, prop) {
+    // Her property erişiminde gerçek db instance'ını al
+    const realDb = getDbInstance();
+    const value = (realDb as any)[prop];
+    
+    // Eğer function ise, context'i koru
+    if (typeof value === 'function') {
+      return value.bind(realDb);
+    }
+    
+    return value;
+  },
+  
+  // Proxy'nin diğer metodlarını da implement et
+  has(target, prop) {
+    try {
+      const realDb = getDbInstance();
+      return prop in realDb;
+    } catch {
+      return false;
+    }
+  },
+  
+  ownKeys(target) {
+    try {
+      const realDb = getDbInstance();
+      return Reflect.ownKeys(realDb);
+    } catch {
+      return [];
+    }
+  }
+});
 
 // Storage - lazy load
 export const storage: FirebaseStorage = (() => {

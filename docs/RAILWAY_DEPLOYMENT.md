@@ -16,14 +16,16 @@ Bu rehber, WhatsApp özelliğini test etmek için projeyi Railway'e deploy etme 
 
 Railway dashboard'unda "Variables" sekmesine gidin ve şu değişkenleri ekleyin:
 
+**NOT:** Firebase config için default değerler kod içinde tanımlıdır, ancak production için environment variables kullanmanız önerilir.
+
 ```env
-# Firebase
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+# Firebase (Opsiyonel - default değerler kullanılabilir, ama önerilir)
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDmvEdQicJmsPhFjDcXXgj5rK0LO9Er2KU
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=sorucoz-6deb3.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=sorucoz-6deb3
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=sorucoz-6deb3.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=1026488924758
+NEXT_PUBLIC_FIREBASE_APP_ID=1:1026488924758:web:d4c081b5f87a62f10ed9f7
 
 # Firebase Admin (Server-side)
 FIREBASE_ADMIN_PROJECT_ID=your_firebase_project_id
@@ -79,6 +81,50 @@ Domain oluşturulduktan sonra Firebase Console'da authorized domains'e eklemeniz
 Bu adım olmadan Firebase Authentication production domain'de çalışmayacaktır!
 
 ## 🔧 Sorun Giderme
+
+### Firebase "Expected first argument to collection()" Hatası
+
+Bu hata genellikle Firebase environment variables'ların eksik veya yanlış ayarlanmasından kaynaklanır.
+
+**Kontrol Listesi:**
+
+1. **Railway Dashboard → Variables Sekmesi** - Aşağıdaki tüm değişkenlerin mevcut olduğundan emin olun:
+   - ✅ `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - ✅ `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - ✅ `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - ✅ `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - ✅ `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - ✅ `NEXT_PUBLIC_FIREBASE_APP_ID`
+
+2. **Değişken Değerlerini Kontrol Edin:**
+   - Her değişkenin değerinin doğru olduğundan emin olun
+   - Başında veya sonunda boşluk olmadığından emin olun
+   - Tırnak işareti (`"` veya `'`) kullanmayın
+
+3. **Firebase Console'dan Değerleri Alın:**
+   - [Firebase Console](https://console.firebase.google.com/) → Projenizi seçin
+   - ⚙️ **Project Settings** → **General** sekmesi
+   - **Your apps** bölümünden web uygulamanızı seçin (veya yeni bir tane oluşturun)
+   - Config objesindeki değerleri kopyalayın
+
+4. **Railway'de Değişkenleri Güncelleyin:**
+   - Railway Dashboard → Variables
+   - Her değişkeni tek tek kontrol edin ve güncelleyin
+   - Kaydet butonuna tıklayın
+
+5. **Yeniden Deploy:**
+   - Railway otomatik olarak yeniden deploy edecektir
+   - Veya **Deployments** sekmesinden manuel olarak **Redeploy** edebilirsiniz
+
+6. **Console Loglarını Kontrol Edin:**
+   - Browser'da F12 ile Developer Tools'u açın
+   - Console sekmesinde Firebase ile ilgili hataları kontrol edin
+   - Railway Logs'u da kontrol edin (Railway Dashboard → Logs)
+
+**Yaygın Hatalar:**
+- ❌ `Firebase app not properly initialized` → Environment variables eksik
+- ❌ `Expected first argument to collection() to be a CollectionReference` → Firebase db instance düzgün initialize edilmemiş
+- ❌ `Firebase configuration is missing` → Environment variables ayarlanmamış
 
 ### Puppeteer/Chromium Hataları
 
