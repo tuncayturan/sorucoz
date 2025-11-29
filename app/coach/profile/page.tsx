@@ -349,13 +349,13 @@ export default function CoachProfilePage() {
           {/* WhatsApp Connection */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bildirimleri WhatsApp'tan Al <span className="text-gray-500 font-normal">(Opsiyonel)</span>
+              Bildirimleri Aç <span className="text-gray-500 font-normal">(Opsiyonel)</span>
             </label>
             <button
               onClick={async () => {
                 if (!user) return;
                 if (whatsappConnected) {
-                  showToast("WhatsApp zaten bağlı!", "info");
+                  showToast("Bildirimler zaten açık!", "info");
                   return;
                 }
                 
@@ -390,7 +390,7 @@ export default function CoachProfilePage() {
                   
                   if (data.isReady) {
                     // Zaten bağlıysa
-                    console.log("✅ WhatsApp zaten bağlı!");
+                    console.log("✅ Zaten bağlı!");
                     setWhatsappConnected(true);
                     setWhatsappConnecting(false);
                     setWhatsappQRCode(null);
@@ -442,7 +442,7 @@ export default function CoachProfilePage() {
                       }
                       
                       if (statusData.isReady) {
-                        console.log(`✅ [${attempts}] WhatsApp bağlantısı kuruldu!`);
+                        console.log(`✅ [${attempts}] Bağlantı kuruldu!`);
                         setWhatsappConnected(true);
                         setWhatsappConnecting(false);
                         setWhatsappQRCode(null);
@@ -604,11 +604,11 @@ export default function CoachProfilePage() {
       />
 
       {/* QR Code Popup Modal */}
-      {(whatsappConnecting || whatsappQRCode) && !whatsappConnected && (
+      {whatsappConnecting && !whatsappConnected && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-900">WhatsApp Bağlantısı</h3>
+              <h3 className="text-lg font-bold text-gray-900">Bağlantı Kuruluyor</h3>
               <button
                 onClick={() => {
                   setWhatsappConnecting(false);
@@ -625,12 +625,12 @@ export default function CoachProfilePage() {
               {whatsappQRCode ? (
                 <>
                   <p className="text-sm text-gray-600 text-center mb-2">
-                    WhatsApp uygulamanızı açın → Bağlı Cihazlar → Cihaz Bağla
+                    Uygulamanızı açın → Bağlı Cihazlar → Cihaz Bağla
                   </p>
                   <div className="p-4 bg-white rounded-xl border-2 border-gray-200">
                     <img
                       src={whatsappQRCode}
-                      alt="WhatsApp QR Code"
+                      alt="QR Code"
                       className="w-64 h-64 object-contain"
                       onError={(e) => {
                         console.error("QR kod yüklenemedi");
