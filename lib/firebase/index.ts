@@ -34,19 +34,35 @@ function getApp(): FirebaseApp {
     
     // Runtime'da (browser'da) config kontrolü yap
     if (typeof window !== "undefined") {
-      // Browser'da çalışıyorsak, config olmalı
+      // Browser'da çalışıyorsak, config olmalı (fallback değerler config.ts'de tanımlı)
+      // Config değerlerini kontrol et
       if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
         const errorMsg = "Firebase configuration is missing. Please check your environment variables. " +
           `Missing: ${!firebaseConfig.apiKey ? 'NEXT_PUBLIC_FIREBASE_API_KEY' : ''} ${!firebaseConfig.projectId ? 'NEXT_PUBLIC_FIREBASE_PROJECT_ID' : ''}`;
         console.error(errorMsg);
+        // Fallback değerler config.ts'de tanımlı, bu hata normalde olmamalı
+        // Ama yine de hata veriyoruz çünkü config.ts'deki fallback değerler kullanılmıyor olabilir
         throw new Error(errorMsg);
       }
       
       // Yeni app initialize et
       try {
+        // Config değerlerini logla (debug için)
+        console.log("[Firebase] Initializing with config:", {
+          apiKey: firebaseConfig.apiKey?.substring(0, 10) + "...",
+          projectId: firebaseConfig.projectId,
+          authDomain: firebaseConfig.authDomain
+        });
         app = initializeApp(firebaseConfig);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to initialize Firebase app:", error);
+        // Eğer invalid-api-key hatası varsa, config değerlerini kontrol et
+        if (error?.code === 'auth/invalid-api-key') {
+          console.error("[Firebase] Invalid API key. Config values:", {
+            apiKey: firebaseConfig.apiKey?.substring(0, 20) + "...",
+            projectId: firebaseConfig.projectId
+          });
+        }
         throw error;
       }
     } else {
@@ -75,16 +91,29 @@ function getApp(): FirebaseApp {
   if (typeof window !== "undefined") {
     if (!app || !('options' in app)) {
       // App düzgün initialize edilmemişse, tekrar dene
+      // Fallback değerler config.ts'de tanımlı, bu yüzden apiKey ve projectId her zaman olmalı
       if (firebaseConfig.apiKey && firebaseConfig.projectId) {
         try {
+          console.log("[Firebase] Re-initializing app with config:", {
+            apiKey: firebaseConfig.apiKey?.substring(0, 10) + "...",
+            projectId: firebaseConfig.projectId
+          });
           app = initializeApp(firebaseConfig);
-        } catch (error) {
+        } catch (error: any) {
           console.error("Failed to re-initialize Firebase app:", error);
+          if (error?.code === 'auth/invalid-api-key') {
+            console.error("[Firebase] Invalid API key detected. Please check Railway environment variables.");
+          }
           throw new Error(
             "Firebase app not properly initialized. Please check your environment variables."
           );
         }
       } else {
+        // Bu durum normalde olmamalı çünkü fallback değerler config.ts'de tanımlı
+        console.error("[Firebase] Config values are missing even with fallbacks:", {
+          hasApiKey: !!firebaseConfig.apiKey,
+          hasProjectId: !!firebaseConfig.projectId
+        });
         throw new Error(
           "Firebase app not properly initialized. Please check your environment variables."
         );
