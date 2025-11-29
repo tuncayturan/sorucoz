@@ -639,8 +639,6 @@ export default function MesajlarPage() {
                         <p className="text-xs text-gray-500">Coach</p>
                       )}
                     </div>
-                      <p className="text-xs text-gray-500">Coach</p>
-              </div>
                   </div>
 
                   {/* Messages */}
