@@ -143,7 +143,7 @@ export default function MesajlarPage() {
           // Check if conversation exists
           const conversationRef = doc(db, "conversations", conversationId);
           const conversationSnap = await getDoc(conversationRef);
-          
+
           // Get unread count - fetch all messages and filter client-side to avoid index requirement
           const messagesRef = collection(db, "conversations", conversationId, "messages");
           const allMessagesSnapshot = await getDocs(messagesRef);
@@ -151,7 +151,7 @@ export default function MesajlarPage() {
             const data = doc.data();
             return !data.readByStudent && data.senderId !== user.uid;
           }).length;
-          
+
           // Get last message
           const lastMessageQuery = query(
             messagesRef,
@@ -196,7 +196,7 @@ export default function MesajlarPage() {
       } catch (error) {
         console.error("Conversations yüklenirken hata:", error);
         setLoading(false);
-      }
+    }
     };
 
     fetchConversations();
@@ -228,8 +228,8 @@ export default function MesajlarPage() {
                   ...updated[index],
                   lastMessage: lastMsg.createdAt,
                   lastMessageText: lastMsg.text || "Dosya gönderildi",
-                };
-              }
+              };
+            }
             }
             
             // Re-sort
@@ -505,7 +505,7 @@ export default function MesajlarPage() {
   const formatTime = (timestamp: Timestamp) => {
     if (!timestamp) return "";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-    return date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
   };
 
   if (authLoading || userDataLoading || loading) {
@@ -513,7 +513,7 @@ export default function MesajlarPage() {
       <div className="min-h-screen bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1]">
         <HomeHeader onMenuClick={() => setIsMenuOpen(true)} />
         <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="text-gray-400">Yükleniyor...</div>
+        <div className="text-gray-400">Yükleniyor...</div>
         </div>
       </div>
     );
@@ -577,7 +577,7 @@ export default function MesajlarPage() {
                                   {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
                                 </span>
                               )}
-                            </div>
+              </div>
                             {conv.lastMessageText ? (
                               <>
                                 <p className="text-sm text-gray-600 truncate mb-1">{conv.lastMessageText}</p>
@@ -590,11 +590,11 @@ export default function MesajlarPage() {
                             ) : (
                               <p className="text-sm text-gray-400 italic">Yeni sohbet başlat</p>
                             )}
-                          </div>
-                        </div>
+            </div>
+          </div>
                       </button>
                     ))}
-                  </div>
+        </div>
                 )}
               </div>
             </div>
@@ -627,7 +627,7 @@ export default function MesajlarPage() {
                     <div>
                       <h3 className="font-semibold text-gray-900">{selectedConversation.coachName}</h3>
                       <p className="text-xs text-gray-500">Coach</p>
-                    </div>
+              </div>
                   </div>
 
                   {/* Messages */}
@@ -638,226 +638,226 @@ export default function MesajlarPage() {
                     {mesajlar.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <p className="text-gray-500">Henüz mesaj yok</p>
-                      </div>
-                    ) : (
+            </div>
+          ) : (
                       <>
-                        {mesajlar.map((mesaj, index) => {
-                        const isUser = mesaj.senderId === user?.uid;
-                        const prevMesaj = index > 0 ? mesajlar[index - 1] : null;
-                        const showAvatar = !prevMesaj || prevMesaj.senderId !== mesaj.senderId;
-                        const showDate = !prevMesaj || 
-                          Math.abs((prevMesaj.createdAt?.toDate?.()?.getTime() || 0) - (mesaj.createdAt?.toDate?.()?.getTime() || 0)) > 5 * 60 * 1000;
+              {mesajlar.map((mesaj, index) => {
+                const isUser = mesaj.senderId === user?.uid;
+                const prevMesaj = index > 0 ? mesajlar[index - 1] : null;
+                const showAvatar = !prevMesaj || prevMesaj.senderId !== mesaj.senderId;
+                const showDate = !prevMesaj || 
+                  Math.abs((prevMesaj.createdAt?.toDate?.()?.getTime() || 0) - (mesaj.createdAt?.toDate?.()?.getTime() || 0)) > 5 * 60 * 1000;
 
-                        return (
-                          <div key={mesaj.id}>
-                            {showDate && (
-                              <div className="flex justify-center my-4">
-                                <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                                  {formatTarih(mesaj.createdAt)}
-                                </span>
-                              </div>
-                            )}
-                            <div className={`flex items-end gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-                              {showAvatar && (
-                                <div className={`flex-shrink-0 w-10 h-10 rounded-full overflow-hidden ${isUser ? "ml-2" : "mr-2"}`}>
+                return (
+                  <div key={mesaj.id}>
+                    {showDate && (
+                      <div className="flex justify-center my-4">
+                        <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
+                          {formatTarih(mesaj.createdAt)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`flex items-end gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                      {showAvatar && (
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full overflow-hidden ${isUser ? "ml-2" : "mr-2"}`}>
                                   {mesaj.senderPhoto ? (
-                                    <img
+                                <img
                                       src={mesaj.senderPhoto}
-                                      alt={mesaj.senderName}
-                                      className="w-full h-full object-cover"
-                                    />
+                                  alt={mesaj.senderName}
+                                  className="w-full h-full object-cover"
+                                />
                                   ) : (
-                                    <div className={`w-full h-full bg-gradient-to-br ${isUser ? "from-blue-500 to-indigo-600" : "from-green-500 to-emerald-600"} flex items-center justify-center`}>
-                                      <span className="text-white font-semibold text-sm">
-                                        {mesaj.senderName.charAt(0).toUpperCase()}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[75%] ${!showAvatar ? (isUser ? "mr-12" : "ml-12") : ""}`}>
-                                {showAvatar && (
-                                  <span className={`text-xs font-medium mb-1 ${isUser ? "text-blue-600" : "text-green-600"}`}>
-                                    {mesaj.senderName}
+                                <div className={`w-full h-full bg-gradient-to-br ${isUser ? "from-blue-500 to-indigo-600" : "from-green-500 to-emerald-600"} flex items-center justify-center`}>
+                                  <span className="text-white font-semibold text-sm">
+                                    {mesaj.senderName.charAt(0).toUpperCase()}
                                   </span>
-                                )}
-                                <div
-                                  className={`rounded-3xl px-5 py-3.5 shadow-lg backdrop-blur-sm ${
-                                    isUser
-                                      ? "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white rounded-br-sm shadow-blue-500/30"
-                                      : "bg-white/90 backdrop-blur-md text-gray-900 rounded-bl-sm shadow-gray-200/50 border border-gray-100/50"
-                                  }`}
-                                >
-                                  {mesaj.attachments && mesaj.attachments.length > 0 && (
-                                    <div className="grid grid-cols-2 gap-2 mb-2">
-                                      {mesaj.attachments.map((url, idx) => {
+                                </div>
+                                  )}
+                        </div>
+                      )}
+                      <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} max-w-[75%] ${!showAvatar ? (isUser ? "mr-12" : "ml-12") : ""}`}>
+                        {showAvatar && (
+                          <span className={`text-xs font-medium mb-1 ${isUser ? "text-blue-600" : "text-green-600"}`}>
+                            {mesaj.senderName}
+                          </span>
+                        )}
+                        <div
+                          className={`rounded-3xl px-5 py-3.5 shadow-lg backdrop-blur-sm ${
+                            isUser
+                              ? "bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white rounded-br-sm shadow-blue-500/30"
+                              : "bg-white/90 backdrop-blur-md text-gray-900 rounded-bl-sm shadow-gray-200/50 border border-gray-100/50"
+                          }`}
+                        >
+                          {mesaj.attachments && mesaj.attachments.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              {mesaj.attachments.map((url, idx) => {
                                         const isPDF = url.match(/\.(pdf)$/i) || url.includes('/raw/upload/') || url.includes('format=pdf');
                                         const isImage = !isPDF && url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-                                        
-                                        if (isImage) {
-                                          return (
-                                            <button
-                                              key={idx}
-                                              onClick={() => {
-                                                setSelectedImageUrl(url);
-                                                setImageViewerOpen(true);
-                                              }}
-                                              className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition"
-                                            >
-                                              <img
-                                                src={url}
-                                                alt={`Ek ${idx + 1}`}
-                                                className="w-full h-32 object-cover"
-                                              />
-                                            </button>
-                                          );
-                                        } else if (isPDF) {
+                                
+                                if (isImage) {
+                                  return (
+                                    <button
+                                      key={idx}
+                                      onClick={() => {
+                                        setSelectedImageUrl(url);
+                                        setImageViewerOpen(true);
+                                      }}
+                                      className="rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition"
+                                    >
+                                      <img
+                                        src={url}
+                                        alt={`Ek ${idx + 1}`}
+                                        className="w-full h-32 object-cover"
+                                      />
+                                    </button>
+                                  );
+                                } else if (isPDF) {
                                           const pdfViewUrl = `/api/pdf/view?url=${encodeURIComponent(url)}`;
                                           
-                                          return (
+                                  return (
                                             <button
-                                              key={idx}
+                                      key={idx}
                                               type="button"
                                               onClick={() => {
                                                 window.open(pdfViewUrl, '_blank', 'noopener,noreferrer');
                                               }}
                                               className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-center justify-center hover:bg-red-100 transition cursor-pointer w-full"
-                                            >
-                                              <div className="text-center">
-                                                <svg className="w-8 h-8 text-red-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                </svg>
+                                    >
+                                      <div className="text-center">
+                                        <svg className="w-8 h-8 text-red-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
                                                 <p className="text-xs text-red-700 font-medium">PDF Aç</p>
-                                              </div>
+                                      </div>
                                             </button>
                                           );
                                         }
                                         return null;
-                                      })}
-                                    </div>
-                                  )}
-                                  {mesaj.text && (
-                                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                                      {mesaj.text}
-                                    </p>
-                                  )}
-                                  {!mesaj.text && mesaj.attachments && mesaj.attachments.length > 0 && (
-                                    <p className="text-sm italic opacity-80">Dosya gönderildi</p>
-                                  )}
-                                </div>
-                                <div className={`flex items-center gap-1 mt-1 ${isUser ? "justify-end" : "justify-start"}`}>
-                                  <span className={`text-xs text-gray-500`}>
-                                    {formatTime(mesaj.createdAt)}
-                                  </span>
-                                  {isUser && (
-                                    mesaj.readByCoach ? (
-                                      <span className="text-[12px] text-blue-500">✓✓</span>
-                                    ) : (
-                                      <span className="text-[12px] text-gray-400">✓</span>
-                                    )
-                                  )}
-                                  {!isUser && (
-                                    mesaj.readByStudent ? (
-                                      <span className="text-[12px] text-blue-500">✓✓</span>
-                                    ) : (
-                                      <span className="text-[12px] text-gray-400">✓</span>
-                                    )
-                                  )}
-                                </div>
-                              </div>
+                              })}
                             </div>
-                          </div>
-                        );
-                      })}
+                          )}
+                          {mesaj.text && (
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                              {mesaj.text}
+                            </p>
+                          )}
+                          {!mesaj.text && mesaj.attachments && mesaj.attachments.length > 0 && (
+                            <p className="text-sm italic opacity-80">Dosya gönderildi</p>
+                          )}
+                        </div>
+                        <div className={`flex items-center gap-1 mt-1 ${isUser ? "justify-end" : "justify-start"}`}>
+                          <span className={`text-xs text-gray-500`}>
+                                    {formatTime(mesaj.createdAt)}
+                          </span>
+                          {isUser && (
+                            mesaj.readByCoach ? (
+                              <span className="text-[12px] text-blue-500">✓✓</span>
+                            ) : (
+                              <span className="text-[12px] text-gray-400">✓</span>
+                            )
+                          )}
+                          {!isUser && (
+                            mesaj.readByStudent ? (
+                              <span className="text-[12px] text-blue-500">✓✓</span>
+                            ) : (
+                              <span className="text-[12px] text-gray-400">✓</span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
                       </>
                     )}
-                    <div ref={messagesEndRef} />
-                  </div>
+              <div ref={messagesEndRef} />
+        </div>
 
                   {/* Message Input */}
                   <form onSubmit={handleGonder} className="p-4 border-t border-gray-200/50">
                     <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/50">
-                      {filePreviews.length > 0 && (
-                        <div className="mb-2 flex gap-2 flex-wrap">
-                          {filePreviews.map((preview, idx) => (
-                            <div key={idx} className="relative">
-                              {preview ? (
-                                <img
-                                  src={preview}
-                                  alt={`Preview ${idx + 1}`}
-                                  className="w-20 h-20 object-cover rounded-lg"
-                                />
-                              ) : (
+              {filePreviews.length > 0 && (
+                <div className="mb-2 flex gap-2 flex-wrap">
+                  {filePreviews.map((preview, idx) => (
+                    <div key={idx} className="relative">
+                      {preview ? (
+                        <img
+                          src={preview}
+                          alt={`Preview ${idx + 1}`}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                      ) : (
                                 <div className="w-20 h-20 bg-red-50 rounded-lg flex items-center justify-center border border-red-200">
                                   <div className="text-center">
                                     <svg className="w-8 h-8 text-red-600 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
                                     <p className="text-[10px] text-red-600 font-medium">PDF</p>
                                   </div>
-                                </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => removeFile(idx)}
-                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
                         </div>
                       )}
-                      <div className="flex items-end gap-3">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*,application/pdf"
-                          multiple
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={selectedFiles.length >= 5 || uploadingFiles}
-                          className="w-11 h-11 bg-gray-100/80 hover:bg-gray-200/80 backdrop-blur-sm rounded-[1rem] flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm"
-                        >
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </button>
-                        <div className="flex-1 relative">
-                          <textarea
-                            ref={textareaRef}
-                            value={yeniMesaj}
-                            onChange={(e) => setYeniMesaj(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleGonder(e);
-                              }
-                            }}
-                            placeholder="Mesajınızı yazın..."
-                            rows={1}
-                            className="w-full px-4 py-3 pr-12 rounded-[1.25rem] border border-gray-200/80 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300/50 transition-all resize-none shadow-sm hover:shadow-md text-sm overflow-hidden"
-                            style={{ minHeight: "48px", maxHeight: "120px" }}
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={(!yeniMesaj.trim() && selectedFiles.length === 0) || gonderiliyor || uploadingFiles}
-                          className="w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white rounded-[1.25rem] flex items-center justify-center shadow-[0_4px_20px_rgba(59,130,246,0.4)] hover:shadow-[0_6px_25px_rgba(59,130,246,0.5)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                        >
-                          {gonderiliyor || uploadingFiles ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-end gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={selectedFiles.length >= 5 || uploadingFiles}
+                  className="w-11 h-11 bg-gray-100/80 hover:bg-gray-200/80 backdrop-blur-sm rounded-[1rem] flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <div className="flex-1 relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={yeniMesaj}
+                    onChange={(e) => setYeniMesaj(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleGonder(e);
+                      }
+                    }}
+                    placeholder="Mesajınızı yazın..."
+                    rows={1}
+                    className="w-full px-4 py-3 pr-12 rounded-[1.25rem] border border-gray-200/80 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300/50 transition-all resize-none shadow-sm hover:shadow-md text-sm overflow-hidden"
+                    style={{ minHeight: "48px", maxHeight: "120px" }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={(!yeniMesaj.trim() && selectedFiles.length === 0) || gonderiliyor || uploadingFiles}
+                  className="w-12 h-12 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white rounded-[1.25rem] flex items-center justify-center shadow-[0_4px_20px_rgba(59,130,246,0.4)] hover:shadow-[0_6px_25px_rgba(59,130,246,0.5)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                >
+                  {gonderiliyor || uploadingFiles ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  )}
+                </button>
+              </div>
                     </div>
                   </form>
                 </>
