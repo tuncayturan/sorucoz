@@ -353,7 +353,11 @@ export default function CoachProfilePage() {
             </label>
             <button
               onClick={async () => {
-                if (!user || whatsappConnected) return; // Zaten bağlıysa işlem yapma
+                if (!user) return;
+                if (whatsappConnected) {
+                  showToast("WhatsApp zaten bağlı!", "info");
+                  return;
+                }
                 
                 setWhatsappConnecting(true);
                 setWhatsappQRCode(null);
