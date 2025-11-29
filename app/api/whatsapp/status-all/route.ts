@@ -1,7 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWhatsAppStatusForCoach } from "@/lib/whatsapp";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+
+// Helper function: Firestore Timestamp'i Date'e çevir
+function convertTimestamp(timestamp: any): Date | null {
+  if (!timestamp) return null;
+  
+  // Eğer zaten bir Date ise
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+  
+  // Eğer Firestore Timestamp ise
+  if (timestamp && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  
+  // Eğer Timestamp objesi ise (server-side'da serialize edilmiş)
+  if (timestamp && timestamp.seconds) {
+    return new Date(timestamp.seconds * 1000);
+  }
+  
+  // Eğer string ise
+  if (typeof timestamp === 'string') {
+    return new Date(timestamp);
+  }
+  
+  // Eğer number ise (milliseconds)
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp);
+  }
+  
+  return null;
+}
 
 /**
  * Tüm coach'ların WhatsApp durumlarını döndürür
@@ -23,6 +55,13 @@ export async function GET() {
       const coachData = coachDoc.data();
       const status = await getWhatsAppStatusForCoach(coachId);
 
+      // Timestamp'leri Date'e çevir
+      const connectedAt = convertTimestamp(coachData.whatsappConnectedAt);
+      const qrGeneratedAt = convertTimestamp(coachData.whatsappQRGeneratedAt);
+      const qrScannedAt = convertTimestamp(coachData.whatsappQRScannedAt);
+      const disconnectedAt = convertTimestamp(coachData.whatsappDisconnectedAt);
+      const lastSeen = convertTimestamp(coachData.whatsappLastSeen);
+
       coachesStatus.push({
         id: coachId,
         name: coachData.name || "İsimsiz Coach",
@@ -32,12 +71,12 @@ export async function GET() {
         hasQRCode: status.qrCode !== null,
         whatsappPhoneNumber: coachData.whatsappPhoneNumber || null,
         whatsappPushname: coachData.whatsappPushname || null,
-        whatsappConnectedAt: coachData.whatsappConnectedAt || null,
-        whatsappQRGeneratedAt: coachData.whatsappQRGeneratedAt || null,
-        whatsappQRScannedAt: coachData.whatsappQRScannedAt || null,
-        whatsappDisconnectedAt: coachData.whatsappDisconnectedAt || null,
+        whatsappConnectedAt: connectedAt ? connectedAt.toISOString() : null,
+        whatsappQRGeneratedAt: qrGeneratedAt ? qrGeneratedAt.toISOString() : null,
+        whatsappQRScannedAt: qrScannedAt ? qrScannedAt.toISOString() : null,
+        whatsappDisconnectedAt: disconnectedAt ? disconnectedAt.toISOString() : null,
         whatsappDisconnectReason: coachData.whatsappDisconnectReason || null,
-        whatsappLastSeen: coachData.whatsappLastSeen || null,
+        whatsappLastSeen: lastSeen ? lastSeen.toISOString() : null,
       });
     }
 

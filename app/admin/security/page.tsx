@@ -12,14 +12,14 @@ interface CoachWhatsAppStatus {
   whatsappConnected: boolean;
   whatsappConnecting: boolean;
   hasQRCode: boolean;
-  whatsappPhoneNumber?: string;
-  whatsappPushname?: string;
-  whatsappConnectedAt?: any;
-  whatsappQRGeneratedAt?: any;
-  whatsappQRScannedAt?: any;
-  whatsappDisconnectedAt?: any;
-  whatsappDisconnectReason?: string;
-  whatsappLastSeen?: any;
+  whatsappPhoneNumber?: string | null;
+  whatsappPushname?: string | null;
+  whatsappConnectedAt?: string | null; // ISO string
+  whatsappQRGeneratedAt?: string | null; // ISO string
+  whatsappQRScannedAt?: string | null; // ISO string
+  whatsappDisconnectedAt?: string | null; // ISO string
+  whatsappDisconnectReason?: string | null;
+  whatsappLastSeen?: string | null; // ISO string
 }
 
 export default function AdminSecurityPage() {
@@ -216,17 +216,17 @@ export default function AdminSecurityPage() {
                           )}
                           {coach.whatsappConnectedAt && (
                             <div className="text-gray-600 text-xs">
-                              <span className="font-medium">Bağlantı:</span> {new Date(coach.whatsappConnectedAt.toDate()).toLocaleString("tr-TR")}
+                              <span className="font-medium">Bağlantı:</span> {new Date(coach.whatsappConnectedAt).toLocaleString("tr-TR")}
                             </div>
                           )}
                           {coach.whatsappQRScannedAt && (
                             <div className="text-gray-600 text-xs">
-                              <span className="font-medium">QR Okutma:</span> {new Date(coach.whatsappQRScannedAt.toDate()).toLocaleString("tr-TR")}
+                              <span className="font-medium">QR Okutma:</span> {new Date(coach.whatsappQRScannedAt).toLocaleString("tr-TR")}
                             </div>
                           )}
                           {coach.whatsappDisconnectedAt && (
                             <div className="text-red-600 text-xs">
-                              <span className="font-medium">Kesilme:</span> {new Date(coach.whatsappDisconnectedAt.toDate()).toLocaleString("tr-TR")}
+                              <span className="font-medium">Kesilme:</span> {new Date(coach.whatsappDisconnectedAt).toLocaleString("tr-TR")}
                               {coach.whatsappDisconnectReason && ` (${coach.whatsappDisconnectReason})`}
                             </div>
                           )}
