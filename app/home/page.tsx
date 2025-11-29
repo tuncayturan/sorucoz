@@ -146,7 +146,7 @@ export default function HomePage() {
     if (!user || userData?.role !== "student") return;
 
     const unsubscribeFunctions: (() => void)[] = [];
-    const coachesMap = new Map<string, { name: string; photoURL?: string | null }>();
+    const coachesMap = new Map<string, { name: string; photoURL?: string | null; title?: string | null }>();
     const allEventsMap = new Map<string, any>(); // eventId -> event
 
     const setupEventListeners = async () => {
@@ -156,12 +156,13 @@ export default function HomePage() {
         const coachesQuery = query(usersRef, where("role", "==", "coach"));
         const coachesSnapshot = await getDocs(coachesQuery);
 
-        // Coach isimlerini ve profil resimlerini kaydet
+        // Coach isimlerini, profil resimlerini ve ünvanlarını kaydet
         coachesSnapshot.docs.forEach((coachDoc) => {
           const coachData = coachDoc.data();
           coachesMap.set(coachDoc.id, {
             name: coachData.name || "Coach",
             photoURL: coachData.photoURL || null,
+            title: coachData.title || null, // Coach ünvanı
           });
         });
 
@@ -205,12 +206,13 @@ export default function HomePage() {
             // Yeni etkinlikleri ekle
             snapshot.forEach((eventDoc) => {
               const eventData = eventDoc.data();
-              const coachInfo = coachesMap.get(coachId) || { name: "Coach", photoURL: null };
+              const coachInfo = coachesMap.get(coachId) || { name: "Coach", photoURL: null, title: null };
               allEventsMap.set(eventDoc.id, {
                 id: eventDoc.id,
                 coachId,
                 coachName: coachInfo.name,
                 coachPhotoURL: coachInfo.photoURL,
+                coachTitle: coachInfo.title, // Coach ünvanı
                 ...eventData,
                 date: eventData.date,
               });
@@ -765,7 +767,12 @@ export default function HomePage() {
                                       </span>
                                     </div>
                                   )}
-                                  <span className="font-medium">{event.coachName}</span>
+                                  <div>
+                                    <span className="font-medium">{event.coachName}</span>
+                                    {event.coachTitle && (
+                                      <p className="text-xs text-green-600 font-medium">{event.coachTitle}</p>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>

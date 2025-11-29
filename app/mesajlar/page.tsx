@@ -46,6 +46,7 @@ interface Conversation {
   coachId: string;
   coachName: string;
   coachPhoto?: string | null;
+  coachTitle?: string | null; // Coach ünvanı
   lastMessage?: Timestamp;
   lastMessageText?: string;
   unreadCount: number;
@@ -175,6 +176,7 @@ export default function MesajlarPage() {
             coachId: coachId,
             coachName: coachData.name || "Coach",
             coachPhoto: coachData.photoURL || null,
+            coachTitle: coachData.title || null, // Coach ünvanı
             lastMessage,
             lastMessageText,
             unreadCount,
@@ -571,7 +573,12 @@ export default function MesajlarPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <h3 className="font-semibold text-gray-900 truncate">{conv.coachName}</h3>
+                              <div>
+                                <h3 className="font-semibold text-gray-900 truncate">{conv.coachName}</h3>
+                                {conv.coachTitle && (
+                                  <p className="text-xs text-green-600 font-medium truncate">{conv.coachTitle}</p>
+                                )}
+                              </div>
                               {conv.unreadCount > 0 && (
                                 <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
                                   {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
@@ -626,6 +633,12 @@ export default function MesajlarPage() {
                     )}
                     <div>
                       <h3 className="font-semibold text-gray-900">{selectedConversation.coachName}</h3>
+                      {selectedConversation.coachTitle ? (
+                        <p className="text-xs text-green-600 font-medium">{selectedConversation.coachTitle}</p>
+                      ) : (
+                        <p className="text-xs text-gray-500">Coach</p>
+                      )}
+                    </div>
                       <p className="text-xs text-gray-500">Coach</p>
               </div>
                   </div>

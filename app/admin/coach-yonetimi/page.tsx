@@ -13,6 +13,7 @@ interface Coach {
   name: string;
   email: string;
   photoURL?: string | null;
+  title?: string | null; // Coach ünvanı
   createdAt: Timestamp;
   role: "coach";
 }
@@ -30,6 +31,7 @@ export default function CoachYonetimiPage() {
     name: "",
     email: "",
     password: "",
+    title: "", // Coach ünvanı
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{
@@ -119,6 +121,7 @@ export default function CoachYonetimiPage() {
       await setDoc(doc(db, "users", userCredential.user.uid), {
         name: coachForm.name.trim(),
         email: coachForm.email.trim(),
+        title: coachForm.title.trim() || null, // Coach ünvanı
         role: "coach",
         premium: false,
         createdAt: Timestamp.now(),
@@ -127,7 +130,7 @@ export default function CoachYonetimiPage() {
         fcmTokens: [],
       });
 
-      setCoachForm({ name: "", email: "", password: "" });
+      setCoachForm({ name: "", email: "", password: "", title: "" });
       setShowAddModal(false);
       showToast("Coach başarıyla eklendi!", "success");
     } catch (error: any) {
@@ -151,6 +154,7 @@ export default function CoachYonetimiPage() {
       name: coach.name,
       email: coach.email,
       password: "",
+      title: coach.title || "", // Coach ünvanı
     });
     setEditingCoachId(coach.id);
     setShowEditModal(true);
@@ -169,6 +173,7 @@ export default function CoachYonetimiPage() {
       const updateData: any = {
         name: coachForm.name.trim(),
         email: coachForm.email.trim(),
+        title: coachForm.title.trim() || null, // Coach ünvanı
       };
 
       // Şifre değiştirildiyse
@@ -203,7 +208,7 @@ export default function CoachYonetimiPage() {
         console.error("Auth update error:", authError);
       }
 
-      setCoachForm({ name: "", email: "", password: "" });
+      setCoachForm({ name: "", email: "", password: "", title: "" });
       setShowEditModal(false);
       setEditingCoachId(null);
       showToast("Coach bilgileri başarıyla güncellendi!", "success");
@@ -303,6 +308,9 @@ export default function CoachYonetimiPage() {
                     )}
                     <div>
                       <h3 className="font-bold text-gray-900">{coach.name}</h3>
+                      {coach.title && (
+                        <p className="text-xs text-green-600 font-medium">{coach.title}</p>
+                      )}
                       <p className="text-sm text-gray-600">{coach.email}</p>
                     </div>
                   </div>
@@ -371,6 +379,19 @@ export default function CoachYonetimiPage() {
               </div>
               
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ünvan <span className="text-gray-500 font-normal">(Opsiyonel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={coachForm.title}
+                  onChange={(e) => setCoachForm({ ...coachForm, title: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Örn: Matematik Öğretmeni, Fizik Koçu"
+                />
+              </div>
+              
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Şifre</label>
                 <input
                   type="password"
@@ -394,7 +415,7 @@ export default function CoachYonetimiPage() {
               <button
                 onClick={() => {
                   setShowAddModal(false);
-                  setCoachForm({ name: "", email: "", password: "" });
+                  setCoachForm({ name: "", email: "", password: "", title: "" });
                 }}
                 className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
               >
@@ -445,6 +466,19 @@ export default function CoachYonetimiPage() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ünvan <span className="text-gray-500 font-normal">(Opsiyonel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={coachForm.title}
+                  onChange={(e) => setCoachForm({ ...coachForm, title: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Örn: Matematik Öğretmeni, Fizik Koçu"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Şifre <span className="text-gray-500 text-xs">(Opsiyonel - Değiştirmek için doldurun)</span>
                 </label>
                 <input
@@ -470,7 +504,7 @@ export default function CoachYonetimiPage() {
                 onClick={() => {
                   setShowEditModal(false);
                   setEditingCoachId(null);
-                  setCoachForm({ name: "", email: "", password: "" });
+                  setCoachForm({ name: "", email: "", password: "", title: "" });
                 }}
                 className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition"
               >

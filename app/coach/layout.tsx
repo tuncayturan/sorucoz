@@ -279,9 +279,14 @@ export default function CoachLayout({
                   </span>
                 </div>
               )}
-              <h1 className="text-lg font-bold text-gray-900">
-                {userData?.name || user?.displayName || "Coach"}
-              </h1>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">
+                  {userData?.name || user?.displayName || "Coach"}
+                </h1>
+                {userData?.title && (
+                  <p className="text-xs text-green-600 font-medium">{userData.title}</p>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -397,7 +402,11 @@ export default function CoachLayout({
               <h1 className="text-xl font-bold text-gray-900">
                 {userData?.name || user?.displayName || "Coach"}
               </h1>
-              <p className="text-xs text-gray-500">Coach Panel</p>
+              {userData?.title ? (
+                <p className="text-xs text-green-600 font-medium">{userData.title}</p>
+              ) : (
+                <p className="text-xs text-gray-500">Coach Panel</p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
