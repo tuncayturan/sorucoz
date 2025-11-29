@@ -153,6 +153,20 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         console.log(`✅ Coach ${coachId} için QR kod base64'e çevrildi (uzunluk: ${qrCodeImage.length})`);
         clientData.qrCode = qrCodeImage;
         
+        // QR kod oluşturulduğunda Firestore'a kaydet
+        try {
+          await loadWhatsAppModules();
+          const { db } = await import("@/lib/firebase");
+          const { serverTimestamp } = await import("firebase/firestore");
+          await updateDoc(doc(db, "users", coachId), {
+            whatsappQRGeneratedAt: serverTimestamp(), // QR kod oluşturulma zamanı
+            whatsappConnecting: true, // Bağlantı kuruluyor
+          });
+          console.log(`📱 Coach ${coachId} için QR kod oluşturulma zamanı kaydedildi`);
+        } catch (error) {
+          console.error("QR kod oluşturulma zamanı kaydetme hatası:", error);
+        }
+        
         // Tüm listener'lara bildir
         clientData.qrCodeListeners.forEach((listener) => {
           listener(qrCodeImage);
@@ -273,24 +287,44 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         console.error("Client bilgisi alınamadı:", error);
       }
       
-      // Coach'un telefon numarasını otomatik kaydet
+      // Coach'un telefon numarasını ve bağlantı durumunu otomatik kaydet
       try {
         await loadWhatsAppModules();
         const { db } = await import("@/lib/firebase");
+        const { serverTimestamp } = await import("firebase/firestore");
         const coachPhoneNumber = (client.info as any)?.wid?.user || null;
+        const pushname = (client.info as any)?.pushname || null;
+        
         if (coachPhoneNumber) {
           await updateDoc(doc(db, "users", coachId), {
             whatsappPhoneNumber: coachPhoneNumber, // Coach'un WhatsApp numarası
+            whatsappConnected: true, // Bağlantı durumu
+            whatsappConnectedAt: serverTimestamp(), // Bağlantı zamanı
+            whatsappPushname: pushname, // WhatsApp ismi
+            whatsappLastSeen: serverTimestamp(), // Son görülme
           });
-          console.log(`📱 Coach ${coachId} için WhatsApp numarası kaydedildi: ${coachPhoneNumber}`);
+          console.log(`📱 Coach ${coachId} için WhatsApp bilgileri kaydedildi: ${coachPhoneNumber}`);
         }
       } catch (error) {
-        console.error("WhatsApp numarası kaydetme hatası:", error);
+        console.error("WhatsApp bilgileri kaydetme hatası:", error);
       }
     });
 
-    client.on("authenticated", () => {
+    client.on("authenticated", async () => {
       console.log(`✅ Coach ${coachId} için WhatsApp kimlik doğrulaması tamamlandı!`);
+      
+      // QR kod okutulduğunda Firestore'a kaydet
+      try {
+        await loadWhatsAppModules();
+        const { db } = await import("@/lib/firebase");
+        const { serverTimestamp } = await import("firebase/firestore");
+        await updateDoc(doc(db, "users", coachId), {
+          whatsappQRScannedAt: serverTimestamp(), // QR kod okutma zamanı
+        });
+        console.log(`📱 Coach ${coachId} için QR kod okutma zamanı kaydedildi`);
+      } catch (error) {
+        console.error("QR kod okutma zamanı kaydetme hatası:", error);
+      }
     });
 
     client.on("auth_failure", (msg: any) => {
@@ -299,11 +333,26 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       coachClients.delete(coachId);
     });
 
-    client.on("disconnected", (reason: any) => {
+    client.on("disconnected", async (reason: any) => {
       console.log(`⚠️ Coach ${coachId} için WhatsApp bağlantısı kesildi:`, reason);
       clientData.isReady = false;
       clientData.isInitializing = false;
       clientData.qrCode = null;
+      
+      // Bağlantı kesilme durumunu Firestore'a kaydet
+      try {
+        await loadWhatsAppModules();
+        const { db } = await import("@/lib/firebase");
+        const { serverTimestamp } = await import("firebase/firestore");
+        await updateDoc(doc(db, "users", coachId), {
+          whatsappConnected: false, // Bağlantı durumu
+          whatsappDisconnectedAt: serverTimestamp(), // Bağlantı kesilme zamanı
+          whatsappDisconnectReason: reason || "unknown", // Kesilme nedeni
+        });
+        console.log(`📱 Coach ${coachId} için WhatsApp bağlantı kesilme durumu kaydedildi`);
+      } catch (error) {
+        console.error("Bağlantı kesilme durumu kaydetme hatası:", error);
+      }
       
       // Otomatik yeniden bağlanmayı dene (5 saniye sonra)
       setTimeout(async () => {
