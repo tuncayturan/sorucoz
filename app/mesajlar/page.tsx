@@ -175,7 +175,7 @@ export default function MesajlarPage() {
             id: conversationId,
             studentId: user.uid,
             coachId: coachId,
-            coachName: coachData.name || "Uzman",
+            coachName: coachData.name || "Eğitim Koçu",
             coachPhoto: coachData.photoURL || null,
             coachTitle: coachData.title || null, // Coach ünvanı
             lastMessage,
@@ -521,12 +521,12 @@ export default function MesajlarPage() {
             {/* Conversations List */}
             <div className="w-full md:w-80 border-r border-gray-200/50 flex flex-col">
               <div className="p-4 border-b border-gray-200/50">
-                <h2 className="text-xl font-bold text-gray-900">Uzmanlar</h2>
+                <h2 className="text-xl font-bold text-gray-900">Eğitim Koçları</h2>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {conversations.length === 0 ? (
                   <div className="p-8 text-center">
-                    <p className="text-gray-500 text-sm">Henüz uzman bulunmuyor</p>
+                    <p className="text-gray-500 text-sm">Henüz eğitim koçu bulunmuyor</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -600,7 +600,7 @@ export default function MesajlarPage() {
               {!selectedConversation ? (
                 <div className="flex-1 flex items-center justify-center">
                   <div className="text-center">
-                    <p className="text-gray-500 text-lg">Bir uzman seçin</p>
+                    <p className="text-gray-500 text-lg">Bir eğitim koçu seçin</p>
                   </div>
                 </div>
               ) : (
@@ -625,7 +625,7 @@ export default function MesajlarPage() {
                       {selectedConversation.coachTitle ? (
                         <p className="text-xs text-green-600 font-medium">{selectedConversation.coachTitle}</p>
                       ) : (
-                        <p className="text-xs text-gray-500">Uzman</p>
+                        <p className="text-xs text-gray-500">Eğitim Koçu</p>
                       )}
                     </div>
                   </div>
