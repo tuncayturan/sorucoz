@@ -1,7 +1,5 @@
 "use client";
 
-import StudentFooter from "@/components/StudentFooter";
-
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
