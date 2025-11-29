@@ -13,6 +13,13 @@ interface CoachWhatsAppStatus {
   whatsappConnecting: boolean;
   hasQRCode: boolean;
   whatsappPhoneNumber?: string;
+  whatsappPushname?: string;
+  whatsappConnectedAt?: any;
+  whatsappQRGeneratedAt?: any;
+  whatsappQRScannedAt?: any;
+  whatsappDisconnectedAt?: any;
+  whatsappDisconnectReason?: string;
+  whatsappLastSeen?: any;
 }
 
 export default function AdminSecurityPage() {
@@ -153,6 +160,9 @@ export default function AdminSecurityPage() {
                       Durum
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      WhatsApp Detayları
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       İşlemler
                     </th>
                   </tr>
@@ -192,6 +202,39 @@ export default function AdminSecurityPage() {
                           </span>
                         )}
                       </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="space-y-1">
+                          {coach.whatsappPhoneNumber && (
+                            <div className="text-gray-600">
+                              <span className="font-medium">Telefon:</span> {coach.whatsappPhoneNumber}
+                            </div>
+                          )}
+                          {coach.whatsappPushname && (
+                            <div className="text-gray-600">
+                              <span className="font-medium">İsim:</span> {coach.whatsappPushname}
+                            </div>
+                          )}
+                          {coach.whatsappConnectedAt && (
+                            <div className="text-gray-600 text-xs">
+                              <span className="font-medium">Bağlantı:</span> {new Date(coach.whatsappConnectedAt.toDate()).toLocaleString("tr-TR")}
+                            </div>
+                          )}
+                          {coach.whatsappQRScannedAt && (
+                            <div className="text-gray-600 text-xs">
+                              <span className="font-medium">QR Okutma:</span> {new Date(coach.whatsappQRScannedAt.toDate()).toLocaleString("tr-TR")}
+                            </div>
+                          )}
+                          {coach.whatsappDisconnectedAt && (
+                            <div className="text-red-600 text-xs">
+                              <span className="font-medium">Kesilme:</span> {new Date(coach.whatsappDisconnectedAt.toDate()).toLocaleString("tr-TR")}
+                              {coach.whatsappDisconnectReason && ` (${coach.whatsappDisconnectReason})`}
+                            </div>
+                          )}
+                          {!coach.whatsappPhoneNumber && !coach.whatsappConnectedAt && (
+                            <div className="text-gray-400 text-xs">Detay yok</div>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex items-center gap-3">
                           {coach.whatsappConnected ? (
@@ -202,15 +245,9 @@ export default function AdminSecurityPage() {
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                               </svg>
-                              Mesajları Görüntüle
+                              Mesajlar
                             </button>
                           ) : null}
-                          <button
-                            onClick={() => router.push(`/admin/coach-yonetimi?coachId=${coach.id}`)}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Detaylar
-                          </button>
                         </div>
                       </td>
                     </tr>

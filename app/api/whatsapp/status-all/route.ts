@@ -31,6 +31,13 @@ export async function GET() {
         whatsappConnecting: status.isInitializing,
         hasQRCode: status.qrCode !== null,
         whatsappPhoneNumber: coachData.whatsappPhoneNumber || null,
+        whatsappPushname: coachData.whatsappPushname || null,
+        whatsappConnectedAt: coachData.whatsappConnectedAt || null,
+        whatsappQRGeneratedAt: coachData.whatsappQRGeneratedAt || null,
+        whatsappQRScannedAt: coachData.whatsappQRScannedAt || null,
+        whatsappDisconnectedAt: coachData.whatsappDisconnectedAt || null,
+        whatsappDisconnectReason: coachData.whatsappDisconnectReason || null,
+        whatsappLastSeen: coachData.whatsappLastSeen || null,
       });
     }
 
