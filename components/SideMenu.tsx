@@ -9,6 +9,13 @@ interface SideMenuProps {
   onClose: () => void;
 }
 
+interface MenuItem {
+  icon: React.ReactNode;
+  label: string;
+  path: string;
+  badge?: string | number;
+}
+
 export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -18,7 +25,7 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
   const displayName = userData?.name || user?.displayName || "Öğrenci";
   const isPremium = userData?.premium || false;
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     {
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
