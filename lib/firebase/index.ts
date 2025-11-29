@@ -256,27 +256,38 @@ export function getDbInstance(): Firestore {
   return dbInstance;
 }
 
-// Firestore instance export - Direct initialization
-// Proxy kullanmıyoruz çünkü Firebase'in collection() fonksiyonu proxy'yi geçerli instance olarak görmüyor
-// Bunun yerine, db'yi runtime'da doğrudan initialize ediyoruz
+// Firestore instance export - Direct export
+// Railway'de sorun yaşamamak için db'yi runtime'da doğrudan initialize ediyoruz
+// Build sırasında hata vermemek için try-catch kullanıyoruz ama runtime'da gerçek instance kullanılacak
 export const db: Firestore = (() => {
   // Browser'da çalışıyorsak, gerçek instance'ı initialize et
   if (typeof window !== "undefined") {
     try {
-      return getDbInstance();
+      const instance = getDbInstance();
+      // Instance'ın geçerli olduğunu kontrol et
+      if (instance && typeof instance === 'object') {
+        return instance;
+      }
     } catch (error) {
       console.error("[Firebase DB] Failed to initialize db export:", error);
-      // Hata durumunda bile bir object döndür (type safety için)
-      // Ama runtime'da getDbInstance() çağrılacak
-      // Bu durumda collection() çağrıldığında hata verecek, bu da kullanıcıyı uyaracak
-      return getDbInstance(); // Tekrar deneyelim
+      // Hata durumunda tekrar dene
+      try {
+        return getDbInstance();
+      } catch (retryError) {
+        console.error("[Firebase DB] Retry also failed:", retryError);
+        // Son çare: getDbInstance()'ı throw et ki runtime'da hata görünsün
+        throw retryError;
+      }
     }
   }
-  // Server-side/build sırasında dummy object
-  // Bu durumda getDbInstance() çağrılacak ve hata verecek, bu da build sırasında sorun olmayacak
+  
+  // Server-side/build sırasında - build sırasında hata vermemek için dummy object
+  // Ama runtime'da (browser'da) bu kod çalışmayacak, yukarıdaki kod çalışacak
   try {
     return getDbInstance();
   } catch {
+    // Build sırasında hata vermemek için dummy object döndür
+    // Ama bu sadece build sırasında kullanılacak, runtime'da yukarıdaki kod çalışacak
     return {} as Firestore;
   }
 })();
