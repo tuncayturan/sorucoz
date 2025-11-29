@@ -186,33 +186,57 @@ export function getDbInstance(): Firestore {
       const app = getApp();
       // App'in düzgün initialize edildiğini kontrol et
       if (!app || !('options' in app)) {
+        console.error("[Firebase DB] App not properly initialized");
         throw new Error("Firebase app not properly initialized");
       }
+      
+      // Firestore instance oluştur
       dbInstance = getFirestore(app);
       
       // Runtime'da db instance'ın düzgün oluşturulduğunu kontrol et
-      if (typeof window !== "undefined" && !dbInstance) {
-        throw new Error("Firebase Firestore instance is null");
+      if (typeof window !== "undefined") {
+        if (!dbInstance) {
+          throw new Error("Firebase Firestore instance is null");
+        }
+        // Firestore'un geçerli olduğunu test et
+        if (!('type' in dbInstance) && !('_delegate' in dbInstance)) {
+          console.warn("[Firebase DB] Firestore instance may not be valid");
+        }
+        console.log("[Firebase DB] Firestore instance created successfully");
       }
-    } catch (error) {
+    } catch (error: any) {
       // Runtime'da tekrar dene
       if (typeof window !== "undefined") {
         // Browser'da çalışıyorsak tekrar dene
+        console.warn("[Firebase DB] Initial attempt failed, retrying...", error.message);
         try {
           // Önce mevcut app'leri kontrol et
           const existingApps = getApps();
           if (existingApps.length > 0) {
+            console.log("[Firebase DB] Using existing app");
             dbInstance = getFirestore(existingApps[0]);
           } else {
             // Config'i kontrol et
             if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
               throw new Error("Firebase configuration is missing. Please check environment variables.");
             }
+            console.log("[Firebase DB] Creating new app and Firestore instance");
             const app = initializeApp(firebaseConfig);
             dbInstance = getFirestore(app);
           }
-        } catch (retryError) {
-          console.error("Firebase Firestore initialization failed:", retryError);
+          
+          if (!dbInstance) {
+            throw new Error("Firestore instance is still null after retry");
+          }
+          
+          console.log("[Firebase DB] Firestore instance created successfully on retry");
+        } catch (retryError: any) {
+          console.error("[Firebase DB] Firestore initialization failed after retry:", retryError);
+          console.error("[Firebase DB] Config check:", {
+            hasApiKey: !!firebaseConfig.apiKey,
+            hasProjectId: !!firebaseConfig.projectId,
+            apiKeyPrefix: firebaseConfig.apiKey?.substring(0, 10)
+          });
           throw retryError;
         }
       } else {
@@ -236,23 +260,74 @@ export function getDbInstance(): Firestore {
 // Bu yaklaşım, her db kullanımında runtime'da gerçek instance'ı alır
 export const db: Firestore = new Proxy({} as Firestore, {
   get(target, prop) {
-    // Her property erişiminde gerçek db instance'ını al
-    const realDb = getDbInstance();
-    const value = (realDb as any)[prop];
-    
-    // Eğer function ise, context'i koru
-    if (typeof value === 'function') {
-      return value.bind(realDb);
+    try {
+      // Her property erişiminde gerçek db instance'ını al
+      const realDb = getDbInstance();
+      
+      // Db instance'ın geçerli olduğunu kontrol et
+      if (!realDb) {
+        throw new Error("Firestore instance is null");
+      }
+      
+      const value = (realDb as any)[prop];
+      
+      // Eğer function ise, context'i koru
+      if (typeof value === 'function') {
+        return value.bind(realDb);
+      }
+      
+      return value;
+    } catch (error: any) {
+      // Runtime'da hata olursa, daha açıklayıcı hata mesajı ver
+      if (typeof window !== "undefined") {
+        console.error("[Firebase DB] Error accessing Firestore:", error);
+        console.error("[Firebase DB] Config:", {
+          apiKey: firebaseConfig.apiKey?.substring(0, 10) + "...",
+          projectId: firebaseConfig.projectId
+        });
+        
+        // Eğer app initialize edilmemişse, tekrar dene
+        if (error.message?.includes("not properly initialized") || error.message?.includes("is null")) {
+          // App'i tekrar initialize etmeyi dene
+          try {
+            const app = getApp();
+            if (app && 'options' in app) {
+              // App var, Firestore'u tekrar oluşturmayı dene
+              dbInstance = null; // Reset instance
+              const retryDb = getDbInstance();
+              const retryValue = (retryDb as any)[prop];
+              if (typeof retryValue === 'function') {
+                return retryValue.bind(retryDb);
+              }
+              return retryValue;
+            }
+          } catch (retryError) {
+            console.error("[Firebase DB] Retry failed:", retryError);
+          }
+        }
+      }
+      
+      // Hata durumunda, function çağrıları için bir wrapper döndür
+      // Bu sayede collection() gibi fonksiyonlar çağrıldığında daha açıklayıcı hata verir
+      if (typeof prop === 'string' && (prop === 'collection' || prop === 'doc' || prop === 'batch' || prop === 'runTransaction')) {
+        return function(...args: any[]) {
+          throw new Error(
+            `Firestore ${prop}() called but Firestore is not initialized. ` +
+            `Error: ${error.message}. ` +
+            `Please check Firebase configuration and ensure environment variables are set correctly in Railway.`
+          );
+        };
+      }
+      
+      throw error;
     }
-    
-    return value;
   },
   
   // Proxy'nin diğer metodlarını da implement et
   has(target, prop) {
     try {
       const realDb = getDbInstance();
-      return prop in realDb;
+      return realDb ? prop in realDb : false;
     } catch {
       return false;
     }
@@ -261,7 +336,7 @@ export const db: Firestore = new Proxy({} as Firestore, {
   ownKeys(target) {
     try {
       const realDb = getDbInstance();
-      return Reflect.ownKeys(realDb);
+      return realDb ? Reflect.ownKeys(realDb) : [];
     } catch {
       return [];
     }
