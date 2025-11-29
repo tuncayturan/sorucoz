@@ -64,6 +64,20 @@ Railway otomatik olarak `nixpacks.toml` dosyasını kullanarak Chromium'u yükle
 2. "Generate Domain" butonuna tıklayın
 3. Veya kendi domain'inizi ekleyin
 
+**Production Domain:**
+- Railway domain: `https://sorucoz-production.up.railway.app/`
+
+**ÖNEMLİ: Firebase Authorized Domains**
+Domain oluşturulduktan sonra Firebase Console'da authorized domains'e eklemeniz gerekir:
+
+1. [Firebase Console](https://console.firebase.google.com/) → Projenizi seçin
+2. **Authentication** → **Settings** → **Authorized domains** sekmesine gidin
+3. **Add domain** butonuna tıklayın
+4. `sorucoz-production.up.railway.app` domain'ini ekleyin
+5. Kaydedin
+
+Bu adım olmadan Firebase Authentication production domain'de çalışmayacaktır!
+
 ## 🔧 Sorun Giderme
 
 ### Puppeteer/Chromium Hataları
