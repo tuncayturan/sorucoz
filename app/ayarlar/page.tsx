@@ -10,7 +10,7 @@ import SideMenu from "@/components/SideMenu";
 import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
-import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, type UserInfo } from "firebase/auth";
 import Toast from "@/components/ui/Toast";
 import { requestNotificationPermission, getFCMToken, saveFCMTokenToUser, removeFCMTokenFromUser } from "@/lib/fcmUtils";
 
@@ -329,10 +329,10 @@ export default function AyarlarPage() {
   
   // Kullanıcının giriş yöntemini kontrol et
   const isGoogleUser = user?.providerData?.some(
-    (provider) => provider.providerId === "google.com"
+    (provider: UserInfo) => provider.providerId === "google.com"
   ) || false;
   const hasPasswordProvider = user?.providerData?.some(
-    (provider) => provider.providerId === "password"
+    (provider: UserInfo) => provider.providerId === "password"
   ) || false;
 
   return (
