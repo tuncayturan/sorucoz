@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Firestore'dan bağlantı durumunu kontrol et
-    const coachData = coachSnap.data();
     const wasConnectedBefore = coachData.whatsappConnected && coachData.whatsappConnectedAt;
     
     // Mevcut durumu kontrol et
