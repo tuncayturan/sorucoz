@@ -62,12 +62,51 @@ Railway otomatik olarak `nixpacks.toml` dosyasını kullanarak Chromium'u yükle
 
 ### 5. Domain Ayarlama
 
-1. Railway dashboard'unda "Settings" sekmesine gidin
-2. "Generate Domain" butonuna tıklayın
-3. Veya kendi domain'inizi ekleyin
+Railway'de domain oluşturmanın birkaç yolu vardır:
 
-**Production Domain:**
+#### Yöntem 1: Settings'ten Domain Oluşturma
+
+1. Railway dashboard'unda projenizi seçin
+2. **Settings** sekmesine gidin
+3. **Networking** veya **Domains** bölümünü bulun
+4. **"Generate Domain"** veya **"Create Domain"** butonuna tıklayın
+5. Domain otomatik olarak oluşturulacaktır
+
+#### Yöntem 2: Service Settings'ten
+
+1. Railway dashboard'unda projenizi seçin
+2. Service'inizin üzerine tıklayın (genellikle GitHub repo adı)
+3. **Settings** sekmesine gidin
+4. **Networking** bölümünde **"Generate Domain"** butonuna tıklayın
+
+#### Yöntem 3: Otomatik Domain (Deploy Sonrası)
+
+Bazen Railway otomatik olarak domain oluşturur. Deploy tamamlandıktan sonra:
+1. **Settings** → **Networking** bölümüne bakın
+2. Domain otomatik olarak listelenmiş olabilir
+
+#### Domain Oluşturma Sorunları
+
+Eğer domain oluşturamıyorsanız:
+
+1. **Deploy'un tamamlandığından emin olun:**
+   - Deployments sekmesinde son deploy'un "Active" durumunda olduğunu kontrol edin
+   - Service'in çalıştığını kontrol edin (yeşil ışık)
+
+2. **Service'i kontrol edin:**
+   - Service'in başarıyla başlatıldığından emin olun
+   - Logs sekmesinde hata olmadığını kontrol edin
+
+3. **Railway planınızı kontrol edin:**
+   - Ücretsiz plan'da domain oluşturma sınırlı olabilir
+   - Pro plan'da daha fazla özellik vardır
+
+4. **Manuel domain ekleme:**
+   - Settings → Networking → "Custom Domain" bölümünden kendi domain'inizi ekleyebilirsiniz
+
+**Production Domain Örneği:**
 - Railway domain: `https://sorucoz-production.up.railway.app/`
+- Veya: `https://your-project-name.up.railway.app/`
 
 **ÖNEMLİ: Firebase Authorized Domains**
 Domain oluşturulduktan sonra Firebase Console'da authorized domains'e eklemeniz gerekir:
