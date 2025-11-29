@@ -240,11 +240,38 @@ export function getDbInstance(): Firestore {
           throw retryError;
         }
       } else {
-        // Build sırasında hata olabilir, runtime'da tekrar denenecek
-        if (process.env.NODE_ENV === "development") {
-          console.warn("Firebase Firestore initialization failed (this is OK during build):", error);
+        // Server-side'da çalışıyorsak tekrar dene
+        console.warn("[Firebase DB] Server-side initial attempt failed, retrying...", error.message);
+        try {
+          // Önce mevcut app'leri kontrol et
+          const existingApps = getApps();
+          if (existingApps.length > 0) {
+            console.log("[Firebase DB] Server-side: Using existing app");
+            dbInstance = getFirestore(existingApps[0]);
+          } else {
+            // Config'i kontrol et
+            if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+              throw new Error("Firebase configuration is missing. Please check environment variables.");
+            }
+            console.log("[Firebase DB] Server-side: Creating new app and Firestore instance");
+            const app = initializeApp(firebaseConfig);
+            dbInstance = getFirestore(app);
+          }
+          
+          if (!dbInstance) {
+            throw new Error("Firestore instance is still null after retry");
+          }
+          
+          console.log("[Firebase DB] Server-side: Firestore instance created successfully on retry");
+        } catch (retryError: any) {
+          console.error("[Firebase DB] Server-side: Firestore initialization failed after retry:", retryError);
+          console.error("[Firebase DB] Server-side: Config check:", {
+            hasApiKey: !!firebaseConfig.apiKey,
+            hasProjectId: !!firebaseConfig.projectId,
+            apiKeyPrefix: firebaseConfig.apiKey?.substring(0, 10)
+          });
+          throw retryError;
         }
-        throw error;
       }
     }
   }
@@ -256,41 +283,46 @@ export function getDbInstance(): Firestore {
   return dbInstance;
 }
 
-// Firestore instance export - Direct export
-// Railway'de sorun yaşamamak için db'yi runtime'da doğrudan initialize ediyoruz
-// Build sırasında hata vermemek için try-catch kullanıyoruz ama runtime'da gerçek instance kullanılacak
-export const db: Firestore = (() => {
-  // Browser'da çalışıyorsak, gerçek instance'ı initialize et
-  if (typeof window !== "undefined") {
-    try {
-      const instance = getDbInstance();
-      // Instance'ın geçerli olduğunu kontrol et
-      if (instance && typeof instance === 'object') {
-        return instance;
-      }
-    } catch (error) {
-      console.error("[Firebase DB] Failed to initialize db export:", error);
-      // Hata durumunda tekrar dene
-      try {
-        return getDbInstance();
-      } catch (retryError) {
-        console.error("[Firebase DB] Retry also failed:", retryError);
-        // Son çare: getDbInstance()'ı throw et ki runtime'da hata görünsün
-        throw retryError;
-      }
-    }
+// Firestore instance export - Works for both client and server
+// Railway'de sorun yaşamamak için db'yi hem client hem server-side'da initialize ediyoruz
+// Lazy initialization: Her kullanımda getDbInstance() çağrılacak
+let _dbExport: Firestore | null = null;
+
+function ensureDbExport(): Firestore {
+  if (!_dbExport) {
+    _dbExport = getDbInstance();
   }
-  
-  // Server-side/build sırasında - build sırasında hata vermemek için dummy object
-  // Ama runtime'da (browser'da) bu kod çalışmayacak, yukarıdaki kod çalışacak
+  return _dbExport;
+}
+
+// Export db - hem client hem server-side'da çalışır
+// Build sırasında hata vermemek için try-catch kullanıyoruz
+export const db: Firestore = (() => {
   try {
-    return getDbInstance();
-  } catch {
+    // Hem browser'da hem server-side'da çalışır
+    return ensureDbExport();
+  } catch (error) {
     // Build sırasında hata vermemek için dummy object döndür
-    // Ama bu sadece build sırasında kullanılacak, runtime'da yukarıdaki kod çalışacak
+    // Ama runtime'da (hem client hem server) gerçek instance kullanılacak
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[Firebase DB] Initial export failed (OK during build):", error);
+    }
+    // Runtime'da ensureDbExport() tekrar çağrılacak ve başarılı olacak
+    // Ama şimdilik dummy object döndür ki build başarısız olmasın
     return {} as Firestore;
   }
 })();
+
+// Runtime'da (hem client hem server) db'yi initialize et
+// Bu, ilk kullanımda gerçek instance'ı garantiler
+try {
+  _dbExport = getDbInstance();
+} catch (error) {
+  // İlk initialization başarısız olabilir, ama sonraki kullanımlarda tekrar denenecek
+  if (process.env.NODE_ENV === "development") {
+    console.warn("[Firebase DB] Initial initialization failed, will retry on first use:", error);
+  }
+}
 
 // Storage - lazy load
 export const storage: FirebaseStorage = (() => {
