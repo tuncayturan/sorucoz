@@ -256,92 +256,30 @@ export function getDbInstance(): Firestore {
   return dbInstance;
 }
 
-// Firestore instance export - Proxy ile lazy loading
-// Bu yaklaşım, her db kullanımında runtime'da gerçek instance'ı alır
-export const db: Firestore = new Proxy({} as Firestore, {
-  get(target, prop) {
+// Firestore instance export - Direct initialization
+// Proxy kullanmıyoruz çünkü Firebase'in collection() fonksiyonu proxy'yi geçerli instance olarak görmüyor
+// Bunun yerine, db'yi runtime'da doğrudan initialize ediyoruz
+export const db: Firestore = (() => {
+  // Browser'da çalışıyorsak, gerçek instance'ı initialize et
+  if (typeof window !== "undefined") {
     try {
-      // Her property erişiminde gerçek db instance'ını al
-      const realDb = getDbInstance();
-      
-      // Db instance'ın geçerli olduğunu kontrol et
-      if (!realDb) {
-        throw new Error("Firestore instance is null");
-      }
-      
-      const value = (realDb as any)[prop];
-      
-      // Eğer function ise, context'i koru
-      if (typeof value === 'function') {
-        return value.bind(realDb);
-      }
-      
-      return value;
-    } catch (error: any) {
-      // Runtime'da hata olursa, daha açıklayıcı hata mesajı ver
-      if (typeof window !== "undefined") {
-        console.error("[Firebase DB] Error accessing Firestore:", error);
-        console.error("[Firebase DB] Config:", {
-          apiKey: firebaseConfig.apiKey?.substring(0, 10) + "...",
-          projectId: firebaseConfig.projectId
-        });
-        
-        // Eğer app initialize edilmemişse, tekrar dene
-        if (error.message?.includes("not properly initialized") || error.message?.includes("is null")) {
-          // App'i tekrar initialize etmeyi dene
-          try {
-            const app = getApp();
-            if (app && 'options' in app) {
-              // App var, Firestore'u tekrar oluşturmayı dene
-              dbInstance = null; // Reset instance
-              const retryDb = getDbInstance();
-              const retryValue = (retryDb as any)[prop];
-              if (typeof retryValue === 'function') {
-                return retryValue.bind(retryDb);
-              }
-              return retryValue;
-            }
-          } catch (retryError) {
-            console.error("[Firebase DB] Retry failed:", retryError);
-          }
-        }
-      }
-      
-      // Hata durumunda, function çağrıları için bir wrapper döndür
-      // Bu sayede collection() gibi fonksiyonlar çağrıldığında daha açıklayıcı hata verir
-      if (typeof prop === 'string' && (prop === 'collection' || prop === 'doc' || prop === 'batch' || prop === 'runTransaction')) {
-        return function(...args: any[]) {
-          throw new Error(
-            `Firestore ${prop}() called but Firestore is not initialized. ` +
-            `Error: ${error.message}. ` +
-            `Please check Firebase configuration and ensure environment variables are set correctly in Railway.`
-          );
-        };
-      }
-      
-      throw error;
-    }
-  },
-  
-  // Proxy'nin diğer metodlarını da implement et
-  has(target, prop) {
-    try {
-      const realDb = getDbInstance();
-      return realDb ? prop in realDb : false;
-    } catch {
-      return false;
-    }
-  },
-  
-  ownKeys(target) {
-    try {
-      const realDb = getDbInstance();
-      return realDb ? Reflect.ownKeys(realDb) : [];
-    } catch {
-      return [];
+      return getDbInstance();
+    } catch (error) {
+      console.error("[Firebase DB] Failed to initialize db export:", error);
+      // Hata durumunda bile bir object döndür (type safety için)
+      // Ama runtime'da getDbInstance() çağrılacak
+      // Bu durumda collection() çağrıldığında hata verecek, bu da kullanıcıyı uyaracak
+      return getDbInstance(); // Tekrar deneyelim
     }
   }
-});
+  // Server-side/build sırasında dummy object
+  // Bu durumda getDbInstance() çağrılacak ve hata verecek, bu da build sırasında sorun olmayacak
+  try {
+    return getDbInstance();
+  } catch {
+    return {} as Firestore;
+  }
+})();
 
 // Storage - lazy load
 export const storage: FirebaseStorage = (() => {
