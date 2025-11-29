@@ -366,8 +366,8 @@ export default function CoachProfilePage() {
                 let timeoutId: NodeJS.Timeout | null = null;
                 
                 try {
-                  // İlk bağlantı isteği
-                  console.log("🚀 WhatsApp bağlantısı başlatılıyor...");
+                  // İlk bağlantı isteği - Modal zaten açık (whatsappConnecting = true)
+                  console.log("🚀 Bildirimler açılıyor...");
                   const response = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`);
                   
                   if (!response.ok) {
