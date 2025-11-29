@@ -162,15 +162,18 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     // QR kod event'i - base64 image olarak oluştur
     client.on("qr", async (qr: string) => {
       try {
-        console.log(`📱 Coach ${coachId} için QR kod event'i tetiklendi`);
+        console.log(`📱 Coach ${coachId} için QR kod event'i tetiklendi (QR string uzunluk: ${qr.length})`);
+        
         // QR kodunu base64 image olarak oluştur
         const qrCodeImage = await qrcode.toDataURL(qr, {
           width: 300,
           margin: 2,
+          errorCorrectionLevel: 'M',
         });
 
         console.log(`✅ Coach ${coachId} için QR kod base64'e çevrildi (uzunluk: ${qrCodeImage.length})`);
         clientData.qrCode = qrCodeImage;
+        clientData.isInitializing = true; // QR kod geldi, hala bağlanıyor
         
         // QR kod oluşturulduğunda Firestore'a kaydet
         try {
@@ -414,6 +417,12 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         // Eğer ready event'i gelmediyse, hala initializing olabilir
         if (!clientData.isReady) {
           console.log(`⏳ Coach ${coachId} için QR kod veya ready event bekleniyor...`);
+          // Initialize tamamlandı ama QR kod henüz gelmediyse, biraz bekle
+          setTimeout(() => {
+            if (!clientData.isReady && !clientData.qrCode) {
+              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi`);
+            }
+          }, 5000); // 5 saniye sonra kontrol et
         }
       })
       .catch((error: any) => {
@@ -421,6 +430,7 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         console.error(`❌ Hata detayı:`, error?.message || error);
         console.error(`❌ Hata stack:`, error?.stack);
         clientData.isInitializing = false;
+        clientData.qrCode = null;
         sessionLoadingCoaches.delete(coachId);
         coachClients.delete(coachId);
       });
