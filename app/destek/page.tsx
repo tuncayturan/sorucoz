@@ -14,7 +14,7 @@ interface DestekMesaji {
   konu: string;
   mesaj: string;
   createdAt: Timestamp;
-  status: "pending" | "answered" | "closed";
+  status: "pending" | "answered" | "closed" | "solved";
   userEmail?: string;
   userName?: string;
   yanit?: string; // Legacy: tek mesaj için backward compatibility
