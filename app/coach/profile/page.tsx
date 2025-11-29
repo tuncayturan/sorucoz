@@ -330,13 +330,6 @@ export default function CoachProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Bildirimleri WhatsApp'tan Al <span className="text-gray-500 font-normal">(Opsiyonel)</span>
             </label>
-            <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-800">
-                <strong>Bilgi:</strong> WhatsApp bağlantısı Railway sunucusunda çalışmaktadır. 
-                QR kodu tarayarak WhatsApp Web bağlantısını kurabilirsiniz.
-              </p>
-            </div>
-            <div className="flex gap-2">
             <button
               onClick={async () => {
                 if (!user || whatsappConnected) return; // Zaten bağlıysa işlem yapma
@@ -356,7 +349,7 @@ export default function CoachProfilePage() {
                             // Zaten bağlıysa
                             setWhatsappConnected(true);
                             setWhatsappConnecting(false);
-                            showToast("WhatsApp zaten bağlı!", "success");
+                            showToast("Artık bildirimleri WhatsApp'tan alabileceksiniz!", "success");
                             return;
                           }
                           
@@ -388,6 +381,7 @@ export default function CoachProfilePage() {
                                   setWhatsappQRCode(null);
                                   if (checkInterval) clearInterval(checkInterval);
                                   if (timeoutId) clearTimeout(timeoutId);
+                                  showToast("Artık bildirimleri WhatsApp'tan alabileceksiniz!", "success");
                                   return;
                                 }
                                 
@@ -454,43 +448,10 @@ export default function CoachProfilePage() {
                 }
               }}
               disabled={whatsappConnecting || whatsappConnected}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {whatsappConnecting ? "Bağlanıyor..." : whatsappConnected ? "Bildirimler Açık" : "Bildirimleri Aç"}
             </button>
-            {whatsappConnected && (
-              <button
-                onClick={async () => {
-                  if (!user) return;
-                  
-                  try {
-                    const response = await fetch("/api/whatsapp/disconnect", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ coachId: user.uid }),
-                    });
-                    
-                    if (response.ok) {
-                      setWhatsappConnected(false);
-                      setWhatsappQRCode(null);
-                      showToast("WhatsApp bağlantısı kesildi", "success");
-                    } else {
-                      const errorData = await response.json().catch(() => ({}));
-                      showToast(errorData.error || "Bağlantı kesilemedi", "error");
-                    }
-                  } catch (error: any) {
-                    console.error("WhatsApp disconnect hatası:", error);
-                    showToast("Bağlantı kesilemedi. Lütfen tekrar deneyin.", "error");
-                  }
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition"
-              >
-                Bağlantıyı Kes
-              </button>
-            )}
-            </div>
           </div>
 
           {/* Role (Read-only) */}
