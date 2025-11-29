@@ -15,6 +15,7 @@ export interface UserData {
   fcmTokens?: string[];
   lastTokenUpdate?: any;
   photoURL?: string | null;
+  title?: string | null; // Coach ünvanı
   // Trial ve Subscription
   trialStartDate?: Timestamp | null;
   trialEndDate?: Timestamp | null;
