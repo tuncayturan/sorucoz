@@ -330,12 +330,13 @@ export default function CoachProfilePage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Bildirimleri WhatsApp'tan Al <span className="text-gray-500 font-normal">(Opsiyonel)</span>
             </label>
-            <div className="mb-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800">
-                <strong>Not:</strong> WhatsApp bağlantısı şu anda serverless ortamda (Vercel) çalışmamaktadır. 
-                Bu özellik için ayrı bir sunucu (VPS, Railway, Render) gereklidir.
+            <div className="mb-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-800">
+                <strong>Bilgi:</strong> WhatsApp bağlantısı Railway sunucusunda çalışmaktadır. 
+                QR kodu tarayarak WhatsApp Web bağlantısını kurabilirsiniz.
               </p>
             </div>
+            <div className="flex gap-2">
             <button
               onClick={async () => {
                 if (!user || whatsappConnected) return; // Zaten bağlıysa işlem yapma
@@ -408,19 +409,19 @@ export default function CoachProfilePage() {
                                   if (timeoutId) clearTimeout(timeoutId);
                                   setWhatsappConnecting(false);
                                   setWhatsappQRCode(null);
-                                  showToast("QR kod oluşturulamadı. Serverless ortamda WhatsApp bağlantısı desteklenmemektedir.", "error");
+                                  showToast("QR kod oluşturulamadı. Lütfen tekrar deneyin.", "error");
                                   return;
                                 }
                               } else {
                                 const errorText = await statusResponse.text();
                                 console.error("Durum kontrolü başarısız:", statusResponse.status, errorText);
-                                // Hata durumunda serverless uyarısı göster
+                                // Hata durumunda uyarı göster
                                 if (statusResponse.status === 500 && attempts > 5) {
                                   if (checkInterval) clearInterval(checkInterval);
                                   if (timeoutId) clearTimeout(timeoutId);
                                   setWhatsappConnecting(false);
                                   setWhatsappQRCode(null);
-                                  showToast("WhatsApp bağlantısı serverless ortamda çalışmamaktadır. Ayrı bir sunucu gereklidir.", "error");
+                                  showToast("WhatsApp bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.", "error");
                                   return;
                                 }
                               }
@@ -435,32 +436,61 @@ export default function CoachProfilePage() {
                             if (checkInterval) clearInterval(checkInterval);
                             setWhatsappConnecting(false);
                             setWhatsappQRCode(null);
-                            showToast("WhatsApp bağlantısı zaman aşımına uğradı. Serverless ortamda WhatsApp bağlantısı desteklenmemektedir.", "error");
+                            showToast("WhatsApp bağlantısı zaman aşımına uğradı. Lütfen tekrar deneyin.", "error");
                           }, 60000); // 60 saniye
                         } else {
                           const errorData = await response.json().catch(() => ({}));
                           console.error("WhatsApp bağlantı hatası:", errorData);
                           const errorMessage = errorData.error || "WhatsApp bağlantısı başlatılamadı";
-                          if (errorMessage.includes("Puppeteer") || errorMessage.includes("serverless") || errorMessage.includes("timeout")) {
-                            showToast("WhatsApp bağlantısı serverless ortamda (Vercel) çalışmamaktadır. Ayrı bir sunucu gereklidir.", "error");
-                          } else {
-                            showToast(errorMessage, "error");
-                          }
+                          showToast(errorMessage, "error");
                           setWhatsappConnecting(false);
                         }
-                } catch (error) {
+                } catch (error: any) {
                   console.error("WhatsApp bağlantı hatası:", error);
-                  showToast("WhatsApp bağlantısı serverless ortamda çalışmamaktadır. Ayrı bir sunucu gereklidir.", "error");
+                  showToast(error?.message || "WhatsApp bağlantısı kurulamadı. Lütfen tekrar deneyin.", "error");
                   setWhatsappConnecting(false);
                   if (checkInterval) clearInterval(checkInterval);
                   if (timeoutId) clearTimeout(timeoutId);
                 }
               }}
               disabled={whatsappConnecting || whatsappConnected}
-              className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {whatsappConnecting ? "Bağlanıyor..." : whatsappConnected ? "Bildirimler Açık" : "Bildirimleri Aç"}
             </button>
+            {whatsappConnected && (
+              <button
+                onClick={async () => {
+                  if (!user) return;
+                  
+                  try {
+                    const response = await fetch("/api/whatsapp/disconnect", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({ coachId: user.uid }),
+                    });
+                    
+                    if (response.ok) {
+                      setWhatsappConnected(false);
+                      setWhatsappQRCode(null);
+                      showToast("WhatsApp bağlantısı kesildi", "success");
+                    } else {
+                      const errorData = await response.json().catch(() => ({}));
+                      showToast(errorData.error || "Bağlantı kesilemedi", "error");
+                    }
+                  } catch (error: any) {
+                    console.error("WhatsApp disconnect hatası:", error);
+                    showToast("Bağlantı kesilemedi. Lütfen tekrar deneyin.", "error");
+                  }
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition"
+              >
+                Bağlantıyı Kes
+              </button>
+            )}
+            </div>
           </div>
 
           {/* Role (Read-only) */}
