@@ -68,53 +68,43 @@ export default function CoachProfilePage() {
     }
   }, [userData, user]);
 
-  // WhatsApp durumunu Firestore'dan kontrol et ve otomatik bağlanmayı dene
+  // WhatsApp durumunu sadece kontrol et (otomatik bağlanma yapma)
   useEffect(() => {
     if (!user || !userData || userData.role !== "coach") return;
+    if (whatsappConnecting) return; // Bağlanma işlemi devam ediyorsa kontrol etme
 
-    const checkAndAutoConnect = async () => {
+    const checkWhatsAppStatus = async () => {
       try {
-        // Önce Firestore'dan durumu kontrol et
+        // Firestore'dan durumu kontrol et
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
           const data = userSnap.data();
-          // Eğer daha önce bağlanmışsa otomatik bağlanmayı dene
-          if (data.whatsappConnected && data.whatsappConnectedAt && !whatsappConnected) {
-            console.log("🔄 Daha önce bağlanmış, otomatik bağlanma deneniyor...");
-            setWhatsappConnecting(true);
-            
-            // API'yi çağırarak otomatik bağlanmayı tetikle
-            const response = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`);
-            if (response.ok) {
-              const apiData = await response.json();
-              setWhatsappConnected(apiData.isReady);
-              if (apiData.isReady || !apiData.isInitializing) {
-                setWhatsappConnecting(false);
-              }
-              if (apiData.qrCode) {
-                setWhatsappQRCode(apiData.qrCode);
-              }
-            }
-          } else if (data.whatsappConnected) {
-            // Firestore'da bağlı görünüyorsa durumu güncelle
+          // Sadece durumu güncelle, bağlantı başlatma
+          if (data.whatsappConnected) {
             setWhatsappConnected(true);
             setWhatsappConnecting(false);
+            setWhatsappQRCode(null); // QR kod gösterme
           }
         }
         
-        // API'den güncel durumu kontrol et
+        // API'den güncel durumu kontrol et (sadece durum kontrolü, bağlantı başlatma)
         const response = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`);
         if (response.ok) {
           const data = await response.json();
-          setWhatsappConnected(data.isReady);
-          // Eğer bağlıysa veya bağlanmıyorsa, connecting durumunu false yap
-          if (data.isReady || !data.isInitializing) {
+          // Sadece zaten bağlıysa durumu güncelle
+          if (data.isReady) {
+            setWhatsappConnected(true);
             setWhatsappConnecting(false);
-          }
-          if (data.qrCode) {
-            setWhatsappQRCode(data.qrCode);
+            setWhatsappQRCode(null); // QR kod gösterme
+          } else {
+            // Bağlı değilse ve bağlanmıyorsa durumu sıfırla
+            if (!data.isInitializing) {
+              setWhatsappConnected(false);
+              setWhatsappConnecting(false);
+              setWhatsappQRCode(null);
+            }
           }
         }
       } catch (error) {
@@ -122,11 +112,11 @@ export default function CoachProfilePage() {
       }
     };
 
-    checkAndAutoConnect();
+    checkWhatsAppStatus();
     
-    // Sadece bağlı değilse ve bağlanmıyorsa kontrol et (10 saniyede bir)
+    // Sadece bağlı değilse ve bağlanmıyorsa durumu kontrol et (10 saniyede bir)
     if (!whatsappConnected && !whatsappConnecting) {
-      const interval = setInterval(checkAndAutoConnect, 10000);
+      const interval = setInterval(checkWhatsAppStatus, 10000);
       return () => clearInterval(interval);
     }
   }, [user, userData, whatsappConnected, whatsappConnecting]);
