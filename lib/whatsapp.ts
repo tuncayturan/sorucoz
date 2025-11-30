@@ -222,7 +222,9 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     // QR kod event'i - base64 image olarak oluştur
     // ÖNEMLİ: Event listener'ı initialize() çağrılmadan ÖNCE kurmalıyız
     console.log(`🎯 Coach ${coachId} için QR event listener kuruluyor...`);
-    client.on("qr", async (qr: string) => {
+    
+    // Event listener'ın kurulduğunu doğrula
+    const qrListener = async (qr: string) => {
       try {
         console.log(`📱 ========== QR KOD EVENT TETİKLENDİ ==========`);
         console.log(`📱 Coach ${coachId} için QR kod event'i tetiklendi (QR string uzunluk: ${qr.length})`);
@@ -275,8 +277,17 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         }
       } catch (error) {
         console.error(`❌ QR kod oluşturma hatası (Coach ${coachId}):`, error);
+        console.error(`❌ Hata detayı:`, error);
       }
-    });
+    };
+    
+    // Event listener'ı kur
+    client.on("qr", qrListener);
+    console.log(`✅ Coach ${coachId} için QR event listener kuruldu`);
+    
+    // Event listener'ın gerçekten kurulduğunu doğrula
+    const listenerCount = client.listenerCount ? client.listenerCount("qr") : 0;
+    console.log(`🔍 Coach ${coachId} için QR event listener sayısı: ${listenerCount}`);
 
     // Error event'lerini dinle
     client.on("auth_failure", async (msg: string) => {
@@ -529,18 +540,31 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     
     // Initialize'i await etmeden başlat (async işlem)
     // QR kod event'i geldiğinde clientData.qrCode güncellenecek
+    console.log(`🚀 Coach ${coachId} için client.initialize() çağrılıyor...`);
+    const initStartTime = Date.now();
+    
+    // Initialize'den önce event listener'ların kurulduğunu doğrula
+    const qrListenerCountBefore = client.listenerCount ? client.listenerCount("qr") : 0;
+    console.log(`🔍 Initialize öncesi QR listener sayısı: ${qrListenerCountBefore}`);
+    
     client.initialize()
       .then(() => {
-        console.log(`✅ Coach ${coachId} için WhatsApp client initialize tamamlandı`);
+        const initDuration = Date.now() - initStartTime;
+        console.log(`✅ Coach ${coachId} için WhatsApp client initialize tamamlandı (${initDuration}ms)`);
+        console.log(`📊 Initialize sonrası durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
+        
+        // Initialize sonrası event listener'ları kontrol et
+        const qrListenerCountAfter = client.listenerCount ? client.listenerCount("qr") : 0;
+        console.log(`🔍 Initialize sonrası QR listener sayısı: ${qrListenerCountAfter}`);
+        
         // Eğer ready event'i gelmediyse, hala initializing olabilir
         if (!clientData.isReady) {
           console.log(`⏳ Coach ${coachId} için QR kod veya ready event bekleniyor...`);
-          console.log(`📊 Mevcut durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
           
-          // Initialize tamamlandı ama QR kod henüz gelmediyse, biraz bekle
+          // Initialize tamamlandıktan sonra 3 saniye bekle ve QR kod kontrolü yap
           setTimeout(() => {
             if (!clientData.isReady && !clientData.qrCode) {
-              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi (5 saniye sonra)`);
+              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi (3 saniye sonra)`);
               console.warn(`⚠️ Mevcut durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
               
               // Client durumunu kontrol et
@@ -556,8 +580,17 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
               } catch (error) {
                 console.error(`❌ Client info alınamadı:`, error);
               }
+              
+              // QR event listener'ının hala aktif olup olmadığını kontrol et
+              const currentQrListenerCount = client.listenerCount ? client.listenerCount("qr") : 0;
+              console.warn(`⚠️ QR listener sayısı: ${currentQrListenerCount}`);
+              
+              if (currentQrListenerCount === 0) {
+                console.error(`❌ QR event listener kaybolmuş! Yeniden kuruluyor...`);
+                client.on("qr", qrListener);
+              }
             }
-          }, 5000); // 5 saniye sonra kontrol et
+          }, 3000); // 3 saniye sonra kontrol et
         }
       })
       .catch((error: any) => {
