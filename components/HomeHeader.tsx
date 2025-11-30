@@ -167,26 +167,55 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
               </svg>
             </button>
 
-            {/* Logo/App Name */}
+            {/* Logo/App Name - Premium iOS Style */}
             <button
               onClick={() => router.push("/home")}
-              className="flex items-center gap-2 hover:opacity-80 active:scale-95 transition cursor-pointer"
+              className="flex items-center gap-3 group relative"
             >
-              {logoUrl ? (
-                <div className="relative w-8 h-8 rounded-xl overflow-hidden">
-                  <Image
-                    src={logoUrl}
-                    alt="SoruÇöz"
-                    fill
-                    className="object-contain"
-                  />
+              <div className="relative">
+                {/* Outer Glow Effect */}
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-blue-400/20 via-indigo-400/20 to-purple-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Main Logo Container - Premium Glassmorphism */}
+                <div className="relative w-10 h-10 rounded-2xl overflow-hidden">
+                  {/* Gradient Background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600" />
+                  
+                  {/* Shine Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent opacity-60" />
+                  
+                  {/* Inner Border Glow */}
+                  <div className="absolute inset-[1px] rounded-2xl border border-white/20" />
+                  
+                  {/* Logo Content */}
+                  {logoUrl ? (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={logoUrl}
+                        alt={siteName}
+                        fill
+                        className="object-cover rounded-2xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-full flex items-center justify-center z-10">
+                      <span className="text-white font-black text-base drop-shadow-md">
+                        {siteName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Hover Glow Effect */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm -z-10" />
                 </div>
-              ) : (
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">SÇ</span>
-                </div>
-              )}
-              <span className="font-semibold text-gray-900 hidden sm:inline">{siteName}</span>
+                
+                {/* Subtle Shadow */}
+                <div className="absolute inset-0 rounded-2xl shadow-[0_4px_12px_rgba(59,130,246,0.25)] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
+              
+              <span className="font-semibold text-gray-900 hidden sm:inline group-hover:text-blue-600 transition-colors duration-300">
+                {siteName}
+              </span>
             </button>
           </div>
 
