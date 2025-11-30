@@ -322,6 +322,8 @@ export default function AdminLayout({
     { href: "/admin/coach-yonetimi", label: "Coach Yönetimi", icon: "👨‍🏫", badge: null },
     { href: "/admin/security", label: "Security", icon: "🔒", badge: null },
     { href: "/admin/sorular", label: "Sorular", icon: "❓", badge: null },
+    { href: "/admin/ai-yonetimi", label: "AI Yönetimi", icon: "🤖", badge: null },
+    { href: "/admin/maliyet", label: "Maliyet Yönetimi", icon: "💵", badge: null },
     { href: "/admin/abonelikler", label: "Abonelikler", icon: "⭐", badge: null },
     { href: "/admin/odeme-yontemleri", label: "Ödeme Yöntemleri", icon: "💳", badge: null },
     { href: "/admin/odeme-gecmisi", label: "Ödeme Geçmişi", icon: "💰", badge: null },

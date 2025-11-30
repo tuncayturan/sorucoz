@@ -10,6 +10,7 @@ import SideMenu from "@/components/SideMenu";
 import PopupMessage from "@/components/PopupMessage";
 import StudentFooter from "@/components/StudentFooter";
 import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -110,6 +111,15 @@ export default function HomePage() {
       }
     }
   }, [userData, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   // Scroll to top button visibility
   useEffect(() => {

@@ -14,6 +14,7 @@ import { db, auth } from "@/lib/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, type UserInfo } from "firebase/auth";
 import Toast from "@/components/ui/Toast";
 import { requestNotificationPermission, getFCMToken, saveFCMTokenToUser, removeFCMTokenFromUser } from "@/lib/fcmUtils";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
 export default function AyarlarPage() {
   const router = useRouter();
@@ -93,6 +94,15 @@ export default function AyarlarPage() {
       router.replace("/landing");
     }
   }, [user, authLoading, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   useEffect(() => {
     if (userData) {
@@ -484,54 +494,52 @@ export default function AyarlarPage() {
 
               <div className="space-y-4">
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 backdrop-blur-xl rounded-2xl p-6 shadow-[0_5px_20px_rgba(0,0,0,0.08)] border border-white/50">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1 font-medium">Mevcut Plan</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                  {/* Mevcut Plan */}
+                  <div className="bg-white/80 rounded-xl p-4 mb-4">
+                    <p className="text-sm text-gray-600 mb-1 font-medium">Mevcut Plan</p>
+                    <div className="flex items-center gap-2">
+                      {currentPlan === "trial" && (
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold">FREE</span>
+                      )}
+                      <p className="text-xl font-bold text-gray-900">
                         {currentPlan === "trial" ? (
-                          <span className="text-blue-600">🆓 Trial Plan</span>
+                          <span className="text-blue-600">Trial</span>
                         ) : currentPlan === "lite" ? (
-                          <span className="text-blue-600">📚 Lite Plan</span>
+                          <span className="text-blue-600">Lite</span>
                         ) : (
-                          <span className="text-yellow-600">⭐ Premium Plan</span>
+                          <span className="text-yellow-600">Premium</span>
                         )}
                       </p>
                     </div>
                   </div>
 
-                  {subscriptionStatus === "trial" && trialDaysLeft > 0 && (
-                    <div className="bg-white/80 rounded-xl p-4 mb-4">
-                      <p className="text-sm text-gray-600 mb-1 font-medium">Kalan Trial Süresi</p>
-                      <p className="text-xl font-bold text-gray-900">{trialDaysLeft} gün</p>
-                    </div>
-                  )}
+                  {/* Kalan Abonelik Süresi */}
+                  <div className="bg-white/80 rounded-xl p-4 mb-4">
+                    <p className="text-sm text-gray-600 mb-1 font-medium">Kalan Abonelik Süresi</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {subscriptionStatus === "trial" && trialDaysLeft > 0
+                        ? `${trialDaysLeft} gün`
+                        : subscriptionStatus === "active" && subscriptionDaysLeft > 0
+                        ? `${subscriptionDaysLeft} gün`
+                        : "0 gün"}
+                    </p>
+                  </div>
 
-                  {subscriptionStatus === "active" && subscriptionDaysLeft > 0 && (
-                    <div className="bg-white/80 rounded-xl p-4 mb-4">
-                      <p className="text-sm text-gray-600 mb-1 font-medium">Kalan Abonelik Süresi</p>
-                      <p className="text-xl font-bold text-gray-900">{subscriptionDaysLeft} gün</p>
+                  {/* Bugün Kalan Soru Hakkı */}
+                  <div className="bg-white/80 rounded-xl p-4">
+                    <p className="text-sm text-gray-600 mb-1 font-medium">Bugün Kalan Soru Hakkı</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xl font-bold ${questionInfo.remaining > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {currentPlan === "premium" ? "∞" : questionInfo.remaining}
+                      </span>
+                      {currentPlan !== "premium" && (
+                        <>
+                          <span className="text-gray-400">/</span>
+                          <span className="text-gray-700 font-semibold">{dailyLimit} soru</span>
+                        </>
+                      )}
                     </div>
-                  )}
-
-                  {currentPlan !== "premium" && (
-                    <div className="bg-white/80 rounded-xl p-4">
-                      <p className="text-sm text-gray-600 mb-1 font-medium">Bugün Kalan Soru Hakkı</p>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-2xl font-bold ${questionInfo.remaining > 0 ? "text-green-600" : "text-red-600"}`}>
-                          {questionInfo.remaining}
-                        </span>
-                        <span className="text-gray-400">/</span>
-                        <span className="text-gray-700 font-semibold">{dailyLimit} soru</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {currentPlan === "premium" && (
-                    <div className="bg-white/80 rounded-xl p-4">
-                      <p className="text-sm text-gray-600 mb-1 font-medium">Günlük Soru Limiti</p>
-                      <p className="text-xl font-bold text-green-600">Sınırsız</p>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 <button

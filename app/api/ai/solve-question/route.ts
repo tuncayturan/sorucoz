@@ -1,9 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { solveQuestion } from "@/lib/ai-service";
 
 /**
- * Google Gemini API kullanarak soruyu adım adım çözer (ücretsiz)
+ * AI servisi kullanarak soruyu adım adım çözer
+ * Firestore'daki AI ayarlarına göre provider seçilir
+ */
+async function solveQuestionWithAI(imageUrl: string, ders: string): Promise<{
+  steps: Array<{ step: number; explanation: string; calculation?: string }>;
+  finalAnswer: string;
+} | null> {
+  // AI servisi kullan (Firestore ayarlarına göre)
+  return await solveQuestion(imageUrl, ders);
+}
+
+/**
+ * @deprecated Bu fonksiyon artık kullanılmıyor, solveQuestionWithAI kullanın
+ * Eski Gemini implementasyonu (geriye dönük uyumluluk için)
  */
 async function solveQuestionWithGemini(imageUrl: string, ders: string): Promise<{
+  steps: Array<{ step: number; explanation: string; calculation?: string }>;
+  finalAnswer: string;
+} | null> {
+  // Yeni AI servisini kullan
+  return await solveQuestion(imageUrl, ders);
+}
+
+/**
+ * @deprecated Eski implementasyon - sadece geriye dönük uyumluluk için
+ */
+async function solveQuestionWithGeminiOld(imageUrl: string, ders: string): Promise<{
   steps: Array<{ step: number; explanation: string; calculation?: string }>;
   finalAnswer: string;
 } | null> {
@@ -345,10 +370,10 @@ export async function POST(request: NextRequest) {
     
     console.log("✅ POST Handler: GEMINI_API_KEY mevcut, uzunluk:", apiKeyCheck.length);
     
-    // Gemini API ile soruyu çöz (ücretsiz)
+    // AI servisi ile soruyu çöz (Firestore ayarlarına göre)
     let solution;
     try {
-      solution = await solveQuestionWithGemini(imageUrl, ders);
+      solution = await solveQuestionWithAI(imageUrl, ders);
     } catch (apiError: any) {
       // API'den gelen hataları direkt throw et
       throw apiError;

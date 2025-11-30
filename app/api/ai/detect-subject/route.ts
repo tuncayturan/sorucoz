@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { detectSubject } from "@/lib/ai-service";
 
 // OpenAI veya başka bir AI servisi kullanılabilir
 // Şimdilik basit bir pattern matching ile ders tespiti yapıyoruz
@@ -502,8 +503,8 @@ export async function POST(request: NextRequest) {
 
     console.log("🔍 Ders tespiti başlatılıyor:", imageUrl);
 
-    // Gemini API ile ders tespiti (ücretsiz)
-    const subject = await detectSubjectWithGemini(imageUrl);
+    // AI servisi ile ders tespiti (Firestore ayarlarına göre)
+    const subject = await detectSubject(imageUrl);
     
     if (!subject || subject === "Bilinmeyen") {
       console.warn("⚠️ Ders tespit edilemedi veya 'Bilinmeyen' döndü");

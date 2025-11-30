@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
+export interface AISettings {
+  provider?: "gemini" | "openai" | "groq" | "together";
+  model?: string;
+  geminiApiKey?: string;
+  openaiApiKey?: string;
+  groqApiKey?: string;
+  togetherApiKey?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
 interface SiteSettings {
   logo?: string;
   icon?: string;
@@ -9,6 +20,7 @@ interface SiteSettings {
   siteName?: string;
   footerCopyright?: string;
   footerDescription?: string;
+  aiSettings?: AISettings;
 }
 
 export function useSiteSettings() {

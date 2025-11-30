@@ -10,6 +10,7 @@ import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import Image from "next/image";
 import StudentFooter from "@/components/StudentFooter";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
 interface Soru {
   id: string;
@@ -71,6 +72,15 @@ export default function SorularimPage() {
       router.replace("/landing");
     }
   }, [user, authLoading, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   useEffect(() => {
     if (user) {

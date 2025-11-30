@@ -7,6 +7,7 @@ import { useUserData } from "@/hooks/useUserData";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import StudentFooter from "@/components/StudentFooter";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -43,6 +44,15 @@ export default function EtkinliklerPage() {
         } else if (userData?.role === "coach") {
           router.replace("/coach");
         }
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
       }
     }
   }, [user, userData, authLoading, userDataLoading, router]);

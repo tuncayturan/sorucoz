@@ -9,6 +9,8 @@ import HomeHeader from "@/components/HomeHeader";
 import Image from "next/image";
 import Toast from "@/components/ui/Toast";
 import StudentFooter from "@/components/StudentFooter";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
+import { useUserData } from "@/hooks/useUserData";
 
 interface Soru {
   id: string;
@@ -51,6 +53,7 @@ export default function SoruDetayPage() {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
+  const { userData, loading: userDataLoading } = useUserData();
   const [soru, setSoru] = useState<Soru | null>(null);
   const [loading, setLoading] = useState(true);
   const [solving, setSolving] = useState(false);
@@ -79,6 +82,15 @@ export default function SoruDetayPage() {
       router.replace("/landing");
     }
   }, [user, authLoading, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   useEffect(() => {
     if (user && params.id) {

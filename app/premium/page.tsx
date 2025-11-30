@@ -91,7 +91,7 @@ export default function PremiumPage() {
       // Lite'dan Premium'a geçiş: Hemen geçiş, yeni 30 günlük abonelik
       if (currentPlan === "lite" && plan === "premium" && subscriptionStatus === "active") {
         const subscriptionEndDate = new Date(now);
-        subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1); // 1 ay sonra
+        subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30); // 30 gün sonra
 
         await updateDoc(userRef, {
           premium: true,
@@ -115,7 +115,7 @@ export default function PremiumPage() {
       // Yeni abonelik (Trial'dan veya expired'dan)
       else {
         const subscriptionEndDate = new Date(now);
-        subscriptionEndDate.setMonth(subscriptionEndDate.getMonth() + 1); // 1 ay sonra
+        subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30); // 30 gün sonra
 
         await updateDoc(userRef, {
           premium: plan === "premium",
@@ -153,7 +153,7 @@ export default function PremiumPage() {
       bgColorClass: "from-blue-50 to-indigo-50",
       borderColorClass: "border-blue-200",
       features: [
-        "Günde 10 soru sorma hakkı",
+        "Günde 10 soru",
         "Koç desteği",
         "Temel istatistikler",
         "Email desteği",
@@ -355,7 +355,7 @@ export default function PremiumPage() {
                   🆓
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Trial Plan</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Trial</h2>
                   <p className="text-sm text-gray-500">7 günlük ücretsiz deneme</p>
                 </div>
               </div>
@@ -373,7 +373,7 @@ export default function PremiumPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <p className="text-sm text-gray-700">7 gün boyunca sınırsız soru sorma</p>
+                  <p className="text-sm text-gray-700">Günde 3 soru</p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="w-5 h-5 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">

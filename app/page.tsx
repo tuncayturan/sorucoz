@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
 export default function AppEntry() {
   const router = useRouter();
@@ -19,7 +20,12 @@ export default function AppEntry() {
         } else if (userData?.role === "coach") {
           router.replace("/coach");
         } else {
-          router.replace("/home");
+          // Student kullanıcılar için abonelik kontrolü
+          if (shouldRedirectToPremium(userData)) {
+            router.replace("/premium");
+          } else {
+            router.replace("/home");
+          }
         }
       } else {
         // Kullanıcı giriş yapmamışsa landing sayfasına yönlendir

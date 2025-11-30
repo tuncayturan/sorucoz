@@ -26,6 +26,7 @@ import SideMenu from "@/components/SideMenu";
 import Toast from "@/components/ui/Toast";
 import Image from "next/image";
 import StudentFooter from "@/components/StudentFooter";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
 interface Mesaj {
   id: string;
@@ -122,6 +123,15 @@ export default function MesajlarPage() {
       router.replace("/landing");
     }
   }, [user, authLoading, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   // Fetch all coaches and their conversations
   useEffect(() => {

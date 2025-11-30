@@ -12,6 +12,7 @@ import StudentFooter from "@/components/StudentFooter";
 import Toast from "@/components/ui/Toast";
 import { canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { checkSubscriptionStatus } from "@/lib/subscriptionUtils";
+import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
 export default function SoruSorPage() {
   const router = useRouter();
@@ -70,6 +71,15 @@ export default function SoruSorPage() {
       router.replace("/landing");
     }
   }, [user, authLoading, router]);
+
+  // Abonelik süresi dolmuşsa premium sayfasına yönlendir
+  useEffect(() => {
+    if (!authLoading && !userDataLoading && user && userData && userData.role === "student") {
+      if (shouldRedirectToPremium(userData)) {
+        router.replace("/premium");
+      }
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   // Soru sorma limiti kontrolü - sadece bir kez göster
   const hasShownLimitToast = useRef(false);
