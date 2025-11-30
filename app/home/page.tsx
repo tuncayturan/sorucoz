@@ -93,10 +93,10 @@ export default function HomePage() {
   // Çevrimiçi durumunu güncelle
   useOnlineStatus();
 
-  // Kullanıcı giriş yapmamışsa login sayfasına yönlendir
+  // Kullanıcı giriş yapmamışsa landing sayfasına yönlendir
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/auth/login");
+      router.replace("/landing");
     }
   }, [user, authLoading, router]);
 

@@ -119,7 +119,7 @@ export default function MesajlarPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/auth/login");
+      router.replace("/landing");
     }
   }, [user, authLoading, router]);
 
@@ -327,11 +327,11 @@ export default function MesajlarPage() {
   }, [yeniMesaj]);
 
   const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const container = messagesContainerRef.current;
+      if (messagesContainerRef.current) {
+        const container = messagesContainerRef.current;
       // Sadece scrollTop kullan, tek seferde scroll yap
-      container.scrollTop = container.scrollHeight;
-    }
+          container.scrollTop = container.scrollHeight;
+        }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -563,7 +563,7 @@ export default function MesajlarPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <div>
-                                <h3 className="font-semibold text-gray-900 truncate">{conv.coachName}</h3>
+                              <h3 className="font-semibold text-gray-900 truncate">{conv.coachName}</h3>
                                 {conv.coachTitle && (
                                   <p className="text-xs text-green-600 font-medium truncate">{conv.coachTitle}</p>
                                 )}
@@ -627,7 +627,7 @@ export default function MesajlarPage() {
                       ) : (
                         <p className="text-xs text-gray-500">Eğitim Koçu</p>
                       )}
-                    </div>
+              </div>
                   </div>
 
                   {/* Messages */}

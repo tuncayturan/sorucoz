@@ -68,7 +68,7 @@ export default function SorularimPage() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/auth/login");
+      router.replace("/landing");
     }
   }, [user, authLoading, router]);
 

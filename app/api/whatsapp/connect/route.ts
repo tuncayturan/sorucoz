@@ -65,6 +65,48 @@ export async function GET(request: NextRequest) {
     // Eğer başlatılıyorsa, mevcut durumu döndür
     if (status.isInitializing) {
       console.log(`⏳ Zaten başlatılıyor (Coach: ${coachId})`);
+      
+      // Eğer 30 saniyeden fazla süredir QR kod gelmemişse, session'ı temizle
+      if (!status.qrCode) {
+        // Firestore'dan başlatma zamanını kontrol et
+        const connectingStartTime = coachData.whatsappConnectingStartTime;
+        
+        if (connectingStartTime) {
+          const startTime = connectingStartTime.toMillis ? connectingStartTime.toMillis() : connectingStartTime;
+          const elapsed = Date.now() - startTime;
+          const thirtySeconds = 30 * 1000;
+          
+          if (elapsed > thirtySeconds) {
+            console.warn(`⚠️ Coach ${coachId} için 30 saniyeden fazla süredir QR kod bekleniyor. Session temizleniyor...`);
+            
+            // Session'ı temizle ve yeniden başlat
+            try {
+              const { clearWhatsAppSessionForCoach } = await import("@/lib/whatsapp");
+              await clearWhatsAppSessionForCoach(coachId);
+              
+              // Firestore'u güncelle
+              const { updateDoc } = await import("firebase/firestore");
+              await updateDoc(coachRef, {
+                whatsappConnecting: false,
+                whatsappConnectingStartTime: null,
+              });
+              
+              console.log(`✅ Coach ${coachId} için session temizlendi, yeniden başlatılabilir`);
+              
+              return NextResponse.json({
+                success: true,
+                isReady: false,
+                isInitializing: false,
+                qrCode: null,
+                warning: "Session temizlendi, lütfen tekrar deneyin",
+              });
+            } catch (error) {
+              console.error(`❌ Session temizleme hatası:`, error);
+            }
+          }
+        }
+      }
+      
       return NextResponse.json({
         success: true,
         isReady: status.isReady,
@@ -74,8 +116,11 @@ export async function GET(request: NextRequest) {
     }
     
     // Eğer daha önce bağlanmışsa otomatik bağlanmayı dene
+    // Ama eğer Firestore'da bağlantı bilgileri yoksa, direkt QR kod göster
     if (wasConnectedBefore && !status.isReady && !status.isInitializing) {
       console.log(`🔄 Daha önce bağlanmış (Coach: ${coachId}), otomatik bağlanma deneniyor...`);
+    } else if (!wasConnectedBefore) {
+      console.log(`📱 Firestore'da bağlantı bilgileri yok (Coach: ${coachId}), QR kod gösterilecek...`);
     }
 
     // WhatsApp'ı başlat (async - hemen dön, QR kod sonra gelecek)
@@ -120,11 +165,14 @@ export async function GET(request: NextRequest) {
         });
       
       // Başlatma işlemi başladı, durumu tekrar kontrol et
+      // Biraz bekle ki QR kod event'i gelebilsin
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 saniye bekle
       status = await getWhatsAppStatusForCoach(coachId);
       console.log(`📊 Başlatma sonrası durum (Coach: ${coachId}):`, {
         isReady: status.isReady,
         isInitializing: status.isInitializing,
         hasQRCode: !!status.qrCode,
+        qrCodeLength: status.qrCode ? status.qrCode.length : 0,
       });
     } catch (error: any) {
       console.error(`❌ initializeWhatsAppForCoach çağrı hatası (Coach: ${coachId}):`, error);

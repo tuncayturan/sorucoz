@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import SplashScreen from "@/components/SplashScreen";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
 
@@ -11,23 +10,9 @@ export default function AppEntry() {
   const { user, loading } = useAuth();
   const { userData, loading: userDataLoading } = useUserData();
 
-  const [showSplash, setShowSplash] = useState(true);
-
   useEffect(() => {
-    if (!loading) {
-      setTimeout(() => {
-        setShowSplash(false);
-      }, 1000);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (!showSplash && !loading && !userDataLoading) {
-      const done = localStorage.getItem("onboardingDone");
-
-      if (!done) {
-        router.replace("/onboarding");
-      } else if (user) {
+    if (!loading && !userDataLoading) {
+      if (user) {
         // Role'e göre yönlendir
         if (userData?.role === "admin") {
           router.replace("/admin");
@@ -37,13 +22,20 @@ export default function AppEntry() {
           router.replace("/home");
         }
       } else {
-        // Kullanıcı giriş yapmamışsa login'e yönlendir
-        router.replace("/auth/login");
+        // Kullanıcı giriş yapmamışsa landing sayfasına yönlendir
+        router.replace("/landing");
       }
     }
-  }, [showSplash, loading, userDataLoading, user, userData, router]);
+  }, [loading, userDataLoading, user, userData, router]);
 
-  if (showSplash || loading || userDataLoading) return <SplashScreen />;
+  // Loading durumunda minimal bir loading göster
+  if (loading || userDataLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#f5f5f7] via-white to-[#f5f5f7] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return null;
 }

@@ -57,6 +57,27 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     throw error;
   }
 
+  // Firestore'dan bağlantı durumunu kontrol et - eğer bağlantı bilgileri yoksa, direkt QR kod göster
+  let hasConnectionInfo = false;
+  try {
+    await loadWhatsAppModules();
+    const { db } = await import("@/lib/firebase");
+    const { doc, getDoc } = await import("firebase/firestore");
+    const coachDoc = await getDoc(doc(db, "users", coachId));
+    if (coachDoc.exists()) {
+      const coachData = coachDoc.data();
+      // Eğer WhatsApp bağlantı bilgileri varsa (whatsappConnected ve whatsappConnectedAt)
+      hasConnectionInfo = !!(coachData.whatsappConnected && coachData.whatsappConnectedAt);
+      console.log(`📊 Coach ${coachId} için Firestore bağlantı durumu:`, {
+        whatsappConnected: coachData.whatsappConnected,
+        whatsappConnectedAt: coachData.whatsappConnectedAt ? 'Var' : 'Yok',
+        hasConnectionInfo: hasConnectionInfo,
+      });
+    }
+  } catch (error) {
+    console.error("Firestore bağlantı durumu kontrol hatası:", error);
+  }
+
   // Eğer zaten varsa ve hazırsa, döndür
   const existing = coachClients.get(coachId);
   if (existing) {
@@ -97,22 +118,61 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
   }
 
   // Firestore'dan bağlantı durumunu kontrol et
+  // Eğer bağlantı bilgileri yoksa, direkt QR kod göster (otomatik bağlanma yapma)
   let shouldAutoConnect = false;
+  if (hasConnectionInfo) {
+    shouldAutoConnect = true;
+    console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (Firestore'da bağlantı bilgileri var)`);
+  } else {
+    console.log(`📱 Coach ${coachId} için Firestore'da bağlantı bilgileri yok, QR kod gösterilecek`);
+  }
+  
+  // Session dosyalarını kontrol et - eğer bozuksa temizle
   try {
-    await loadWhatsAppModules();
-    const { db } = await import("@/lib/firebase");
-    const { doc, getDoc } = await import("firebase/firestore");
-    const coachDoc = await getDoc(doc(db, "users", coachId));
-    if (coachDoc.exists()) {
-      const coachData = coachDoc.data();
-      // Eğer daha önce bağlanmışsa ve session varsa otomatik bağlanmayı dene
-      if (coachData.whatsappConnected && coachData.whatsappConnectedAt) {
-        shouldAutoConnect = true;
-        console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (daha önce bağlanmış)`);
+    if (typeof window === "undefined") {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const sessionPath = path.join(process.cwd(), `.wwebjs_auth/${coachId}`);
+      
+      try {
+        const stats = await fs.stat(sessionPath);
+        if (stats.isDirectory()) {
+          // Session var ama Firestore'da bağlı değilse, bozuk olabilir - temizle
+          if (!shouldAutoConnect) {
+            console.warn(`⚠️ Coach ${coachId} için session dosyaları var ama Firestore'da bağlı değil. Bozuk olabilir, temizleniyor...`);
+            try {
+              // Önce mevcut client'ı destroy et (varsa)
+              const existing = coachClients.get(coachId);
+              if (existing && existing.client) {
+                try {
+                  await existing.client.destroy();
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                } catch (error) {
+                  console.error("Mevcut client destroy hatası:", error);
+                }
+              }
+              
+              // Session dosyalarını temizle
+              await fs.rm(sessionPath, { recursive: true, force: true });
+              console.log(`✅ Coach ${coachId} için bozuk session dosyaları temizlendi`);
+            } catch (error: any) {
+              if (error.code !== "EBUSY" && error.code !== "ENOENT") {
+                console.error(`❌ Session temizleme hatası:`, error);
+              } else if (error.code === "EBUSY") {
+                console.warn(`⚠️ Session dosyaları kilitli, temizlenemedi. Devam ediliyor...`);
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        // Session klasörü yok, normal
+        if (error.code !== "ENOENT") {
+          console.error(`❌ Session kontrol hatası:`, error);
+        }
       }
     }
   } catch (error) {
-    console.error("Firestore bağlantı durumu kontrol hatası:", error);
+    console.error("Session kontrol hatası:", error);
   }
 
   // Yeni client oluştur
@@ -160,11 +220,16 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     console.log(`✅ Coach ${coachId} için WhatsApp Client oluşturuldu`);
 
     // QR kod event'i - base64 image olarak oluştur
+    // ÖNEMLİ: Event listener'ı initialize() çağrılmadan ÖNCE kurmalıyız
+    console.log(`🎯 Coach ${coachId} için QR event listener kuruluyor...`);
     client.on("qr", async (qr: string) => {
       try {
+        console.log(`📱 ========== QR KOD EVENT TETİKLENDİ ==========`);
         console.log(`📱 Coach ${coachId} için QR kod event'i tetiklendi (QR string uzunluk: ${qr.length})`);
+        console.log(`📱 QR string ilk 50 karakter: ${qr.substring(0, 50)}...`);
         
         // QR kodunu base64 image olarak oluştur
+        console.log(`🔄 QR kod base64'e çevriliyor...`);
         const qrCodeImage = await qrcode.toDataURL(qr, {
           width: 300,
           margin: 2,
@@ -172,8 +237,15 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         });
 
         console.log(`✅ Coach ${coachId} için QR kod base64'e çevrildi (uzunluk: ${qrCodeImage.length})`);
+        console.log(`📊 QR kod güncelleniyor - Önceki: ${clientData.qrCode ? 'Var' : 'Yok'}, Yeni: Var`);
+        console.log(`📊 Base64 preview: ${qrCodeImage.substring(0, 50)}...`);
+        
         clientData.qrCode = qrCodeImage;
         clientData.isInitializing = true; // QR kod geldi, hala bağlanıyor
+        
+        // QR kod güncellendiğini logla
+        console.log(`✅ Coach ${coachId} için clientData.qrCode güncellendi: ${clientData.qrCode ? 'Var (' + clientData.qrCode.length + ' karakter)' : 'Yok'}`);
+        console.log(`📱 ========== QR KOD EVENT TAMAMLANDI ==========`);
         
         // QR kod oluşturulduğunda Firestore'a kaydet
         try {
@@ -206,6 +278,38 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       }
     });
 
+    // Error event'lerini dinle
+    client.on("auth_failure", async (msg: string) => {
+      console.error(`❌ Coach ${coachId} için auth_failure:`, msg);
+      console.error(`❌ Auth failure mesajı:`, msg);
+      clientData.isInitializing = false;
+      clientData.qrCode = null;
+      
+      // Session dosyaları bozuk olabilir, temizle
+      console.log(`🗑️ Coach ${coachId} için auth_failure nedeniyle session temizleniyor...`);
+      
+      // Client'ı önce destroy et
+      try {
+        await client.destroy();
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 saniye bekle
+      } catch (error) {
+        console.error(`❌ Client destroy hatası (auth_failure):`, error);
+      }
+      
+      // Session'ı temizle
+      try {
+        await clearWhatsAppSessionForCoach(coachId);
+      } catch (error) {
+        console.error(`❌ Session temizleme hatası (auth_failure):`, error);
+      }
+    });
+    
+    client.on("disconnected", (reason: string) => {
+      console.error(`❌ Coach ${coachId} için disconnected:`, reason);
+      clientData.isInitializing = false;
+      clientData.qrCode = null;
+    });
+    
     // Gelen mesajları dinle ve Firestore'a kaydet
     client.on("message", async (message: any) => {
       try {
@@ -309,7 +413,8 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         console.error("Client bilgisi alınamadı:", error);
       }
       
-      // Coach'un telefon numarasını ve bağlantı durumunu otomatik kaydet
+      // Coach'un telefon numarasını ve bağlantı durumunu Firestore'a kaydet
+      // Bu, QR kod okutulduktan sonra bağlantı kurulduğunda çalışır
       try {
         await loadWhatsAppModules();
         const { db } = await import("@/lib/firebase");
@@ -324,8 +429,12 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
             whatsappConnectedAt: serverTimestamp(), // Bağlantı zamanı
             whatsappPushname: pushname, // WhatsApp ismi
             whatsappLastSeen: serverTimestamp(), // Son görülme
+            whatsappConnecting: false, // Bağlantı tamamlandı
+            whatsappConnectingStartTime: null, // Başlatma zamanı temizle
           });
-          console.log(`📱 Coach ${coachId} için WhatsApp bilgileri kaydedildi: ${coachPhoneNumber}`);
+          console.log(`📱 Coach ${coachId} için WhatsApp bağlantı bilgileri Firestore'a kaydedildi: ${coachPhoneNumber}`);
+        } else {
+          console.warn(`⚠️ Coach ${coachId} için telefon numarası alınamadı`);
         }
       } catch (error) {
         console.error("WhatsApp bilgileri kaydetme hatası:", error);
@@ -342,6 +451,7 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         const { serverTimestamp } = await import("firebase/firestore");
         await updateDoc(doc(db, "users", coachId), {
           whatsappQRScannedAt: serverTimestamp(), // QR kod okutma zamanı
+          whatsappConnecting: true, // Bağlantı kuruluyor
         });
         console.log(`📱 Coach ${coachId} için QR kod okutma zamanı kaydedildi`);
       } catch (error) {
@@ -409,6 +519,14 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       process.setMaxListeners(20);
     }
     
+    // Event listener'ların kurulduğunu doğrula
+    console.log(`🔍 Coach ${coachId} için event listener'lar kontrol ediliyor...`);
+    const eventNames = client.listenerCount ? ['qr', 'ready', 'authenticated', 'auth_failure', 'disconnected'] : [];
+    eventNames.forEach(eventName => {
+      const count = client.listenerCount ? client.listenerCount(eventName) : 0;
+      console.log(`   - ${eventName}: ${count} listener`);
+    });
+    
     // Initialize'i await etmeden başlat (async işlem)
     // QR kod event'i geldiğinde clientData.qrCode güncellenecek
     client.initialize()
@@ -417,10 +535,27 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         // Eğer ready event'i gelmediyse, hala initializing olabilir
         if (!clientData.isReady) {
           console.log(`⏳ Coach ${coachId} için QR kod veya ready event bekleniyor...`);
+          console.log(`📊 Mevcut durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
+          
           // Initialize tamamlandı ama QR kod henüz gelmediyse, biraz bekle
           setTimeout(() => {
             if (!clientData.isReady && !clientData.qrCode) {
-              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi`);
+              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi (5 saniye sonra)`);
+              console.warn(`⚠️ Mevcut durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
+              
+              // Client durumunu kontrol et
+              try {
+                const clientInfo = client.info;
+                console.log(`📊 Client info:`, clientInfo ? 'Var' : 'Yok');
+                if (clientInfo) {
+                  console.log(`📊 Client state:`, {
+                    wid: clientInfo.wid ? 'Var' : 'Yok',
+                    pushname: clientInfo.pushname || 'Yok',
+                  });
+                }
+              } catch (error) {
+                console.error(`❌ Client info alınamadı:`, error);
+              }
             }
           }, 5000); // 5 saniye sonra kontrol et
         }
@@ -429,6 +564,8 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         console.error(`❌ WhatsApp client initialize hatası (Coach ${coachId}):`, error);
         console.error(`❌ Hata detayı:`, error?.message || error);
         console.error(`❌ Hata stack:`, error?.stack);
+        console.error(`❌ Hata name:`, error?.name);
+        console.error(`❌ Hata code:`, error?.code);
         clientData.isInitializing = false;
         clientData.qrCode = null;
         sessionLoadingCoaches.delete(coachId);
@@ -514,6 +651,15 @@ export async function getWhatsAppStatusForCoach(coachId: string): Promise<{
       }
     }
     
+    // Debug: QR kod durumunu logla
+    console.log(`📊 getWhatsAppStatusForCoach (Coach: ${coachId}):`, {
+      isReady: clientData.isReady,
+      isInitializing: clientData.isInitializing,
+      hasQRCode: !!clientData.qrCode,
+      qrCodeLength: clientData.qrCode ? clientData.qrCode.length : 0,
+      qrCodePreview: clientData.qrCode ? clientData.qrCode.substring(0, 50) + '...' : 'null',
+    });
+    
     return {
       isReady: clientData.isReady,
       isInitializing: clientData.isInitializing,
@@ -570,6 +716,84 @@ export async function getWhatsAppStatusForCoach(coachId: string): Promise<{
   
   // Session yükleniyor
   return { isReady: false, isInitializing: true, qrCode: null };
+}
+
+/**
+ * Coach için WhatsApp session'ını tamamen temizler (dosyaları siler)
+ */
+export async function clearWhatsAppSessionForCoach(coachId: string): Promise<void> {
+  console.log(`🗑️ Coach ${coachId} için WhatsApp session temizleniyor...`);
+  
+  try {
+    // Önce client'ı kapat ve Map'ten kaldır
+    const clientData = coachClients.get(coachId);
+    if (clientData && clientData.client) {
+      try {
+        console.log(`🔌 Coach ${coachId} için client destroy ediliyor...`);
+        await clientData.client.destroy();
+        console.log(`✅ Coach ${coachId} için client destroy edildi`);
+        
+        // Client destroy edildikten sonra biraz bekle (dosyaların kilitlenmesini önlemek için)
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 saniye bekle
+      } catch (error: any) {
+        console.error(`❌ Client destroy hatası (Coach ${coachId}):`, error);
+        // Devam et, session dosyalarını temizlemeyi dene
+      }
+    }
+    
+    // Client'ı Map'ten kaldır
+    coachClients.delete(coachId);
+    sessionLoadingCoaches.delete(coachId);
+    
+    // Session dosyalarını sil
+    if (typeof window === "undefined") {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const sessionPath = path.join(process.cwd(), `.wwebjs_auth/${coachId}`);
+      
+      try {
+        // Session klasörünü sil (retry mekanizması ile)
+        let retries = 3;
+        while (retries > 0) {
+          try {
+            await fs.rm(sessionPath, { recursive: true, force: true });
+            console.log(`✅ Coach ${coachId} için session dosyaları silindi`);
+            break;
+          } catch (error: any) {
+            retries--;
+            if (error.code === "EBUSY" || error.code === "ENOENT") {
+              if (error.code === "EBUSY" && retries > 0) {
+                console.warn(`⚠️ Session dosyaları kilitli, ${retries} deneme kaldı. 1 saniye bekleniyor...`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+              } else if (error.code === "ENOENT") {
+                // Dosya zaten yok, bu normal
+                console.log(`ℹ️ Session klasörü zaten yok (Coach ${coachId})`);
+                break;
+              }
+            }
+            if (retries === 0) {
+              console.error(`❌ Session dosyası silme hatası (Coach ${coachId}):`, error);
+              // EBUSY hatası kritik değil, devam et
+              if (error.code !== "EBUSY") {
+                throw error;
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        if (error.code !== "ENOENT" && error.code !== "EBUSY") {
+          console.error(`❌ Session temizleme hatası (Coach ${coachId}):`, error);
+          // Kritik olmayan hatalar için devam et
+        }
+      }
+    }
+    
+    console.log(`✅ Coach ${coachId} için session temizleme işlemi tamamlandı`);
+  } catch (error) {
+    console.error(`❌ Session temizleme hatası (Coach ${coachId}):`, error);
+    throw error;
+  }
 }
 
 /**

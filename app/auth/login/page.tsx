@@ -11,12 +11,17 @@ import { auth, db, googleProvider } from "@/lib/firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 import { createTrialData } from "@/lib/subscriptionUtils";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { settings } = useSiteSettings();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const siteLogo = settings.logo || "/img/logo.png";
+  const siteName = settings.siteName || "SoruÇöz";
 
   // ----------------------------
   // EMAIL LOGIN
@@ -143,13 +148,21 @@ export default function LoginPage() {
         <div className="flex justify-center mb-8">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-indigo-400/30 rounded-3xl blur-xl transform scale-110"></div>
-            <Image
-              src="/img/logo.png"
-              alt="SoruÇöz"
-              width={80}
-              height={80}
-              className="relative rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)]"
-            />
+            <div className="relative w-20 h-20 rounded-3xl overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
+              {siteLogo && siteLogo !== "/img/logo.png" ? (
+                <Image
+                  src={siteLogo}
+                  alt={siteName}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-cover rounded-3xl"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-4xl font-bold text-white">{siteName.charAt(0).toUpperCase()}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

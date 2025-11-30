@@ -46,7 +46,7 @@ export default function AdminLayout({
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/auth/login");
+      router.replace("/landing");
     } else if (userData && userData.role !== "admin") {
       router.replace("/home");
     }
@@ -451,7 +451,7 @@ export default function AdminLayout({
                 const { signOut } = await import("firebase/auth");
                 const { auth } = await import("@/lib/firebase");
                 await signOut(auth);
-                router.push("/auth/login");
+                router.replace("/landing");
               }}
               className="px-3 py-1.5 rounded-xl text-xs font-medium text-red-600 hover:bg-red-50/80 active:scale-95 transition"
             >
@@ -573,7 +573,7 @@ export default function AdminLayout({
               const { signOut } = await import("firebase/auth");
               const { auth } = await import("@/lib/firebase");
               await signOut(auth);
-              router.push("/auth/login");
+              router.replace("/landing");
             }}
             className="px-4 py-2 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50/80 active:scale-95 transition"
           >

@@ -196,8 +196,8 @@ export function getDbInstance(): Firestore {
       // Runtime'da db instance'ın düzgün oluşturulduğunu kontrol et
       if (typeof window !== "undefined") {
         if (!dbInstance) {
-          throw new Error("Firebase Firestore instance is null");
-        }
+        throw new Error("Firebase Firestore instance is null");
+      }
         // Firestore'un geçerli olduğunu test et
         if (!('type' in dbInstance) && !('_delegate' in dbInstance)) {
           console.warn("[Firebase DB] Firestore instance may not be valid");
@@ -321,8 +321,8 @@ try {
   // İlk initialization başarısız olabilir, ama sonraki kullanımlarda tekrar denenecek
   if (process.env.NODE_ENV === "development") {
     console.warn("[Firebase DB] Initial initialization failed, will retry on first use:", error);
+    }
   }
-}
 
 // Storage - lazy load
 export const storage: FirebaseStorage = (() => {

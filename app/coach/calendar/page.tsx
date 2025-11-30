@@ -59,7 +59,7 @@ export default function CoachCalendarPage() {
   useEffect(() => {
     if (!authLoading && !userDataLoading) {
       if (!user) {
-        router.replace("/auth/login");
+        router.replace("/landing");
       } else if (userData?.role !== "coach") {
         if (userData?.role === "admin") {
           router.replace("/admin");

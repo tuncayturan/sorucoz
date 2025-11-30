@@ -48,7 +48,19 @@ export default function AdminAyarlarPage() {
       const snapshot = await getDoc(settingsRef);
 
       if (snapshot.exists()) {
-        setSettings(snapshot.data() as SiteSettings);
+        const data = snapshot.data() as SiteSettings;
+        // Varsayılan değerleri ekle (eğer yoksa)
+        setSettings({
+          ...data,
+          footerCopyright: data.footerCopyright || `© ${new Date().getFullYear()} ${data.siteName || "SoruÇöz"}. Tüm hakları saklıdır.`,
+          footerDescription: data.footerDescription || "Açıklama Metni",
+        });
+      } else {
+        // Hiç ayar yoksa varsayılan değerlerle başlat
+        setSettings({
+          footerCopyright: `© ${new Date().getFullYear()} SoruÇöz. Tüm hakları saklıdır.`,
+          footerDescription: "Açıklama Metni",
+        });
       }
     } catch (error) {
       console.error("Ayarlar yüklenirken hata:", error);
@@ -400,7 +412,7 @@ export default function AdminAyarlarPage() {
                       showToast(error.message || "Güncelleme başarısız", "error");
                     }
                   }}
-                  placeholder="© 2024 SoruÇöz. Tüm hakları saklıdır."
+                  placeholder={`© ${new Date().getFullYear()} ${settings.siteName || "SoruÇöz"}. Tüm hakları saklıdır.`}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">Boş bırakılırsa varsayılan metin kullanılır</p>

@@ -50,7 +50,7 @@ export default function CoachProfilePage() {
   useEffect(() => {
     if (!authLoading && !userDataLoading) {
       if (!user) {
-        router.replace("/auth/login");
+        router.replace("/landing");
       } else if (userData?.role !== "coach") {
         if (userData?.role === "admin") {
           router.replace("/admin");
@@ -366,6 +366,17 @@ export default function CoachProfilePage() {
                 let timeoutId: NodeJS.Timeout | null = null;
                 
                 try {
+                  // Başlatma zamanını Firestore'a kaydet
+                  try {
+                    const { db } = await import("@/lib/firebase");
+                    const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
+                    await updateDoc(doc(db, "users", user.uid), {
+                      whatsappConnectingStartTime: serverTimestamp(),
+                    });
+                  } catch (error) {
+                    console.error("Başlatma zamanı kaydetme hatası:", error);
+                  }
+                  
                   // İlk bağlantı isteği - Modal zaten açık (whatsappConnecting = true)
                   console.log("🚀 Bildirimler açılıyor...");
                   const response = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`);
@@ -386,7 +397,16 @@ export default function CoachProfilePage() {
                     isInitializing: data.isInitializing,
                     hasQRCode: !!data.qrCode,
                     qrCodeLength: data.qrCode ? data.qrCode.length : 0,
+                    warning: data.warning,
                   });
+                  
+                  // Eğer session temizlendi uyarısı varsa
+                  if (data.warning) {
+                    setWhatsappConnecting(false);
+                    setWhatsappQRCode(null);
+                    showToast(data.warning, "info");
+                    return;
+                  }
                   
                   if (data.isReady) {
                     // Zaten bağlıysa
@@ -406,9 +426,9 @@ export default function CoachProfilePage() {
                     console.log("⏳ QR kod henüz hazır değil, polling başlatılıyor... (isInitializing:", data.isInitializing, ")");
                   }
                           
-                          // QR kod güncellemelerini dinle (300ms'de bir - daha hızlı)
+                          // QR kod güncellemelerini dinle (500ms'de bir)
                   let attempts = 0;
-                  const maxAttempts = 200; // 60 saniye için (200 * 300ms)
+                  const maxAttempts = 120; // 60 saniye için (120 * 500ms)
                   
                   checkInterval = setInterval(async () => {
                     attempts++;
@@ -417,7 +437,19 @@ export default function CoachProfilePage() {
                       
                       if (!statusResponse.ok) {
                         const errorText = await statusResponse.text().catch(() => "");
-                        console.error(`❌ [${attempts}] Durum kontrolü başarısız:`, statusResponse.status, errorText);
+                        const errorData = await statusResponse.json().catch(() => ({}));
+                        console.error(`❌ [${attempts}] Durum kontrolü başarısız:`, statusResponse.status, errorText, errorData);
+                        
+                        // Eğer serverless hatası varsa, kullanıcıya bildir
+                        if (errorData.isServerless || errorData.error?.includes("serverless")) {
+                          if (checkInterval) clearInterval(checkInterval);
+                          if (timeoutId) clearTimeout(timeoutId);
+                          setWhatsappConnecting(false);
+                          setWhatsappQRCode(null);
+                          showToast("WhatsApp bağlantısı bu ortamda desteklenmemektedir.", "error");
+                          return;
+                        }
+                        
                         if (attempts > 15) {
                           if (checkInterval) clearInterval(checkInterval);
                           if (timeoutId) clearTimeout(timeoutId);
@@ -438,16 +470,59 @@ export default function CoachProfilePage() {
                           isInitializing: statusData.isInitializing,
                           hasQRCode: !!statusData.qrCode,
                           qrCodeLength: statusData.qrCode ? statusData.qrCode.length : 0,
+                          error: statusData.error || null,
                         });
                       }
                       
-                      if (statusData.isReady) {
-                        console.log(`✅ [${attempts}] Bağlantı kuruldu!`);
+                      // Hata mesajı varsa göster
+                      if (statusData.error && !statusData.isInitializing) {
+                        console.error(`❌ [${attempts}] API hatası:`, statusData.error);
+                        if (attempts > 20) {
+                          if (checkInterval) clearInterval(checkInterval);
+                          if (timeoutId) clearTimeout(timeoutId);
+                          setWhatsappConnecting(false);
+                          setWhatsappQRCode(null);
+                          showToast(statusData.error || "WhatsApp bağlantısı kurulamadı.", "error");
+                          return;
+                        }
+                      }
+                      
+                      // Firestore'dan da kontrol et (bağlantı kurulmuş mu?)
+                      let firestoreConnected = false;
+                      try {
+                        const { db } = await import("@/lib/firebase");
+                        const { doc, getDoc } = await import("firebase/firestore");
+                        const userDoc = await getDoc(doc(db, "users", user.uid));
+                        if (userDoc.exists()) {
+                          const userData = userDoc.data();
+                          firestoreConnected = !!(userData.whatsappConnected && userData.whatsappConnectedAt);
+                          if (firestoreConnected) {
+                            console.log(`✅ [${attempts}] Firestore'da bağlantı bilgileri kaydedilmiş!`);
+                          }
+                        }
+                      } catch (error) {
+                        console.error("Firestore kontrol hatası:", error);
+                      }
+                      
+                      if (statusData.isReady || firestoreConnected) {
+                        console.log(`✅ [${attempts}] Bağlantı kuruldu! (isReady: ${statusData.isReady}, Firestore: ${firestoreConnected})`);
+                        
+                        // Interval ve timeout'ları temizle
+                        if (checkInterval) clearInterval(checkInterval);
+                        if (timeoutId) clearTimeout(timeoutId);
+                        
+                        // State'leri güncelle - modal kapanacak
                         setWhatsappConnected(true);
                         setWhatsappConnecting(false);
                         setWhatsappQRCode(null);
-                        if (checkInterval) clearInterval(checkInterval);
-                        if (timeoutId) clearTimeout(timeoutId);
+                        
+                        // UserData'yı yenile (Firestore'daki güncel bilgileri al)
+                        try {
+                          await refreshUserData();
+                        } catch (error) {
+                          console.error("UserData yenileme hatası:", error);
+                        }
+                        
                         showToast("Artık bildirimleri WhatsApp'tan alabileceksiniz!", "success");
                         return;
                       }
@@ -463,9 +538,34 @@ export default function CoachProfilePage() {
                       }
                       
                       // Eğer başlatma işlemi durduysa ve QR kod yoksa
-                      if (!statusData.isInitializing && !statusData.isReady && !statusData.qrCode && attempts > 30) {
-                        console.warn(`⚠️ [${attempts}] Başlatma durdu ve QR kod yok, devam ediliyor...`);
-                        // Devam et, belki QR kod henüz gelmedi
+                      if (!statusData.isInitializing && !statusData.isReady && !statusData.qrCode && attempts > 40) {
+                        console.warn(`⚠️ [${attempts}] Başlatma durdu ve QR kod yok`);
+                        console.warn(`⚠️ Detaylar:`, {
+                          isReady: statusData.isReady,
+                          isInitializing: statusData.isInitializing,
+                          hasQRCode: !!statusData.qrCode,
+                          error: statusData.error,
+                        });
+                        
+                        // Auth failure durumunda hata mesajı göster
+                        if (statusData.error && (statusData.error.includes("auth") || statusData.error.includes("session"))) {
+                          if (checkInterval) clearInterval(checkInterval);
+                          if (timeoutId) clearTimeout(timeoutId);
+                          setWhatsappConnecting(false);
+                          setWhatsappQRCode(null);
+                          showToast("Session hatası tespit edildi. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
+                          return;
+                        }
+                        
+                        // 80 denemeden sonra hala QR kod yoksa, hata mesajı göster
+                        if (attempts > 80) {
+                          if (checkInterval) clearInterval(checkInterval);
+                          if (timeoutId) clearTimeout(timeoutId);
+                          setWhatsappConnecting(false);
+                          setWhatsappQRCode(null);
+                          showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
+                          return;
+                        }
                       }
                       
                       // Timeout kontrolü
@@ -475,7 +575,7 @@ export default function CoachProfilePage() {
                         if (timeoutId) clearTimeout(timeoutId);
                         setWhatsappConnecting(false);
                         setWhatsappQRCode(null);
-                        showToast("QR kod oluşturulamadı. Lütfen tekrar deneyin.", "error");
+                        showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
                         return;
                       }
                     } catch (error) {
@@ -491,15 +591,15 @@ export default function CoachProfilePage() {
                         return;
                       }
                     }
-                  }, 300); // 300ms'de bir kontrol et (daha hızlı)
+                  }, 500); // 500ms'de bir kontrol et
                   
-                  // 60 saniye sonra timeout (bağlantı kurulamazsa)
+                  // 30 saniye sonra timeout (bağlantı kurulamazsa)
                   timeoutId = setTimeout(() => {
                     if (checkInterval) clearInterval(checkInterval);
                     setWhatsappConnecting(false);
                     setWhatsappQRCode(null);
-                    showToast("WhatsApp bağlantısı zaman aşımına uğradı. Lütfen tekrar deneyin.", "error");
-                  }, 60000); // 60 saniye
+                    showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin veya destek ekibiyle iletişime geçin.", "error");
+                  }, 30000); // 30 saniye
                 } catch (error: any) {
                   console.error("WhatsApp bağlantı hatası:", error);
                   showToast(error?.message || "WhatsApp bağlantısı kurulamadı. Lütfen tekrar deneyin.", "error");
@@ -649,17 +749,11 @@ export default function CoachProfilePage() {
                   <p className="text-xs text-gray-500 text-center">
                     Lütfen bekleyin, QR kod oluşturuluyor
                   </p>
+                  <p className="text-xs text-gray-400 text-center mt-2">
+                    Bu işlem 10-30 saniye sürebilir
+                  </p>
                 </>
               )}
-              <button
-                onClick={() => {
-                  setWhatsappConnecting(false);
-                  setWhatsappQRCode(null);
-                }}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition mt-2"
-              >
-                İptal
-              </button>
             </div>
           </div>
         </div>

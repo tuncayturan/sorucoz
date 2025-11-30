@@ -178,7 +178,7 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
                 const { signOut } = await import("firebase/auth");
                 const { auth } = await import("@/lib/firebase");
                 await signOut(auth);
-                router.push("/auth/login");
+                router.replace("/landing");
                 onClose();
               }}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-600 hover:bg-red-50/80 active:scale-98 transition mt-2"

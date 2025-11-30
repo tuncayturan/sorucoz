@@ -28,7 +28,7 @@ export default function PremiumPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/auth/login");
+      router.replace("/landing");
     }
   }, [user, loading, router]);
 

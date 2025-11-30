@@ -32,7 +32,7 @@ export default function AdminSecurityPage() {
   useEffect(() => {
     if (!authLoading && !userDataLoading) {
       if (!user) {
-        router.replace("/auth/login");
+        router.replace("/landing");
       } else if (userData?.role !== "admin") {
         router.replace("/home");
       }

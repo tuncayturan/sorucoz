@@ -471,7 +471,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
                         const { signOut } = await import("firebase/auth");
                         const { auth } = await import("@/lib/firebase");
                         await signOut(auth);
-                        router.push("/auth/login");
+                        router.replace("/landing");
                         setShowProfileMenu(false);
                       }}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50/80 transition flex items-center gap-2"
