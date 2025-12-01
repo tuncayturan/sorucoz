@@ -2,11 +2,15 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { collection, query, getDocs, orderBy, doc, updateDoc, addDoc, Timestamp, onSnapshot, getDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, doc, updateDoc, addDoc, Timestamp, onSnapshot, getDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import Toast from "@/components/ui/Toast";
 import Image from "next/image";
+import EmojiPicker from "@/components/ui/EmojiPicker";
+import VoiceRecorder from "@/components/ui/VoiceRecorder";
+import VoiceMessage from "@/components/ui/VoiceMessage";
+import MessageContextMenu from "@/components/ui/MessageContextMenu";
 
 interface KullaniciMesaji {
   id: string;
@@ -18,9 +22,12 @@ interface KullaniciMesaji {
   senderName?: string;
   senderPhoto?: string | null;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
   read: boolean;
   type: "user" | "coach" | "admin";
   attachments?: string[];
+  edited?: boolean;
+  audioUrl?: string;
 }
 
 interface UserProfile {
@@ -66,6 +73,28 @@ export default function AdminMesajlarPage() {
     type: "info",
     isVisible: false,
   });
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const voiceButtonRef = useRef<HTMLButtonElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingTimeRef = useRef<number>(0);
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    position: { x: number; y: number };
+    messageId: string | null;
+  }>({
+    isOpen: false,
+    position: { x: 0, y: 0 },
+    messageId: null,
+  });
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchKullaniciMesajlari();
@@ -282,6 +311,303 @@ export default function AdminMesajlarPage() {
     setFilePreviews(filePreviews.filter((_, i) => i !== index));
   };
 
+  // Emoji ekleme
+  const handleEmojiSelect = (emoji: string) => {
+    if (editingMessageId) {
+      setEditingText(prev => prev + emoji);
+    } else {
+      setReplyText(prev => prev + emoji);
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    }
+  };
+
+  // Mesaj düzenleme
+  const startEditMessage = (message: KullaniciMesaji) => {
+    if (message.senderId === user?.uid && message.type === "admin") {
+      setEditingMessageId(message.id);
+      setEditingText(message.text);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingText("");
+  };
+
+  const saveEdit = async () => {
+    if (!editingMessageId || !selectedMessage || !editingText.trim()) return;
+
+    try {
+      const messageRef = doc(db, "users", selectedMessage.userId, "mesajlar", editingMessageId);
+      await updateDoc(messageRef, {
+        text: editingText.trim(),
+        updatedAt: serverTimestamp(),
+        edited: true,
+      });
+      setEditingMessageId(null);
+      setEditingText("");
+    } catch (error) {
+      console.error("Mesaj düzenlenirken hata:", error);
+      showToast("Mesaj düzenlenirken bir hata oluştu.", "error");
+    }
+  };
+
+  // Mesaj silme
+  const deleteMessage = async (messageId: string) => {
+    if (!selectedMessage || !user) return;
+
+    if (!confirm("Bu mesajı silmek istediğinize emin misiniz?")) return;
+
+    try {
+      const messageRef = doc(db, "users", selectedMessage.userId, "mesajlar", messageId);
+      await deleteDoc(messageRef);
+      showToast("Mesaj silindi.", "success");
+    } catch (error) {
+      console.error("Mesaj silinirken hata:", error);
+      showToast("Mesaj silinirken bir hata oluştu.", "error");
+    }
+  };
+
+  // Context menu handlers
+  const handleContextMenu = (e: React.MouseEvent, messageId: string) => {
+    e.preventDefault();
+    const message = kullaniciMesajlari.find(m => m.id === messageId);
+    if (message && message.senderId === user?.uid && message.type === "admin" && !message.audioUrl) {
+      setContextMenu({
+        isOpen: true,
+        position: { x: e.clientX, y: e.clientY },
+        messageId,
+      });
+    }
+  };
+
+  const handleLongPress = (e: React.TouchEvent, messageId: string) => {
+    e.preventDefault();
+    const message = kullaniciMesajlari.find(m => m.id === messageId);
+    if (message && message.senderId === user?.uid && message.type === "admin" && !message.audioUrl) {
+      longPressTimerRef.current = setTimeout(() => {
+        const touch = e.touches[0];
+        setContextMenu({
+          isOpen: true,
+          position: { x: touch.clientX, y: touch.clientY },
+          messageId,
+        });
+      }, 500); // 500ms basılı tutma
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu({
+      isOpen: false,
+      position: { x: 0, y: 0 },
+      messageId: null,
+    });
+  };
+
+  // Ses kaydı başlatma
+  const startVoiceRecording = async () => {
+    if (isRecording || !user || !selectedMessage) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4"
+      });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Cleanup timer first
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        
+        // Get final recording time from ref (more reliable than state)
+        const finalTime = recordingTimeRef.current;
+        
+        // Cleanup stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        
+        setIsRecording(false);
+        setRecordingTime(0);
+        recordingTimeRef.current = 0;
+        
+        // Process audio blob if we have data and minimum duration
+        if (audioChunksRef.current.length > 0 && finalTime >= 0.5) {
+          try {
+            const blob = new Blob(audioChunksRef.current, { 
+              type: mediaRecorder.mimeType || 'audio/webm' 
+            });
+            console.log("Ses kaydı hazır, boyut:", blob.size, "süre:", finalTime);
+            await handleVoiceRecordingComplete(blob);
+          } catch (error) {
+            console.error("Ses işlenirken hata:", error);
+            showToast("Ses kaydı işlenirken bir hata oluştu.", "error");
+          }
+        } else {
+          console.log("Kayıt gönderilmiyor - chunks:", audioChunksRef.current.length, "süre:", finalTime);
+        }
+        
+        // Clear chunks
+        audioChunksRef.current = [];
+      };
+
+      // Start recording with timeslice to get data chunks regularly
+      mediaRecorder.start(100); // Get data every 100ms
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimeRef.current = 0;
+
+      recordingTimerRef.current = setInterval(() => {
+        recordingTimeRef.current += 0.1;
+        setRecordingTime(recordingTimeRef.current);
+      }, 100);
+    } catch (error) {
+      console.error("Ses kaydı başlatılırken hata:", error);
+      alert("Mikrofon erişimi reddedildi. Lütfen izin verin.");
+      setIsRecording(false);
+    }
+  };
+
+  // Ses kaydı durdurma
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        console.log("Kayıt durduruluyor, mevcut chunks:", audioChunksRef.current.length);
+        // Request data before stopping to ensure we get all data
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.requestData();
+          // Small delay to ensure data is collected
+          setTimeout(() => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+              mediaRecorderRef.current.stop();
+            }
+          }, 50);
+        } else {
+          mediaRecorderRef.current.stop();
+        }
+      } catch (error) {
+        console.error("Kayıt durdurulurken hata:", error);
+        setIsRecording(false);
+        setRecordingTime(0);
+        recordingTimeRef.current = 0;
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+      }
+    }
+  };
+
+  // Ses kaydı gönderme
+  const handleVoiceRecordingComplete = async (audioBlob: Blob) => {
+    if (!user || !selectedMessage) {
+      console.error("Kullanıcı veya mesaj bulunamadı");
+      return;
+    }
+
+    if (!audioBlob || audioBlob.size === 0) {
+      console.error("Ses dosyası geçersiz veya boş");
+      showToast("Ses kaydı boş. Lütfen tekrar deneyin.", "error");
+      return;
+    }
+
+    try {
+      setReplying(true);
+      console.log("Ses dosyası yükleniyor, boyut:", audioBlob.size);
+      
+      const formData = new FormData();
+      const fileName = `voice_${Date.now()}.${audioBlob.type.includes('webm') ? 'webm' : 'mp4'}`;
+      formData.append("file", audioBlob, fileName);
+
+      const uploadResponse = await fetch("/api/cloudinary/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error("Upload hatası:", errorText);
+        throw new Error("Ses dosyası yüklenemedi");
+      }
+
+      const uploadData = await uploadResponse.json();
+      const audioUrl = uploadData.url;
+      console.log("Ses dosyası yüklendi, URL:", audioUrl);
+
+      const mesajlarRef = collection(db, "users", selectedMessage.userId, "mesajlar");
+      
+      await addDoc(mesajlarRef, {
+        text: "🎤 Ses mesajı",
+        senderId: user.uid,
+        senderName: "Admin",
+        senderPhoto: user.photoURL || null,
+        createdAt: serverTimestamp(),
+        read: false,
+        type: "admin",
+        audioUrl: audioUrl,
+      });
+
+      try {
+        await fetch("/api/admin/send-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: selectedMessage.userId,
+            title: "Yeni Ses Mesajı",
+            body: "Admin ses mesajı gönderdi",
+            data: {
+              type: "message",
+              messageId: selectedMessage.id,
+            },
+          }),
+        });
+      } catch (error) {
+        console.error("Bildirim gönderilirken hata:", error);
+      }
+
+      setTimeout(() => scrollToBottom(), 100);
+    } catch (error) {
+      console.error("Ses mesajı gönderilirken hata:", error);
+      showToast("Ses mesajı gönderilirken bir hata oluştu.", "error");
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleMesajYanit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!selectedMessage || (!replyText.trim() && selectedFiles.length === 0) || !user) return;
@@ -314,7 +640,7 @@ export default function AdminMesajlarPage() {
         senderId: user.uid,
         senderName: "Admin",
         senderPhoto: user.photoURL || null,
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
         read: false,
         type: "admin",
         attachments: uploadedUrls.length > 0 ? uploadedUrls : [],
@@ -716,15 +1042,32 @@ export default function AdminMesajlarPage() {
                         ) : (
                           <div className="w-8 flex-shrink-0" />
                         )}
-                        <div className="flex flex-col max-w-[75%]">
+                        <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'mr-auto' : 'max-w-[75%]'}`}>
                           {showAvatar && (
                             <span className="text-[11px] font-medium mb-1 text-gray-500 px-1">
                               {selectedConversation.userName}
                             </span>
                           )}
-                          <div className="bg-white rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+                          <div className={`rounded-2xl overflow-hidden ${
+                            !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
+                              ? 'p-0 bg-transparent shadow-none'
+                              : 'bg-white rounded-bl-md shadow-sm px-3.5 py-2'
+                          }`}
+                          onContextMenu={(e) => {
+                            if (msg.senderId === user?.uid && msg.type === "admin") {
+                              handleContextMenu(e, msg.id);
+                            }
+                          }}
+                          onTouchStart={(e) => {
+                            if (msg.senderId === user?.uid && msg.type === "admin") {
+                              handleLongPress(e, msg.id);
+                            }
+                          }}
+                          onTouchEnd={handleTouchEnd}
+                          onTouchCancel={handleTouchEnd}
+                          >
                             {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div className={`grid grid-cols-2 gap-2 ${msg.text || msg.audioUrl ? 'mb-2' : ''}`}>
                                 {msg.attachments.map((url, idx) => (
                                   <button
                                     key={idx}
@@ -743,13 +1086,30 @@ export default function AdminMesajlarPage() {
                                 ))}
                               </div>
                             )}
-                            {msg.text && (
-                              <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
-                                {msg.text}
-                              </p>
-                            )}
-                            {!msg.text && !msg.attachments && (
-                              <p className="text-[15px] text-gray-500 italic">Görsel gönderildi</p>
+                            {editingMessageId === msg.id && msg.type === "user" ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <p className="text-sm text-gray-500">Kullanıcı mesajları düzenlenemez</p>
+                              </div>
+                            ) : (
+                              <>
+                                {msg.audioUrl ? (
+                                  <VoiceMessage 
+                                    audioUrl={msg.audioUrl} 
+                                    isOwnMessage={false}
+                                  />
+                                ) : (
+                                  <>
+                                    {msg.text && (
+                                      <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
+                                        {msg.text}
+                                        {msg.edited && (
+                                          <span className="text-xs opacity-70 ml-1 italic">(düzenlendi)</span>
+                                        )}
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                              </>
                             )}
                           </div>
                           <div className="flex items-center gap-1 mt-1 px-1">
@@ -778,15 +1138,32 @@ export default function AdminMesajlarPage() {
                         ) : (
                           <div className="w-8 flex-shrink-0" />
                         )}
-                        <div className="flex flex-col max-w-[75%] items-end">
+                        <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[75%] items-end'}`}>
                           {showAvatar && (
                             <span className="text-[11px] font-medium mb-1 text-blue-600 px-1">
                               Admin
                             </span>
                           )}
-                          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                          <div className={`rounded-2xl overflow-hidden ${
+                            !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
+                              ? 'p-0 bg-transparent shadow-none'
+                              : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-3.5 py-2'
+                          }`}
+                          onContextMenu={(e) => {
+                            if (msg.senderId === user?.uid && msg.type === "admin") {
+                              handleContextMenu(e, msg.id);
+                            }
+                          }}
+                          onTouchStart={(e) => {
+                            if (msg.senderId === user?.uid && msg.type === "admin") {
+                              handleLongPress(e, msg.id);
+                            }
+                          }}
+                          onTouchEnd={handleTouchEnd}
+                          onTouchCancel={handleTouchEnd}
+                          >
                             {msg.attachments && msg.attachments.length > 0 && (
-                              <div className="grid grid-cols-2 gap-2 mb-2">
+                              <div className={`grid grid-cols-2 gap-2 ${msg.text || msg.audioUrl ? 'mb-2' : ''}`}>
                                 {msg.attachments.map((url, idx) => (
                                   <button
                                     key={idx}
@@ -805,13 +1182,64 @@ export default function AdminMesajlarPage() {
                                 ))}
                               </div>
                             )}
-                            {msg.text && (
-                              <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
-                                {msg.text}
-                              </p>
-                            )}
-                            {!msg.text && !msg.attachments && (
-                              <p className="text-[15px] italic opacity-90">Görsel gönderildi</p>
+                            {editingMessageId === msg.id && msg.type === "admin" ? (
+                              <div className="flex items-center gap-2 w-full">
+                                <input
+                                  type="text"
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      saveEdit();
+                                    } else if (e.key === "Escape") {
+                                      cancelEdit();
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={saveEdit}
+                                  className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-xs"
+                                >
+                                  Kaydet
+                                </button>
+                                <button
+                                  onClick={cancelEdit}
+                                  className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-xs"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                {msg.audioUrl ? (
+                                  <VoiceMessage 
+                                    audioUrl={msg.audioUrl} 
+                                    isOwnMessage={msg.type === "admin" && msg.senderId === user?.uid}
+                                  />
+                                ) : (
+                                  <>
+                                    {msg.text && (
+                                      <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                        {msg.text}
+                                        {msg.edited && (
+                                          <span className="text-xs opacity-70 ml-1 italic">(düzenlendi)</span>
+                                        )}
+                                      </p>
+                                    )}
+                                  </>
+                                )}
+                                {msg.type === "admin" && msg.senderId === user?.uid && !editingMessageId && (
+                                  <button
+                                    onClick={() => startEditMessage(msg)}
+                                    className="mt-1 text-xs opacity-75 hover:opacity-100 self-end"
+                                  >
+                                    Düzenle
+                                  </button>
+                                )}
+                              </>
                             )}
                           </div>
                           <div className="flex items-center gap-1 mt-1 px-1 justify-end">
@@ -909,19 +1337,130 @@ export default function AdminMesajlarPage() {
                       </button>
                     )}
                   </div>
-                  <button
-                    type="submit"
-                    disabled={(!replyText.trim() && selectedFiles.length === 0) || replying || uploadingFiles}
-                    className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                  >
-                    {replying ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="flex flex-col gap-2 relative flex-shrink-0">
+                    {!replyText.trim() && selectedFiles.length === 0 ? (
+                      <button
+                        ref={voiceButtonRef}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          startVoiceRecording();
+                        }}
+                        onMouseUp={(e) => {
+                          e.preventDefault();
+                          stopVoiceRecording();
+                        }}
+                        onMouseLeave={() => {
+                          if (isRecording) {
+                            stopVoiceRecording();
+                          }
+                        }}
+                        onTouchStart={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          startVoiceRecording();
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          stopVoiceRecording();
+                        }}
+                        onTouchCancel={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          stopVoiceRecording();
+                        }}
+                        disabled={replying || uploadingFiles}
+                        style={{ touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
+                        className={`flex-shrink-0 w-11 h-11 ${isRecording ? 'bg-red-500' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${isRecording ? 'animate-pulse' : ''}`}
+                      >
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                        </svg>
+                      </button>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
+                      <button
+                        type="submit"
+                        disabled={(!replyText.trim() && selectedFiles.length === 0) || replying || uploadingFiles}
+                        className="flex-shrink-0 w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                      >
+                        {replying ? (
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                        )}
+                      </button>
                     )}
-                  </button>
+                  </div>
+                  {isRecording && (
+                    <div className="fixed inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60 backdrop-blur-md z-[9999] flex items-center justify-center pointer-events-none">
+                      <div className="bg-gradient-to-br from-white via-white/95 to-white/90 backdrop-blur-2xl rounded-[2.5rem] p-6 md:p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] border border-white/20 max-w-sm w-full mx-4 pointer-events-auto relative overflow-hidden">
+                        {/* Decorative background elements */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400/10 to-red-600/5 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-red-300/10 to-red-500/5 rounded-full blur-2xl"></div>
+                        
+                        <div className="flex flex-col items-center gap-6 md:gap-8 relative z-10">
+                          {/* Animated microphone icon */}
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 rounded-full blur-xl opacity-50 animate-pulse"></div>
+                            <div className="relative w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(239,68,68,0.4)] animate-pulse">
+                              <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center shadow-inner">
+                                <svg className="w-10 h-10 md:w-12 md:h-12 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                                </svg>
+                              </div>
+                            </div>
+                            {/* Pulse rings */}
+                            <div className="absolute inset-0 rounded-full border-2 border-red-400/50 animate-ping"></div>
+                            <div className="absolute inset-0 rounded-full border-2 border-red-400/30 animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                          </div>
+
+                          {/* Timer and status text */}
+                          <div className="text-center space-y-2">
+                            <div className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-red-600 via-red-500 to-red-600 bg-clip-text text-transparent tracking-tight mb-1">
+                              {Math.floor(recordingTime / 10)}:{(Math.floor(recordingTime) % 10).toString().padStart(2, "0")}
+                            </div>
+                            <p className="text-base md:text-lg text-gray-700 font-semibold">Kaydediliyor</p>
+                            <p className="text-xs md:text-sm text-gray-500 mt-1">Bırakmak için parmağınızı kaldırın</p>
+                          </div>
+
+                          {/* Audio waveform visualization */}
+                          <div className="w-full px-4">
+                            <div className="flex items-end justify-center gap-1 md:gap-1.5 h-16 md:h-20 w-full">
+                              {[...Array(20)].map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="w-1.5 md:w-2 bg-gradient-to-t from-red-600 via-red-500 to-red-400 rounded-full shadow-sm"
+                                  style={{
+                                    height: `${Math.random() * 50 + 30}%`,
+                                    animation: `waveform 0.6s ease-in-out infinite`,
+                                    animationDelay: `${i * 0.03}s`,
+                                    minHeight: '8px',
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <style jsx>{`
+                        @keyframes waveform {
+                          0%, 100% { 
+                            transform: scaleY(0.3);
+                            opacity: 0.7;
+                          }
+                          50% { 
+                            transform: scaleY(1);
+                            opacity: 1;
+                          }
+                        }
+                      `}</style>
+                    </div>
+                  )}
                 </div>
               </form>
             </>
@@ -1001,15 +1540,32 @@ export default function AdminMesajlarPage() {
                       ) : (
                         <div className="w-8 flex-shrink-0" />
                       )}
-                      <div className="flex flex-col max-w-[75%]">
+                      <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'mr-auto' : 'max-w-[75%]'}`}>
                         {showAvatar && (
                           <span className="text-[11px] font-medium mb-1 text-gray-500 px-1">
                             {selectedConversation.userName}
                           </span>
                         )}
-                        <div className="bg-white rounded-2xl rounded-bl-md px-4 py-2.5 shadow-sm">
+                        <div className={`rounded-2xl overflow-hidden ${
+                          !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
+                            ? 'p-0 bg-transparent shadow-none'
+                            : 'bg-white rounded-bl-md shadow-sm px-4 py-2.5'
+                        }`}
+                        onContextMenu={(e) => {
+                          if (msg.senderId === user?.uid && msg.type === "admin" && !msg.audioUrl) {
+                            handleContextMenu(e, msg.id);
+                          }
+                        }}
+                        onTouchStart={(e) => {
+                          if (msg.senderId === user?.uid && msg.type === "admin" && !msg.audioUrl) {
+                            handleLongPress(e, msg.id);
+                          }
+                        }}
+                        onTouchEnd={handleTouchEnd}
+                        onTouchCancel={handleTouchEnd}
+                        >
                           {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div className={`grid grid-cols-2 gap-2 ${msg.text || msg.audioUrl ? 'mb-2' : ''}`}>
                               {msg.attachments.map((url, idx) => (
                                 <button
                                   key={idx}
@@ -1032,9 +1588,6 @@ export default function AdminMesajlarPage() {
                             <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
                               {msg.text}
                             </p>
-                          )}
-                          {!msg.text && !msg.attachments && (
-                            <p className="text-[15px] text-gray-500 italic">Görsel gönderildi</p>
                           )}
                         </div>
                         <div className="flex items-center gap-1 mt-1 px-1">
@@ -1063,15 +1616,32 @@ export default function AdminMesajlarPage() {
                       ) : (
                         <div className="w-8 flex-shrink-0" />
                       )}
-                      <div className="flex flex-col max-w-[75%] items-end">
+                      <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[75%] items-end'}`}>
                         {showAvatar && (
                           <span className="text-[11px] font-medium mb-1 text-blue-600 px-1">
                             Admin
                           </span>
                         )}
-                        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 shadow-sm">
+                        <div className={`rounded-2xl overflow-hidden ${
+                          !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
+                            ? 'p-0 bg-transparent shadow-none'
+                            : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-4 py-2.5'
+                        }`}
+                        onContextMenu={(e) => {
+                          if (msg.senderId === user?.uid && msg.type === "admin" && !msg.audioUrl) {
+                            handleContextMenu(e, msg.id);
+                          }
+                        }}
+                        onTouchStart={(e) => {
+                          if (msg.senderId === user?.uid && msg.type === "admin" && !msg.audioUrl) {
+                            handleLongPress(e, msg.id);
+                          }
+                        }}
+                        onTouchEnd={handleTouchEnd}
+                        onTouchCancel={handleTouchEnd}
+                        >
                           {msg.attachments && msg.attachments.length > 0 && (
-                            <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div className={`grid grid-cols-2 gap-2 ${msg.text || msg.audioUrl ? 'mb-2' : ''}`}>
                               {msg.attachments.map((url, idx) => (
                                 <button
                                   key={idx}
@@ -1094,9 +1664,6 @@ export default function AdminMesajlarPage() {
                             <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
                               {msg.text}
                             </p>
-                          )}
-                          {!msg.text && !msg.attachments && (
-                            <p className="text-[15px] italic opacity-90">Görsel gönderildi</p>
                           )}
                         </div>
                         <div className="flex items-center gap-1 mt-1 px-1 justify-end">
@@ -1240,6 +1807,28 @@ export default function AdminMesajlarPage() {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={hideToast}
+      />
+
+      {/* Context Menu */}
+      <MessageContextMenu
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        onClose={closeContextMenu}
+        onEdit={() => {
+          if (contextMenu.messageId) {
+            const message = kullaniciMesajlari.find(m => m.id === contextMenu.messageId);
+            if (message) {
+              startEditMessage(message);
+            }
+          }
+        }}
+        onDelete={() => {
+          if (contextMenu.messageId) {
+            deleteMessage(contextMenu.messageId);
+          }
+        }}
+        canEdit={contextMenu.messageId ? (kullaniciMesajlari.find(m => m.id === contextMenu.messageId)?.senderId === user?.uid && kullaniciMesajlari.find(m => m.id === contextMenu.messageId)?.type === "admin" && !kullaniciMesajlari.find(m => m.id === contextMenu.messageId)?.audioUrl) : false}
+        canDelete={contextMenu.messageId ? (kullaniciMesajlari.find(m => m.id === contextMenu.messageId)?.senderId === user?.uid && kullaniciMesajlari.find(m => m.id === contextMenu.messageId)?.type === "admin") : false}
       />
     </div>
   );

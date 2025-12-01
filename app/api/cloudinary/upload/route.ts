@@ -16,25 +16,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Dosya boyutu kontrolü (10MB - PDF'ler için daha fazla alan)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return NextResponse.json({ error: "File size must be less than 10MB" }, { status: 400 });
-    }
-
-    // Dosya tipi kontrolü - resim veya PDF
+    // Dosya tipi kontrolü - resim, PDF veya ses dosyası
     const isImage = file.type.startsWith("image/");
     const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isAudio = file.type.startsWith("audio/") || 
+                    file.name.toLowerCase().match(/\.(webm|mp4|mp3|ogg|wav|m4a|aac)$/);
     
-    if (!isImage && !isPDF) {
-      return NextResponse.json({ error: "File must be an image or PDF" }, { status: 400 });
+    if (!isImage && !isPDF && !isAudio) {
+      return NextResponse.json({ error: "File must be an image, PDF, or audio file" }, { status: 400 });
+    }
+
+    // Dosya boyutu kontrolü - ses dosyaları için daha büyük limit
+    const maxSize = isAudio ? 25 * 1024 * 1024 : 10 * 1024 * 1024; // Ses: 25MB, Diğer: 10MB
+    if (file.size > maxSize) {
+      const maxSizeMB = isAudio ? 25 : 10;
+      return NextResponse.json({ 
+        error: `File size must be less than ${maxSizeMB}MB` 
+      }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // PDF için resource_type: "raw", resim için "image"
-    const resourceType = isPDF ? "raw" : "image";
+    // PDF için resource_type: "raw", resim için "image", ses için "video" (Cloudinary audio dosyalarını video olarak saklar)
+    const resourceType = isPDF ? "raw" : isAudio ? "video" : "image";
 
     return new Promise<NextResponse>((resolve, reject) => {
       cloudinary.uploader

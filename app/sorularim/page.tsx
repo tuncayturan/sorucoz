@@ -150,11 +150,11 @@ export default function SorularimPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1]">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] flex flex-col">
       <HomeHeader onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div className="flex justify-center items-start px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+      <div className="flex-1 flex justify-center items-start px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
         <div className="w-full max-w-6xl">
           {/* Header */}
           <div className="mb-8 animate-slideFade">
