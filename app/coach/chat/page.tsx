@@ -910,7 +910,7 @@ export default function CoachChatPage() {
       </div>
 
       {/* iOS Premium Style Layout */}
-      <div className="flex-1 flex bg-white/95 backdrop-blur-3xl rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-white/60 overflow-hidden">
+      <div className="flex-1 flex bg-white/95 backdrop-blur-3xl rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-white/60" style={{ overflowY: 'hidden', overflowX: 'visible' }}>
           {/* Left Panel - Conversations List */}
           <div className={`w-full md:w-96 border-r border-gray-200/30 flex flex-col bg-gradient-to-b from-gray-50/80 to-white/80 backdrop-blur-xl ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
             {/* Conversations Header */}
@@ -1392,7 +1392,7 @@ export default function CoachChatPage() {
                 </div>
 
                 {/* iOS Style Message Input */}
-                <form onSubmit={handleMesajYanit} className="p-3 border-t border-gray-200/30 bg-white/90 backdrop-blur-xl">
+                <form onSubmit={handleMesajYanit} className="p-3 border-t border-gray-200/30 bg-white/90 backdrop-blur-xl overflow-visible">
                   {/* File Previews */}
                   {filePreviews.length > 0 && (
                     <div className="mb-2 flex gap-2 flex-wrap">
@@ -1425,7 +1425,7 @@ export default function CoachChatPage() {
                       ))}
                     </div>
                   )}
-                  <div className="flex items-end gap-2">
+                  <div className="flex items-end gap-2 overflow-visible relative">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1444,7 +1444,7 @@ export default function CoachChatPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </button>
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative overflow-visible">
                       <textarea
                         ref={textareaRef}
                         value={replyText}
@@ -1949,7 +1949,7 @@ export default function CoachChatPage() {
               </div>
 
               {/* Mobile Input */}
-              <form onSubmit={handleMesajYanit} className="p-3 border-t border-gray-200 bg-white">
+              <form onSubmit={handleMesajYanit} className="p-3 border-t border-gray-200 bg-white overflow-visible">
                 {filePreviews.length > 0 && (
                   <div className="mb-2 flex gap-2 flex-wrap">
                     {filePreviews.map((preview, idx) => (
@@ -1978,7 +1978,7 @@ export default function CoachChatPage() {
                     ))}
                   </div>
                 )}
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 overflow-visible relative">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1997,7 +1997,7 @@ export default function CoachChatPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </button>
-                  <div className="flex-1 relative">
+                  <div className="flex-1 relative overflow-visible">
                     <textarea
                       ref={textareaRef}
                       value={replyText}
