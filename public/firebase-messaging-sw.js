@@ -23,16 +23,22 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// AGGRESSIVE Duplicate notification prevention
-// Using both IndexedDB AND in-memory Set for maximum reliability
+// ULTRA AGGRESSIVE Duplicate notification prevention
+// Using IndexedDB + in-memory Set + processing lock
 const DB_NAME = 'NotificationDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'shownNotifications';
 const NOTIFICATION_TIMEOUT = 10000; // 10 saniye içinde aynı bildirim tekrar gösterilmez
 
-// GLOBAL in-memory Set - prevents duplicates even if IndexedDB fails
+// TRIPLE PROTECTION:
+// 1. processingNotifications: Prevents concurrent processing (immediate)
+// 2. shownNotifications: Fast in-memory check (instant)
+// 3. IndexedDB: Persistent cross-tab check (reliable)
 const shownNotifications = new Set();
-const processingNotifications = new Set(); // Prevent concurrent processing of same notification
+const processingNotifications = new Set();
+
+// Global counter for debugging
+let notificationCounter = 0;
 
 // Initialize IndexedDB for persistent cross-tab duplicate prevention
 const initDB = () => {
@@ -160,16 +166,18 @@ console.log('[SW] Firebase Messaging instance created');
 
 // Background message handler
 messaging.onBackgroundMessage(async (payload) => {
-  console.log('[firebase-messaging-sw.js] ========== NEW MESSAGE ==========');
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  console.log('[firebase-messaging-sw.js] Payload notification:', payload.notification);
-  console.log('[firebase-messaging-sw.js] Payload data:', payload.data);
+  notificationCounter++;
+  const handlerCallNumber = notificationCounter;
+  
+  console.log('[firebase-messaging-sw.js] ==========================================');
+  console.log(`[firebase-messaging-sw.js] 📨 MESSAGE #${handlerCallNumber} RECEIVED`);
+  console.log('[firebase-messaging-sw.js] ==========================================');
+  console.log('[firebase-messaging-sw.js] Full payload:', JSON.stringify(payload, null, 2));
   
   const notificationTitle = payload.notification?.title || payload.data?.title || 'Yeni Bildirim';
   const notificationBody = payload.notification?.body || payload.data?.body || '';
   
   // Create STABLE notification ID for duplicate prevention
-  // Use conversationId + type for stability (same message = same ID)
   const conversationId = payload.data?.conversationId || '';
   const messageType = payload.data?.type || 'general';
   const messageId = payload.data?.messageId || '';
@@ -177,37 +185,53 @@ messaging.onBackgroundMessage(async (payload) => {
   // STABLE ID: Use messageId from API (already has 5-second rounding)
   const notificationId = messageId || `${messageType}-${conversationId}-${Date.now()}`;
   
-  console.log('[firebase-messaging-sw.js] 🆔 Notification ID:', notificationId);
-  console.log('[firebase-messaging-sw.js] 🔍 Checking if already processing...');
+  console.log(`[firebase-messaging-sw.js] 🆔 Notification ID: ${notificationId}`);
+  console.log(`[firebase-messaging-sw.js] 📊 Current state:`, {
+    processing: Array.from(processingNotifications),
+    shown: Array.from(shownNotifications),
+    processingSize: processingNotifications.size,
+    shownSize: shownNotifications.size
+  });
   
-  // FIRST CHECK: Is this notification currently being processed?
+  // ========== LAYER 1: Processing Lock (IMMEDIATE) ==========
+  console.log(`[firebase-messaging-sw.js] 🔒 LAYER 1: Checking processing lock...`);
   if (processingNotifications.has(notificationId)) {
-    console.log('[firebase-messaging-sw.js] 🛑 DUPLICATE PREVENTED - Currently processing:', notificationId);
+    console.log(`[firebase-messaging-sw.js] 🛑 BLOCKED BY LAYER 1 - Currently processing!`);
+    console.log(`[firebase-messaging-sw.js] Call #${handlerCallNumber} terminated (processing lock)`);
     return Promise.resolve();
   }
   
-  // Mark as processing
+  // Mark as processing IMMEDIATELY
   processingNotifications.add(notificationId);
-  console.log('[firebase-messaging-sw.js] ✅ Marked as processing');
+  console.log(`[firebase-messaging-sw.js] ✅ LAYER 1 PASSED - Locked for processing`);
   
-  // SECOND CHECK: Was this notification recently shown?
+  // ========== LAYER 2: In-Memory Cache (FAST) ==========
+  console.log(`[firebase-messaging-sw.js] 💾 LAYER 2: Checking in-memory cache...`);
+  if (shownNotifications.has(notificationId)) {
+    console.log(`[firebase-messaging-sw.js] 🛑 BLOCKED BY LAYER 2 - In memory cache!`);
+    console.log(`[firebase-messaging-sw.js] Call #${handlerCallNumber} terminated (memory cache)`);
+    processingNotifications.delete(notificationId);
+    return Promise.resolve();
+  }
+  console.log(`[firebase-messaging-sw.js] ✅ LAYER 2 PASSED - Not in memory`);
+  
+  // ========== LAYER 3: IndexedDB (PERSISTENT) ==========
+  console.log(`[firebase-messaging-sw.js] 💽 LAYER 3: Checking IndexedDB...`);
   const wasShown = await wasRecentlyShown(notificationId);
   if (wasShown) {
-    console.log('[firebase-messaging-sw.js] 🛑 DUPLICATE PREVENTED - Recently shown:', notificationId);
-    processingNotifications.delete(notificationId); // Clean up
+    console.log(`[firebase-messaging-sw.js] 🛑 BLOCKED BY LAYER 3 - Recently shown in DB!`);
+    console.log(`[firebase-messaging-sw.js] Call #${handlerCallNumber} terminated (IndexedDB)`);
+    processingNotifications.delete(notificationId);
     return Promise.resolve();
   }
+  console.log(`[firebase-messaging-sw.js] ✅ LAYER 3 PASSED - Not in IndexedDB`);
   
-  // THIRD CHECK: In-memory set (fastest check)
-  if (shownNotifications.has(notificationId)) {
-    console.log('[firebase-messaging-sw.js] 🛑 DUPLICATE PREVENTED - In memory cache:', notificationId);
-    processingNotifications.delete(notificationId); // Clean up
-    return Promise.resolve();
-  }
+  // ========== ALL CHECKS PASSED - SHOW NOTIFICATION ==========
+  console.log(`[firebase-messaging-sw.js] 🎯 ALL LAYERS PASSED - Proceeding to show notification`);
   
-  // Mark as shown (both IndexedDB and in-memory)
+  // Mark as shown in both storages
   await markAsShown(notificationId);
-  console.log('[firebase-messaging-sw.js] ✅ Marked as shown');
+  console.log(`[firebase-messaging-sw.js] ✅ Marked as shown in all storages`);
   
   console.log('[firebase-messaging-sw.js] Notification title:', notificationTitle);
   console.log('[firebase-messaging-sw.js] Notification body:', notificationBody);
