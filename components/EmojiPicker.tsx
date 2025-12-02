@@ -103,17 +103,17 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
     };
 
     if (isOpen) {
-      // Event listener'ı bir sonraki event loop'ta ekle
-      // Böylece emoji butonuna yapılan tıklama handleClickOutside'ı tetiklemez
+      // mousedown kullan - click'ten önce tetiklenir ve daha güvenilir
+      // setTimeout ile bir sonraki event loop'ta ekle
       const timeoutId = setTimeout(() => {
-        console.log('[EmojiPicker] Adding click listener');
-        document.addEventListener("click", handleClickOutside);
-      }, 0);
+        console.log('[EmojiPicker] Adding mousedown listener');
+        document.addEventListener("mousedown", handleClickOutside, true); // capture phase kullan
+      }, 100); // 100ms bekle - tüm click event'lerinin bitmesini garanti et
 
       return () => {
         clearTimeout(timeoutId);
-        document.removeEventListener("click", handleClickOutside);
-        console.log('[EmojiPicker] Removing click listener');
+        document.removeEventListener("mousedown", handleClickOutside, true);
+        console.log('[EmojiPicker] Removing mousedown listener');
       };
     }
   }, [isOpen, onClose, buttonRef]);
@@ -127,8 +127,15 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
     <div
       ref={pickerRef}
       className="absolute bottom-14 right-0 w-[380px] h-[420px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-[9999]"
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        console.log('[EmojiPicker] Picker mousedown - event stopped');
+      }}
     >
       {/* Categories */}
       <div className="flex gap-1 px-3 py-3 border-b border-gray-200 overflow-x-auto scrollbar-hide">
@@ -139,12 +146,14 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
             onMouseDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              e.stopImmediatePropagation();
+              console.log('[EmojiPicker] Kategori mousedown:', category);
+              setSelectedCategory(category);
             }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              console.log('[EmojiPicker] Kategori değiştirildi:', category);
-              setSelectedCategory(category);
+              e.stopImmediatePropagation();
             }}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition ${
               selectedCategory === category
@@ -168,13 +177,14 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  e.stopImmediatePropagation();
+                  console.log('[EmojiPicker] Emoji mousedown:', emoji);
+                  onEmojiSelect(emoji);
                 }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('[EmojiPicker] Emoji clicked:', emoji);
-                  onEmojiSelect(emoji);
-                  console.log('[EmojiPicker] onEmojiSelect called');
+                  e.stopImmediatePropagation();
                 }}
                 className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100 rounded-lg transition cursor-pointer"
               >
