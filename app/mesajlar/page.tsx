@@ -973,6 +973,12 @@ export default function MesajlarPage() {
                               src={conv.coachPhoto}
                               alt={conv.coachName}
                               className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const name = conv.coachName.charAt(0).toUpperCase();
+                                e.currentTarget.parentElement!.innerHTML = `<div class="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center border-2 border-white shadow-sm"><span class="text-white font-bold text-lg">${name}</span></div>`;
+                              }}
                             />
                           ) : (
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center border-2 border-white shadow-sm">
@@ -1051,6 +1057,12 @@ export default function MesajlarPage() {
                         src={selectedConversation.coachPhoto}
                         alt={selectedConversation.coachName}
                         className="w-10 h-10 rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const name = selectedConversation.coachName.charAt(0).toUpperCase();
+                          e.currentTarget.parentElement!.innerHTML = `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center"><span class="text-white font-bold text-sm">${name}</span></div>`;
+                        }}
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
@@ -1505,6 +1517,12 @@ export default function MesajlarPage() {
                     src={selectedConversation.coachPhoto}
                     alt={selectedConversation.coachName}
                     className="w-10 h-10 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const name = selectedConversation.coachName.charAt(0).toUpperCase();
+                      e.currentTarget.parentElement!.innerHTML = `<div class="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600"><span class="text-white font-bold text-sm">${name}</span></div>`;
+                    }}
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600">
