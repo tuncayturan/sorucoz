@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
@@ -61,7 +61,7 @@ interface Conversation {
   unreadCount: number;
 }
 
-export default function MesajlarPage() {
+function MesajlarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
@@ -2074,3 +2074,17 @@ export default function MesajlarPage() {
   );
 }
 
+export default function MesajlarPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    }>
+      <MesajlarContent />
+    </Suspense>
+  );
+}
