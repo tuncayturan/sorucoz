@@ -1107,6 +1107,11 @@ export default function MesajlarPage() {
                                       src={mesaj.senderPhoto}
                                   alt={mesaj.senderName}
                                   className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.display = 'none';
+                                  }}
                                 />
                                   ) : (
                                 <div className={`w-full h-full bg-gradient-to-br ${isUser ? "from-green-400 to-emerald-500" : "from-blue-400 to-indigo-500"} flex items-center justify-center`}>
@@ -1541,6 +1546,8 @@ export default function MesajlarPage() {
                                   src={mesaj.senderPhoto}
                                   alt={mesaj.senderName}
                                   className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => e.currentTarget.style.display = 'none'}
                                 />
                               ) : (
                                 <div className={`flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br ${isUser ? "from-blue-400 to-indigo-500" : "from-blue-400 to-indigo-500"} flex items-center justify-center`}>
@@ -1658,6 +1665,8 @@ export default function MesajlarPage() {
                                   src={mesaj.senderPhoto}
                                   alt={mesaj.senderName}
                                   className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => e.currentTarget.style.display = 'none'}
                                 />
                               ) : (
                                 <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">

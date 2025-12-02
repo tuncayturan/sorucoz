@@ -949,6 +949,8 @@ export default function CoachChatPage() {
                               src={conversation.photoURL}
                               alt={conversation.studentName}
                               className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => e.currentTarget.style.display = 'none'}
                             />
                           ) : (
                             <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-white shadow-sm bg-gradient-to-br from-green-400 to-emerald-500">
@@ -1005,6 +1007,8 @@ export default function CoachChatPage() {
                         src={selectedConversation.photoURL}
                         alt={selectedConversation.studentName}
                         className="w-11 h-11 rounded-full object-cover border border-gray-200"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => e.currentTarget.style.display = 'none'}
                       />
                     ) : (
                       <div className="w-11 h-11 rounded-full flex items-center justify-center bg-gradient-to-br from-green-400 to-emerald-500">
@@ -1049,6 +1053,8 @@ export default function CoachChatPage() {
                                 src={selectedConversation.photoURL}
                                 alt={selectedConversation.studentName}
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => e.currentTarget.style.display = 'none'}
                               />
                             ) : (
                               <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
@@ -1218,6 +1224,8 @@ export default function CoachChatPage() {
                                 src={messageCoachPhoto}
                                 alt={msg.senderName || "Coach"}
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => e.currentTarget.style.display = 'none'}
                               />
                             ) : (
                               <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
@@ -1613,6 +1621,8 @@ export default function CoachChatPage() {
                     src={selectedConversation.photoURL}
                     alt={selectedConversation.studentName}
                     className="w-10 h-10 rounded-full object-cover"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => e.currentTarget.style.display = 'none'}
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-green-400 to-emerald-500">
@@ -1651,6 +1661,8 @@ export default function CoachChatPage() {
                               src={selectedConversation.photoURL}
                               alt={selectedConversation.studentName}
                               className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => e.currentTarget.style.display = 'none'}
                             />
                           ) : (
                             <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
@@ -1762,6 +1774,8 @@ export default function CoachChatPage() {
                               src={messageCoachPhoto}
                               alt={msg.senderName || "Coach"}
                               className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => e.currentTarget.style.display = 'none'}
                             />
                           ) : (
                             <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
