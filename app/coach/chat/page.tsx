@@ -10,6 +10,7 @@ import Toast from "@/components/ui/Toast";
 import EmojiPicker from "@/components/EmojiPicker";
 import VoiceMessage from "@/components/ui/VoiceMessage";
 import MessageContextMenu from "@/components/ui/MessageContextMenu";
+import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 
 interface KullaniciMesaji {
   id: string;
@@ -114,6 +115,45 @@ export default function CoachChatPage() {
   });
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+
+  // FCM Token alma - Her sayfa yüklendiğinde kontrol et
+  useEffect(() => {
+    if (!user) return;
+    
+    // Notification izni durumunu kontrol et
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      console.log("[Coach Chat] Notifications not supported");
+      return;
+    }
+    
+    // Eğer izin verilmişse token al, verilmemişse iste
+    if (Notification.permission === "granted") {
+      console.log("[Coach Chat] Notification permission already granted, getting token...");
+      requestNotificationPermission()
+        .then((token) => {
+          if (token) {
+            console.log("[Coach Chat] FCM token received, saving...");
+            return saveFCMTokenToUser(user.uid, token);
+          }
+        })
+        .catch((err) => console.error("[Coach Chat] FCM token error:", err));
+    } else if (Notification.permission === "default") {
+      // İlk ziyarette otomatik izin isteme (sadece 1 kere)
+      const hasAskedBefore = localStorage.getItem("fcm_permission_asked");
+      if (!hasAskedBefore) {
+        console.log("[Coach Chat] Requesting notification permission...");
+        localStorage.setItem("fcm_permission_asked", "true");
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              console.log("[Coach Chat] FCM token received after permission grant");
+              return saveFCMTokenToUser(user.uid, token);
+            }
+          })
+          .catch((err) => console.error("[Coach Chat] Permission request error:", err));
+      }
+    }
+  }, [user]);
 
   // Fetch conversations for this coach
   useEffect(() => {

@@ -31,6 +31,7 @@ import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 import EmojiPicker from "@/components/EmojiPicker";
 import VoiceMessage from "@/components/ui/VoiceMessage";
 import MessageContextMenu from "@/components/ui/MessageContextMenu";
+import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 
 interface Mesaj {
   id: string;
@@ -163,6 +164,45 @@ function MesajlarContent() {
       }
     }
   }, [user, userData, authLoading, userDataLoading, router]);
+
+  // FCM Token alma - Her sayfa yüklendiğinde kontrol et
+  useEffect(() => {
+    if (!user) return;
+    
+    // Notification izni durumunu kontrol et
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      console.log("[Student Messages] Notifications not supported");
+      return;
+    }
+    
+    // Eğer izin verilmişse token al, verilmemişse iste
+    if (Notification.permission === "granted") {
+      console.log("[Student Messages] Notification permission already granted, getting token...");
+      requestNotificationPermission()
+        .then((token) => {
+          if (token) {
+            console.log("[Student Messages] FCM token received, saving...");
+            return saveFCMTokenToUser(user.uid, token);
+          }
+        })
+        .catch((err) => console.error("[Student Messages] FCM token error:", err));
+    } else if (Notification.permission === "default") {
+      // İlk ziyarette otomatik izin isteme (sadece 1 kere)
+      const hasAskedBefore = localStorage.getItem("fcm_permission_asked");
+      if (!hasAskedBefore) {
+        console.log("[Student Messages] Requesting notification permission...");
+        localStorage.setItem("fcm_permission_asked", "true");
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              console.log("[Student Messages] FCM token received after permission grant");
+              return saveFCMTokenToUser(user.uid, token);
+            }
+          })
+          .catch((err) => console.error("[Student Messages] Permission request error:", err));
+      }
+    }
+  }, [user]);
 
   // URL parametrelerinden conversation seçimi (bildirimden geldiğinde)
   useEffect(() => {
