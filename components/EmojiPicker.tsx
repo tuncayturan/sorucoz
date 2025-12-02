@@ -79,7 +79,6 @@ const EMOJI_CATEGORIES = {
 
 export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef }: EmojiPickerProps) {
   const [selectedCategory, setSelectedCategory] = useState("Yüz İfadeleri");
-  const [searchTerm, setSearchTerm] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -121,79 +120,78 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
 
   if (!isOpen) return null;
 
-  const filteredEmojis = searchTerm
-    ? Object.values(EMOJI_CATEGORIES)
-        .flat()
-        .filter((emoji) => emoji.includes(searchTerm))
-    : EMOJI_CATEGORIES[selectedCategory as keyof typeof EMOJI_CATEGORIES];
+  // Arama için tüm kategorilerde ara - şimdilik disabled (emoji character search yapılamaz)
+  const filteredEmojis = EMOJI_CATEGORIES[selectedCategory as keyof typeof EMOJI_CATEGORIES] || [];
 
   return (
     <div
       ref={pickerRef}
       className="absolute bottom-14 right-0 w-[380px] h-[420px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-[9999]"
       onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
-      {/* Header */}
-      <div className="p-3 border-b border-gray-200">
-        <input
-          type="text"
-          placeholder="Emoji ara..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
       {/* Categories */}
-      {!searchTerm && (
-        <div className="flex gap-1 px-3 py-2 border-b border-gray-200 overflow-x-auto scrollbar-hide">
-          {Object.keys(EMOJI_CATEGORIES).map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSelectedCategory(category);
-              }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition ${
-                selectedCategory === category
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex gap-1 px-3 py-3 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+        {Object.keys(EMOJI_CATEGORIES).map((category) => (
+          <button
+            key={category}
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('[EmojiPicker] Kategori değiştirildi:', category);
+              setSelectedCategory(category);
+            }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition ${
+              selectedCategory === category
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
 
       {/* Emoji Grid */}
       <div className="flex-1 overflow-y-auto p-3">
         <div className="grid grid-cols-8 gap-2">
-          {filteredEmojis.map((emoji, index) => (
-            <button
-              key={`${emoji}-${index}`}
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[EmojiPicker] Emoji clicked:', emoji);
-                onEmojiSelect(emoji);
-                console.log('[EmojiPicker] onEmojiSelect called');
-              }}
-              className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100 rounded-lg transition cursor-pointer"
-            >
-              {emoji}
-            </button>
-          ))}
+          {filteredEmojis && filteredEmojis.length > 0 ? (
+            filteredEmojis.map((emoji, index) => (
+              <button
+                key={`${emoji}-${index}`}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('[EmojiPicker] Emoji clicked:', emoji);
+                  onEmojiSelect(emoji);
+                  console.log('[EmojiPicker] onEmojiSelect called');
+                }}
+                className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100 rounded-lg transition cursor-pointer"
+              >
+                {emoji}
+              </button>
+            ))
+          ) : (
+            <div className="col-span-8 text-center text-gray-500 py-8">
+              Emoji bulunamadı
+            </div>
+          )}
         </div>
       </div>
 
       {/* Footer */}
       <div className="px-3 py-2 border-t border-gray-200 text-xs text-gray-500 text-center">
-        {filteredEmojis.length} emoji
+        {filteredEmojis ? filteredEmojis.length : 0} emoji • {selectedCategory}
       </div>
     </div>
   );
