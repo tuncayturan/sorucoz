@@ -6,6 +6,7 @@ interface EmojiPickerProps {
   onEmojiSelect: (emoji: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 const EMOJI_CATEGORIES = {
@@ -76,26 +77,47 @@ const EMOJI_CATEGORIES = {
   ],
 };
 
-export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPickerProps) {
+export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef }: EmojiPickerProps) {
   const [selectedCategory, setSelectedCategory] = useState("Yüz İfadeleri");
   const [searchTerm, setSearchTerm] = useState("");
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        onClose();
+      const target = event.target as Node;
+      
+      // Picker içine tıklanmışsa ignore et
+      if (pickerRef.current && pickerRef.current.contains(target)) {
+        console.log('[EmojiPicker] Click inside picker, ignoring');
+        return;
       }
+      
+      // Emoji butonuna tıklanmışsa ignore et (kapanmasını önle)
+      if (buttonRef?.current && buttonRef.current.contains(target)) {
+        console.log('[EmojiPicker] Click on emoji button, ignoring');
+        return;
+      }
+      
+      // Başka bir yere tıklanmışsa kapat
+      console.log('[EmojiPicker] Outside click detected, closing...');
+      onClose();
     };
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+      // Event listener'ı bir sonraki event loop'ta ekle
+      // Böylece emoji butonuna yapılan tıklama handleClickOutside'ı tetiklemez
+      const timeoutId = setTimeout(() => {
+        console.log('[EmojiPicker] Adding click listener');
+        document.addEventListener("click", handleClickOutside);
+      }, 0);
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener("click", handleClickOutside);
+        console.log('[EmojiPicker] Removing click listener');
+      };
+    }
+  }, [isOpen, onClose, buttonRef]);
 
   if (!isOpen) return null;
 
@@ -108,7 +130,8 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPic
   return (
     <div
       ref={pickerRef}
-      className="absolute bottom-14 right-0 w-[380px] h-[420px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50"
+      className="absolute bottom-14 right-0 w-[380px] h-[420px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-[9999]"
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div className="p-3 border-b border-gray-200">
@@ -117,6 +140,7 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPic
           placeholder="Emoji ara..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
@@ -127,7 +151,12 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPic
           {Object.keys(EMOJI_CATEGORIES).map((category) => (
             <button
               key={category}
-              onClick={() => setSelectedCategory(category)}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedCategory(category);
+              }}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition ${
                 selectedCategory === category
                   ? "bg-blue-500 text-white"
@@ -146,9 +175,13 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }: EmojiPic
           {filteredEmojis.map((emoji, index) => (
             <button
               key={`${emoji}-${index}`}
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[EmojiPicker] Emoji clicked:', emoji);
                 onEmojiSelect(emoji);
-                onClose();
+                console.log('[EmojiPicker] onEmojiSelect called');
               }}
               className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100 rounded-lg transition cursor-pointer"
             >

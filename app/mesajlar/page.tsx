@@ -1023,7 +1023,7 @@ export default function MesajlarPage() {
             </div>
 
             {/* Messages Area - Desktop */}
-            <div className={`hidden md:flex flex-1 flex flex-col min-w-0 overflow-hidden bg-white/90 backdrop-blur-2xl ${selectedConversation ? '' : ''}`}>
+            <div className={`hidden md:flex flex-1 flex flex-col min-w-0 bg-white/90 backdrop-blur-2xl ${selectedConversation ? '' : ''}`} style={{ overflow: 'visible' }}>
               {!selectedConversation ? (
                 <div className="flex-1 flex items-center justify-center bg-[#f0f2f5]"
                   style={{
@@ -1299,8 +1299,8 @@ export default function MesajlarPage() {
         </div>
 
                   {/* Message Input */}
-                  <form onSubmit={handleGonder} className="p-2 md:p-4 border-t border-gray-200/50 overflow-x-hidden">
-                    <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-2 md:p-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/50 overflow-x-hidden">
+                  <form onSubmit={handleGonder} className="p-2 md:p-4 border-t border-gray-200/50 overflow-visible">
+                    <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-2 md:p-4 shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-white/50 overflow-visible">
               {filePreviews.length > 0 && (
                 <div className="mb-2 flex gap-2 flex-wrap">
                   {filePreviews.map((preview, idx) => (
@@ -1332,7 +1332,7 @@ export default function MesajlarPage() {
                   ))}
                 </div>
               )}
-              <div className="flex items-end gap-2 md:gap-3 overflow-x-hidden min-w-0">
+              <div className="flex items-end gap-2 md:gap-3 overflow-visible relative min-w-0">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1351,7 +1351,7 @@ export default function MesajlarPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </button>
-                <div className="flex-1 relative min-w-0 max-w-full">
+                <div className="flex-1 relative min-w-0 max-w-full overflow-visible">
                   <textarea
                     ref={textareaRef}
                     value={yeniMesaj}
@@ -1364,32 +1364,60 @@ export default function MesajlarPage() {
                     }}
                     placeholder="Mesajınızı yazın..."
                     rows={1}
-                    className="w-full max-w-full px-3 py-2 md:px-4 md:py-3 pr-10 md:pr-20 rounded-[1.25rem] border border-gray-200/80 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300/50 transition-all resize-none shadow-sm hover:shadow-md text-sm overflow-hidden"
+                    className="w-full max-w-full px-3 py-2 md:px-4 md:py-3 pr-10 md:pr-20 rounded-[1.25rem] border border-gray-200/80 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-300/50 transition-all resize-none shadow-sm hover:shadow-md text-sm overflow-visible"
                     style={{ minHeight: "44px", maxHeight: "120px" }}
                   />
                   {/* Emoji Button - Desktop Only */}
                   <button
+                    ref={emojiButtonRef}
                     type="button"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="hidden md:flex absolute right-3 bottom-3 w-8 h-8 items-center justify-center hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-gray-700"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('[Öğrenci Mesaj] Emoji butonu tıklandı, showEmojiPicker:', !showEmojiPicker);
+                      setShowEmojiPicker(!showEmojiPicker);
+                    }}
+                    className="hidden md:flex absolute right-3 bottom-3 w-8 h-8 items-center justify-center hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-gray-700 z-10 pointer-events-auto"
+                    style={{ visibility: 'visible' }}
                   >
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm10 0c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zm-5 6c2.21 0 4-1.79 4-4h-8c0 2.21 1.79 4 4 4z"/>
                     </svg>
                   </button>
                   {/* Emoji Picker Component - Desktop Only */}
-                  <div className="hidden md:block">
-                    <EmojiPicker
-                      isOpen={showEmojiPicker}
-                      onClose={() => setShowEmojiPicker(false)}
-                      onEmojiSelect={(emoji) => {
-                        setYeniMesaj((prev) => prev + emoji);
-                        setTimeout(() => {
-                          textareaRef.current?.focus();
-                        }, 0);
-                      }}
-                    />
-                  </div>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-14 right-0 z-[9999]" style={{ display: 'block', visibility: 'visible' }}>
+                      <EmojiPicker
+                        isOpen={true}
+                        buttonRef={emojiButtonRef}
+                        onClose={() => {
+                          console.log('[Öğrenci Mesaj] Emoji picker kapatılıyor');
+                          setShowEmojiPicker(false);
+                        }}
+                        onEmojiSelect={(emoji) => {
+                          console.log('[Öğrenci Mesaj] Emoji seçildi:', emoji);
+                          console.log('[Öğrenci Mesaj] Mevcut yeniMesaj:', yeniMesaj);
+                          
+                          // Hem state'i hem de direkt textarea'yı güncelle
+                          const newText = yeniMesaj + emoji;
+                          console.log('[Öğrenci Mesaj] Yeni text olacak:', newText);
+                          
+                          setYeniMesaj(newText);
+                          
+                          // Textarea'yı da direkt güncelle
+                          if (textareaRef.current) {
+                            textareaRef.current.value = newText;
+                            textareaRef.current.focus();
+                            // Cursor'u sona taşı
+                            const length = newText.length;
+                            textareaRef.current.setSelectionRange(length, length);
+                          }
+                          
+                          console.log('[Öğrenci Mesaj] State ve textarea güncellendi');
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-2 relative flex-shrink-0">
                   {!yeniMesaj.trim() && selectedFiles.length === 0 ? (
