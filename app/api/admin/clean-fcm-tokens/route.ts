@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = userSnap.data();
-    const fcmTokens = userData?.fcmTokens || [];
+    const fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];
 
     console.log(`[Clean FCM Tokens] User: ${userId}, Total tokens: ${fcmTokens.length}`);
 

@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = userSnap.data();
-    const fcmTokens = userData?.fcmTokens || [];
+    const fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];
 
     console.log(`[Send Notification] ========== START ==========`);
     console.log(`[Send Notification] User: ${userId}, FCM Tokens: ${fcmTokens.length}`);

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     for (const studentDoc of studentSnapshot.docs) {
       const studentData = studentDoc.data();
       const studentId = studentDoc.id;
-      const fcmTokens = studentData?.fcmTokens || [];
+      const fcmTokens: string[] = (studentData?.fcmTokens as string[]) || [];
 
       console.log(
         `[Send Notification to Students] Student: ${studentId}, FCM Tokens: ${fcmTokens.length}`

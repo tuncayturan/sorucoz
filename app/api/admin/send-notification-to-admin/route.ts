@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       }
       
       processedUserIds.add(adminId);
-      const fcmTokens = adminData?.fcmTokens || [];
+      const fcmTokens: string[] = (adminData?.fcmTokens as string[]) || [];
 
       console.log(`[Send Notification to Admin/Coach] Admin: ${adminId}, FCM Tokens: ${fcmTokens.length}`);
 
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       }
       
       processedUserIds.add(coachId);
-      const fcmTokens = coachData?.fcmTokens || [];
+      const fcmTokens: string[] = (coachData?.fcmTokens as string[]) || [];
 
       console.log(`[Send Notification to Admin/Coach] Coach: ${coachId}, FCM Tokens: ${fcmTokens.length}`);
 
