@@ -1476,8 +1476,10 @@ export default function CoachChatPage() {
                           isOpen={showEmojiPicker}
                           onClose={() => setShowEmojiPicker(false)}
                           onEmojiSelect={(emoji) => {
-                            setReplyText(replyText + emoji);
-                            textareaRef.current?.focus();
+                            setReplyText((prev) => prev + emoji);
+                            setTimeout(() => {
+                              textareaRef.current?.focus();
+                            }, 0);
                           }}
                         />
                       </div>

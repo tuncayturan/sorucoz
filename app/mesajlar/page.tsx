@@ -1384,8 +1384,10 @@ export default function MesajlarPage() {
                       isOpen={showEmojiPicker}
                       onClose={() => setShowEmojiPicker(false)}
                       onEmojiSelect={(emoji) => {
-                        setYeniMesaj(yeniMesaj + emoji);
-                        textareaRef.current?.focus();
+                        setYeniMesaj((prev) => prev + emoji);
+                        setTimeout(() => {
+                          textareaRef.current?.focus();
+                        }, 0);
                       }}
                     />
                   </div>
