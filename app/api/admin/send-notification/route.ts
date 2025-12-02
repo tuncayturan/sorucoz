@@ -111,12 +111,13 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // Add unique message ID for each notification
-      // Use timestamp to ensure each message creates a new notification
+      // Add message ID for duplicate prevention
+      // Round timestamp to 5-second intervals to allow duplicate prevention to work
+      // while still allowing new notifications for new messages
       const notificationType = data?.type || 'general';
-      const timestamp = Date.now();
+      const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik aralıklar
       
-      // Generate unique but trackable message ID
+      // Generate stable message ID for duplicate prevention
       if (data?.conversationId) {
         fcmData.messageId = `${notificationType}-${data.conversationId}-${timestamp}`;
         fcmData.conversationId = data.conversationId; // Ensure conversationId is in data

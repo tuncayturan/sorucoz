@@ -154,11 +154,12 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // Add unique message ID for each notification
+      // Add message ID for duplicate prevention
+      // Round timestamp to 5-second intervals
       const notificationType = data?.type || 'general';
-      const timestamp = Date.now();
+      const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik aralıklar
       
-      // Generate unique but trackable message ID
+      // Generate stable message ID for duplicate prevention
       if (data?.supportId) {
         fcmData.messageId = `${notificationType}-${data.supportId}-${timestamp}`;
         fcmData.supportId = data.supportId;

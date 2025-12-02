@@ -219,7 +219,7 @@ messaging.onBackgroundMessage(async (payload) => {
   
   console.log('[firebase-messaging-sw.js] Using icon:', iconUrl);
   console.log('[firebase-messaging-sw.js] Custom sound:', soundUrl || 'system default');
-  console.log('[firebase-messaging-sw.js] Notification tag:', uniqueTag);
+  console.log('[firebase-messaging-sw.js] Notification tag:', notificationTag);
 
   console.log('[firebase-messaging-sw.js] Showing notification:', notificationTitle, notificationBody);
   console.log('[firebase-messaging-sw.js] Notification options:', notificationOptions);
