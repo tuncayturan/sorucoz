@@ -23,15 +23,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Duplicate notification prevention - store recently shown notification IDs
-// Using IndexedDB for cross-tab duplicate prevention
+// AGGRESSIVE Duplicate notification prevention
+// Using both IndexedDB AND in-memory Set for maximum reliability
 const DB_NAME = 'NotificationDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'shownNotifications';
-const NOTIFICATION_TIMEOUT = 10000; // 10 saniye içinde aynı bildirim tekrar gösterilmez (çoklu bildirim önleme)
+const NOTIFICATION_TIMEOUT = 10000; // 10 saniye içinde aynı bildirim tekrar gösterilmez
 
-// In-memory fallback for fast checks
+// GLOBAL in-memory Set - prevents duplicates even if IndexedDB fails
 const shownNotifications = new Set();
+const processingNotifications = new Set(); // Prevent concurrent processing of same notification
 
 // Initialize IndexedDB for persistent cross-tab duplicate prevention
 const initDB = () => {
@@ -51,13 +52,17 @@ const initDB = () => {
   });
 };
 
-// Check if notification was recently shown (cross-tab)
+// Check if notification was recently shown (cross-tab + in-memory)
 const wasRecentlyShown = async (notificationId) => {
-  // Quick in-memory check first
+  console.log('[SW] 🔍 Checking if recently shown:', notificationId);
+  
+  // FASTEST: In-memory check first
   if (shownNotifications.has(notificationId)) {
+    console.log('[SW] ✅ Found in memory cache - DUPLICATE!');
     return true;
   }
   
+  // PERSISTENT: Check IndexedDB for cross-tab scenarios
   try {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readonly');
@@ -69,25 +74,35 @@ const wasRecentlyShown = async (notificationId) => {
         const record = request.result;
         if (record) {
           const age = Date.now() - record.timestamp;
-          resolve(age < NOTIFICATION_TIMEOUT);
+          const isDuplicate = age < NOTIFICATION_TIMEOUT;
+          console.log('[SW]', isDuplicate ? '✅ Found in IndexedDB - DUPLICATE!' : '⚠️ Found but expired');
+          console.log('[SW] Age:', age, 'ms, Timeout:', NOTIFICATION_TIMEOUT, 'ms');
+          resolve(isDuplicate);
         } else {
+          console.log('[SW] ✅ Not found in IndexedDB - NEW notification');
           resolve(false);
         }
       };
-      request.onerror = () => resolve(false); // On error, allow notification
+      request.onerror = () => {
+        console.warn('[SW] ⚠️ IndexedDB read error, allowing notification');
+        resolve(false); // On error, allow notification
+      };
     });
   } catch (error) {
-    console.error('[SW] IndexedDB check error:', error);
+    console.error('[SW] ❌ IndexedDB check error:', error);
     return false; // On error, allow notification
   }
 };
 
-// Mark notification as shown (cross-tab)
+// Mark notification as shown (cross-tab + in-memory)
 const markAsShown = async (notificationId) => {
-  // Add to in-memory set
-  shownNotifications.add(notificationId);
+  console.log('[SW] 📝 Marking as shown:', notificationId);
   
-  // Add to IndexedDB for cross-tab sharing
+  // IMMEDIATE: Add to in-memory set (fastest protection)
+  shownNotifications.add(notificationId);
+  console.log('[SW] ✅ Added to in-memory set, total:', shownNotifications.size);
+  
+  // PERSISTENT: Add to IndexedDB for cross-tab sharing
   try {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
@@ -97,6 +112,7 @@ const markAsShown = async (notificationId) => {
       id: notificationId,
       timestamp: Date.now()
     });
+    console.log('[SW] ✅ Saved to IndexedDB');
     
     // Clean up old entries (older than timeout)
     const index = store.index('timestamp');
@@ -111,12 +127,14 @@ const markAsShown = async (notificationId) => {
       }
     };
   } catch (error) {
-    console.error('[SW] IndexedDB mark error:', error);
+    console.error('[SW] ❌ IndexedDB mark error:', error);
+    // Even if IndexedDB fails, in-memory protection still works
   }
   
   // Remove from in-memory set after timeout
   setTimeout(() => {
     shownNotifications.delete(notificationId);
+    console.log('[SW] 🗑️ Removed from in-memory set after timeout');
   }, NOTIFICATION_TIMEOUT);
 };
 
@@ -142,6 +160,7 @@ console.log('[SW] Firebase Messaging instance created');
 
 // Background message handler
 messaging.onBackgroundMessage(async (payload) => {
+  console.log('[firebase-messaging-sw.js] ========== NEW MESSAGE ==========');
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   console.log('[firebase-messaging-sw.js] Payload notification:', payload.notification);
   console.log('[firebase-messaging-sw.js] Payload data:', payload.data);
@@ -149,22 +168,46 @@ messaging.onBackgroundMessage(async (payload) => {
   const notificationTitle = payload.notification?.title || payload.data?.title || 'Yeni Bildirim';
   const notificationBody = payload.notification?.body || payload.data?.body || '';
   
-  // Create notification ID for duplicate prevention
-  // Use the messageId from API (which includes timestamp for uniqueness)
-  // This allows each new message to create a notification, but prevents immediate duplicates
-  const notificationId = payload.data?.messageId || 
-                        payload.messageId || 
-                        `${payload.data?.type || 'general'}-${Date.now()}`;
+  // Create STABLE notification ID for duplicate prevention
+  // Use conversationId + type for stability (same message = same ID)
+  const conversationId = payload.data?.conversationId || '';
+  const messageType = payload.data?.type || 'general';
+  const messageId = payload.data?.messageId || '';
   
-  // Check if this notification was recently shown (cross-tab check)
-  const wasShown = await wasRecentlyShown(notificationId);
-  if (wasShown) {
-    console.log('[firebase-messaging-sw.js] ⚠️ Duplicate notification prevented (cross-tab):', notificationId);
+  // STABLE ID: Use messageId from API (already has 5-second rounding)
+  const notificationId = messageId || `${messageType}-${conversationId}-${Date.now()}`;
+  
+  console.log('[firebase-messaging-sw.js] 🆔 Notification ID:', notificationId);
+  console.log('[firebase-messaging-sw.js] 🔍 Checking if already processing...');
+  
+  // FIRST CHECK: Is this notification currently being processed?
+  if (processingNotifications.has(notificationId)) {
+    console.log('[firebase-messaging-sw.js] 🛑 DUPLICATE PREVENTED - Currently processing:', notificationId);
     return Promise.resolve();
   }
   
-  // Mark as shown (cross-tab)
+  // Mark as processing
+  processingNotifications.add(notificationId);
+  console.log('[firebase-messaging-sw.js] ✅ Marked as processing');
+  
+  // SECOND CHECK: Was this notification recently shown?
+  const wasShown = await wasRecentlyShown(notificationId);
+  if (wasShown) {
+    console.log('[firebase-messaging-sw.js] 🛑 DUPLICATE PREVENTED - Recently shown:', notificationId);
+    processingNotifications.delete(notificationId); // Clean up
+    return Promise.resolve();
+  }
+  
+  // THIRD CHECK: In-memory set (fastest check)
+  if (shownNotifications.has(notificationId)) {
+    console.log('[firebase-messaging-sw.js] 🛑 DUPLICATE PREVENTED - In memory cache:', notificationId);
+    processingNotifications.delete(notificationId); // Clean up
+    return Promise.resolve();
+  }
+  
+  // Mark as shown (both IndexedDB and in-memory)
   await markAsShown(notificationId);
+  console.log('[firebase-messaging-sw.js] ✅ Marked as shown');
   
   console.log('[firebase-messaging-sw.js] Notification title:', notificationTitle);
   console.log('[firebase-messaging-sw.js] Notification body:', notificationBody);
@@ -221,24 +264,33 @@ messaging.onBackgroundMessage(async (payload) => {
   console.log('[firebase-messaging-sw.js] Custom sound:', soundUrl || 'system default');
   console.log('[firebase-messaging-sw.js] Notification tag:', notificationTag);
 
-  console.log('[firebase-messaging-sw.js] Showing notification:', notificationTitle, notificationBody);
+  console.log('[firebase-messaging-sw.js] 🔔 Showing notification:', notificationTitle, notificationBody);
   console.log('[firebase-messaging-sw.js] Notification options:', notificationOptions);
   
   try {
     const promise = self.registration.showNotification(notificationTitle, notificationOptions);
-    console.log('[firebase-messaging-sw.js] showNotification called, promise:', promise);
+    console.log('[firebase-messaging-sw.js] showNotification called');
     
     return promise
       .then(() => {
         console.log('[firebase-messaging-sw.js] ✅ Notification shown successfully');
+        console.log('[firebase-messaging-sw.js] ========== END ==========');
+        // Clean up processing marker after successful show
+        setTimeout(() => {
+          processingNotifications.delete(notificationId);
+          console.log('[firebase-messaging-sw.js] 🗑️ Removed from processing set');
+        }, 1000); // 1 saniye sonra temizle
       })
       .catch((error) => {
         console.error('[firebase-messaging-sw.js] ❌ Error showing notification:', error);
         console.error('[firebase-messaging-sw.js] Error details:', error.message, error.stack);
+        processingNotifications.delete(notificationId); // Error durumunda da temizle
       });
   } catch (error) {
     console.error('[firebase-messaging-sw.js] ❌ Error in onBackgroundMessage:', error);
     console.error('[firebase-messaging-sw.js] Error details:', error.message, error.stack);
+    processingNotifications.delete(notificationId); // Error durumunda temizle
+    return Promise.reject(error);
   }
 });
 
