@@ -200,19 +200,20 @@ export default function EtkinliklerPage() {
       <HomeHeader onMenuClick={() => setIsMenuOpen(true)} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        {/* Header - iOS Premium Style */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Etkinlikler</h1>
-          <p className="text-gray-600 text-lg">Yaklaşan ve planlanan tüm etkinlikler</p>
-        </div>
+      <div className="flex justify-center items-start px-4 sm:px-6 lg:px-8 py-6 lg:py-10 flex-1">
+        <div className="w-full max-w-6xl">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Etkinlikler</h1>
+            <p className="text-gray-600">Yaklaşan ve planlanan tüm etkinlikler</p>
+          </div>
 
-        {/* Yaklaşan Etkinlikler - iOS Premium Cards */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full"></div>
-            <span>Yaklaşan Etkinlikler</span>
-          </h2>
+          {/* Yaklaşan Etkinlikler - iOS Premium Cards */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+              <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full"></div>
+              <span>Yaklaşan Etkinlikler</span>
+            </h2>
           {upcomingEvents.length === 0 ? (
             <div className="bg-white/90 backdrop-blur-2xl rounded-[2rem] p-16 shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-white/70 text-center relative overflow-hidden">
               <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-200/20 rounded-full blur-3xl"></div>
@@ -313,13 +314,13 @@ export default function EtkinliklerPage() {
           )}
         </div>
 
-        {/* Tamamlanan Etkinlikler */}
-        {pastEvents.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-              <div className="w-1 h-8 bg-gradient-to-b from-gray-400 to-gray-500 rounded-full"></div>
-              <span>Tamamlanan Etkinlikler</span>
-            </h2>
+          {/* Tamamlanan Etkinlikler */}
+          {pastEvents.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                <div className="w-1 h-8 bg-gradient-to-b from-gray-400 to-gray-500 rounded-full"></div>
+                <span>Tamamlanan Etkinlikler</span>
+              </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pastEvents.map((event) => (
                 <div
@@ -370,8 +371,9 @@ export default function EtkinliklerPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Scroll to Top Button */}
