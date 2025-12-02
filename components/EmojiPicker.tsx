@@ -81,42 +81,9 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
   const [selectedCategory, setSelectedCategory] = useState("Yüz İfadeleri");
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      
-      // Picker içine tıklanmışsa ignore et
-      if (pickerRef.current && pickerRef.current.contains(target)) {
-        console.log('[EmojiPicker] Click inside picker, ignoring');
-        return;
-      }
-      
-      // Emoji butonuna tıklanmışsa ignore et (kapanmasını önle)
-      if (buttonRef?.current && buttonRef.current.contains(target)) {
-        console.log('[EmojiPicker] Click on emoji button, ignoring');
-        return;
-      }
-      
-      // Başka bir yere tıklanmışsa kapat
-      console.log('[EmojiPicker] Outside click detected, closing...');
-      onClose();
-    };
-
-    if (isOpen) {
-      // mousedown kullan - click'ten önce tetiklenir ve daha güvenilir
-      // setTimeout ile bir sonraki event loop'ta ekle
-      const timeoutId = setTimeout(() => {
-        console.log('[EmojiPicker] Adding mousedown listener');
-        document.addEventListener("mousedown", handleClickOutside, true); // capture phase kullan
-      }, 100); // 100ms bekle - tüm click event'lerinin bitmesini garanti et
-
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener("mousedown", handleClickOutside, true);
-        console.log('[EmojiPicker] Removing mousedown listener');
-      };
-    }
-  }, [isOpen, onClose, buttonRef]);
+  // Outside click handling - DİSABLED (sorun yaratıyor)
+  // Manuel kapatma için emoji butonuna tekrar tıklanmalı
+  // veya ESC tuşu eklenebilir
 
   if (!isOpen) return null;
 
@@ -127,15 +94,7 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
     <div
       ref={pickerRef}
       className="absolute bottom-14 right-0 w-[380px] h-[420px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-[9999]"
-      onClick={(e) => {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        console.log('[EmojiPicker] Picker mousedown - event stopped');
-      }}
+      onClick={(e) => e.stopPropagation()}
     >
       {/* Categories */}
       <div className="flex gap-1 px-3 py-3 border-b border-gray-200 overflow-x-auto scrollbar-hide">
@@ -143,17 +102,11 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
           <button
             key={category}
             type="button"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-              console.log('[EmojiPicker] Kategori mousedown:', category);
-              setSelectedCategory(category);
-            }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              e.stopImmediatePropagation();
+              console.log('[EmojiPicker] Kategori seçildi:', category);
+              setSelectedCategory(category);
             }}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition ${
               selectedCategory === category
@@ -174,17 +127,11 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
               <button
                 key={`${emoji}-${index}`}
                 type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  e.stopImmediatePropagation();
-                  console.log('[EmojiPicker] Emoji mousedown:', emoji);
-                  onEmojiSelect(emoji);
-                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  e.stopImmediatePropagation();
+                  console.log('[EmojiPicker] Emoji seçildi:', emoji);
+                  onEmojiSelect(emoji);
                 }}
                 className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100 rounded-lg transition cursor-pointer"
               >
