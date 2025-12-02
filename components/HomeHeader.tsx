@@ -430,12 +430,15 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
               >
                 {displayPhoto ? (
                   <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
-                    <Image
+                    <img
                       src={displayPhoto}
                       alt={displayName}
-                      width={32}
-                      height={32}
                       className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement!.innerHTML = `<div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center ring-2 ring-white shadow-sm"><span class="text-white font-semibold text-xs">${displayName.charAt(0).toUpperCase()}</span></div>`;
+                      }}
                     />
                   </div>
                 ) : (

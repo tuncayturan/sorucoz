@@ -271,6 +271,12 @@ export default function CoachLayout({
                   src={user?.photoURL || userData?.photoURL || ""}
                   alt={userData?.name || "Coach"}
                   className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const name = (userData?.name || user?.displayName || "Coach").charAt(0).toUpperCase();
+                    e.currentTarget.parentElement!.innerHTML = `<div class="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600 border-2 border-white shadow-sm"><span class="text-white font-bold text-sm">${name}</span></div>`;
+                  }}
                 />
               ) : (
                 <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600 border-2 border-white shadow-sm">
@@ -390,6 +396,12 @@ export default function CoachLayout({
                 src={user?.photoURL || userData?.photoURL || ""}
                 alt={userData?.name || "Coach"}
                 className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const name = (userData?.name || user?.displayName || "Coach").charAt(0).toUpperCase();
+                  e.currentTarget.parentElement!.innerHTML = `<div class="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600 border-2 border-white shadow-sm"><span class="text-white font-bold text-base">${name}</span></div>`;
+                }}
               />
             ) : (
               <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600 border-2 border-white shadow-sm">
