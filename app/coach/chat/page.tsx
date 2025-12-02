@@ -751,8 +751,10 @@ export default function CoachChatPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: selectedConversation.studentId,
-            title: "Yeni Coach Mesajı",
-            body: `${userData?.name || "Coach"}: ${replyText.trim() || "Dosya gönderildi"}`,
+            title: userData?.title 
+              ? `${userData.name || "Coach"} - ${userData.title}` 
+              : (userData?.name || "Eğitim Koçu"),
+            body: replyText.trim() || "Dosya gönderildi",
             data: {
               type: "message",
               conversationId: selectedConversation.id,
