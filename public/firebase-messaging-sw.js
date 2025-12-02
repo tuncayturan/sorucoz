@@ -40,6 +40,10 @@ const processingNotifications = new Set();
 // Global counter for debugging
 let notificationCounter = 0;
 
+// Message handler debouncing - prevent rapid fire
+const messageHandlerLock = new Map(); // messageId -> timestamp
+const HANDLER_DEBOUNCE = 500; // 500ms içinde aynı message için sadece 1 kere işle
+
 // Initialize IndexedDB for persistent cross-tab duplicate prevention
 const initDB = () => {
   return new Promise((resolve, reject) => {
@@ -170,20 +174,40 @@ messaging.onBackgroundMessage(async (payload) => {
   const handlerCallNumber = notificationCounter;
   
   console.log('[firebase-messaging-sw.js] ==========================================');
-  console.log(`[firebase-messaging-sw.js] 📨 MESSAGE #${handlerCallNumber} RECEIVED`);
+  console.log(`[firebase-messaging-sw.js] 📨 onBackgroundMessage CALLED - CALL #${handlerCallNumber}`);
   console.log('[firebase-messaging-sw.js] ==========================================');
+  
+  // Extract messageId FIRST for debouncing
+  const messageId = payload.data?.messageId || '';
+  const conversationId = payload.data?.conversationId || '';
+  const messageType = payload.data?.type || 'general';
+  
+  // STABLE ID: Use messageId from API
+  const notificationId = messageId || `${messageType}-${conversationId}-${Date.now()}`;
+  
+  // ========== LAYER 0: Handler Debouncing (EARLIEST PROTECTION) ==========
+  console.log(`[firebase-messaging-sw.js] 🔒 LAYER 0: Handler debouncing check...`);
+  const now = Date.now();
+  const lastHandlerTime = messageHandlerLock.get(notificationId);
+  
+  if (lastHandlerTime && (now - lastHandlerTime) < HANDLER_DEBOUNCE) {
+    console.log(`[firebase-messaging-sw.js] 🛑 BLOCKED BY LAYER 0 - Handler called ${now - lastHandlerTime}ms ago!`);
+    console.log(`[firebase-messaging-sw.js] ⚠️ onBackgroundMessage rapid fire detected - Call #${handlerCallNumber} blocked`);
+    console.log(`[firebase-messaging-sw.js] This suggests FCM is calling handler multiple times!`);
+    return Promise.resolve();
+  }
+  
+  // Lock this message ID in handler
+  messageHandlerLock.set(notificationId, now);
+  setTimeout(() => {
+    messageHandlerLock.delete(notificationId);
+  }, HANDLER_DEBOUNCE);
+  
+  console.log(`[firebase-messaging-sw.js] ✅ LAYER 0 PASSED - First handler call for this message`);
   console.log('[firebase-messaging-sw.js] Full payload:', JSON.stringify(payload, null, 2));
   
   const notificationTitle = payload.notification?.title || payload.data?.title || 'Yeni Bildirim';
   const notificationBody = payload.notification?.body || payload.data?.body || '';
-  
-  // Create STABLE notification ID for duplicate prevention
-  const conversationId = payload.data?.conversationId || '';
-  const messageType = payload.data?.type || 'general';
-  const messageId = payload.data?.messageId || '';
-  
-  // STABLE ID: Use messageId from API (already has 5-second rounding)
-  const notificationId = messageId || `${messageType}-${conversationId}-${Date.now()}`;
   
   console.log(`[firebase-messaging-sw.js] 🆔 Notification ID: ${notificationId}`);
   console.log(`[firebase-messaging-sw.js] 📊 Current state:`, {
