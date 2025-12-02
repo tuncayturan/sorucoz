@@ -13,12 +13,13 @@ interface SiteSettings {
   siteName?: string;
   footerCopyright?: string;
   footerDescription?: string;
+  notificationSound?: string; // Bildirim sesi URL'si
 }
 
 export default function AdminAyarlarPage() {
   const [settings, setSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState<"logo" | "icon" | "favicon" | null>(null);
+  const [uploading, setUploading] = useState<"logo" | "icon" | "favicon" | "notificationSound" | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "info";
@@ -70,19 +71,31 @@ export default function AdminAyarlarPage() {
     }
   };
 
-  const handleImageUpload = async (type: "logo" | "icon" | "favicon", file: File) => {
+  const handleFileUpload = async (type: "logo" | "icon" | "favicon" | "notificationSound", file: File) => {
     if (!file) return;
 
-    // Dosya boyutu kontrolü (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("Dosya boyutu 5MB'dan küçük olmalıdır", "error");
+    const isAudioUpload = type === "notificationSound";
+
+    // Dosya boyutu kontrolü
+    const maxSize = isAudioUpload ? 2 * 1024 * 1024 : 5 * 1024 * 1024; // Ses: 2MB, Resim: 5MB
+    if (file.size > maxSize) {
+      const maxSizeMB = isAudioUpload ? 2 : 5;
+      showToast(`Dosya boyutu ${maxSizeMB}MB'dan küçük olmalıdır`, "error");
       return;
     }
 
     // Dosya tipi kontrolü
-    if (!file.type.startsWith("image/")) {
-      showToast("Lütfen bir resim dosyası seçin", "error");
-      return;
+    if (isAudioUpload) {
+      const validAudioTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm'];
+      if (!validAudioTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|ogg|webm)$/i)) {
+        showToast("Lütfen geçerli bir ses dosyası seçin (MP3, WAV, OGG, WebM)", "error");
+        return;
+      }
+    } else {
+      if (!file.type.startsWith("image/")) {
+        showToast("Lütfen bir resim dosyası seçin", "error");
+        return;
+      }
     }
 
     try {
@@ -115,7 +128,14 @@ export default function AdminAyarlarPage() {
       );
 
       setSettings((prev) => ({ ...prev, [type]: imageUrl }));
-      showToast(`${type === "logo" ? "Logo" : type === "icon" ? "İkon" : "Favicon"} başarıyla güncellendi!`, "success");
+      
+      const typeLabel = 
+        type === "logo" ? "Logo" : 
+        type === "icon" ? "İkon" : 
+        type === "favicon" ? "Favicon" : 
+        "Bildirim Sesi";
+      
+      showToast(`${typeLabel} başarıyla güncellendi!`, "success");
     } catch (error: any) {
       console.error("Yükleme hatası:", error);
       showToast(error.message || "Yükleme başarısız", "error");
@@ -228,7 +248,7 @@ export default function AdminAyarlarPage() {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload("logo", file);
+                      if (file) handleFileUpload("logo", file);
                     }}
                     className="hidden"
                     disabled={uploading === "logo"}
@@ -287,7 +307,7 @@ export default function AdminAyarlarPage() {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload("icon", file);
+                      if (file) handleFileUpload("icon", file);
                     }}
                     className="hidden"
                     disabled={uploading === "icon"}
@@ -346,7 +366,7 @@ export default function AdminAyarlarPage() {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload("favicon", file);
+                      if (file) handleFileUpload("favicon", file);
                     }}
                     className="hidden"
                     disabled={uploading === "favicon"}
@@ -368,6 +388,98 @@ export default function AdminAyarlarPage() {
                     </div>
                   </div>
                 </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Notification Sound */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-pink-200/20 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">🔔</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Bildirim Sesi</h2>
+                <p className="text-sm text-gray-600">Push bildirimlerde çalacak özel ses</p>
+                <p className="text-xs text-gray-500 mt-1">Kullanıcılara gönderilen bildirimlerde çalacak ses dosyası. Önerilen format: MP3, WAV (Max 2MB). Boş bırakılırsa sistem varsayılan sesi kullanılır.</p>
+              </div>
+            </div>
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              {settings.notificationSound && (
+                <div className="w-full md:w-auto">
+                  <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-pink-100 to-rose-100 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl">🎵</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900 mb-1">Mevcut Ses</p>
+                        <audio controls className="w-full max-w-xs">
+                          <source src={settings.notificationSound} type="audio/mpeg" />
+                          Tarayıcınız ses oynatmayı desteklemiyor.
+                        </audio>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="flex-1 w-full">
+                <label className="block mb-2">
+                  <input
+                    type="file"
+                    accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,.mp3,.wav,.ogg,.webm"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload("notificationSound", file);
+                    }}
+                    className="hidden"
+                    disabled={uploading === "notificationSound"}
+                  />
+                  <div className="cursor-pointer">
+                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-100 hover:shadow-lg transition text-center">
+                      {uploading === "notificationSound" ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                          <p className="text-sm text-gray-600">Yükleniyor...</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="text-3xl">📤</span>
+                          <p className="text-sm font-semibold text-gray-700">Bildirim Sesi Yükle</p>
+                          <p className="text-xs text-gray-500">MP3, WAV, OGG, WebM (Max 2MB)</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </label>
+                {settings.notificationSound && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm("Bildirim sesini kaldırmak istediğinize emin misiniz? Varsayılan ses kullanılacaktır.")) return;
+                      try {
+                        const settingsRef = doc(db, "siteSettings", "main");
+                        await setDoc(
+                          settingsRef,
+                          {
+                            notificationSound: null,
+                            updatedAt: new Date(),
+                          },
+                          { merge: true }
+                        );
+                        setSettings((prev) => ({ ...prev, notificationSound: undefined }));
+                        showToast("Bildirim sesi kaldırıldı. Varsayılan ses kullanılacak.", "success");
+                      } catch (error: any) {
+                        showToast(error.message || "Silme başarısız", "error");
+                      }
+                    }}
+                    className="mt-3 w-full px-4 py-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition font-medium text-sm"
+                  >
+                    🗑️ Özel Sesi Kaldır (Varsayılana Dön)
+                  </button>
+                )}
               </div>
             </div>
           </div>

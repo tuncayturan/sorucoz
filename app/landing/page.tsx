@@ -12,6 +12,7 @@ export default function LandingPage() {
   const { settings, loading: settingsLoading } = useSiteSettings();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [scrollY, setScrollY] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   
   const siteName = settings.siteName || "SoruÇöz";
   const siteLogo = settings.logo;
@@ -23,7 +24,7 @@ export default function LandingPage() {
     }
   }, [user, loading, router]);
 
-  // Mouse position tracking for parallax
+  // Mouse position tracking for parallax and scroll button
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
@@ -34,6 +35,8 @@ export default function LandingPage() {
 
     const handleScroll = () => {
       setScrollY(window.scrollY);
+      const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+      setShowScrollTop(scrollPosition > 300);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -426,6 +429,35 @@ export default function LandingPage() {
           </p>
         </div>
       </div>
+
+      {/* Scroll to Top Button - Premium Style */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className={`fixed bottom-6 right-6 z-50 w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl shadow-[0_10px_40px_rgba(59,130,246,0.6)] flex items-center justify-center transition-all duration-300 ${
+          showScrollTop
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 translate-y-4 scale-90 pointer-events-none"
+        } active:scale-95 hover:shadow-[0_15px_50px_rgba(139,92,246,0.7)]`}
+        aria-label="Yukarı git"
+      >
+        {/* Glow effect */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-2xl opacity-0 hover:opacity-50 blur-xl transition-opacity duration-500" />
+        
+        {/* Icon */}
+        <svg
+          className="w-7 h-7 text-white relative z-10"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={3}
+            d="M5 10l7-7m0 0l7 7m-7-7v18"
+          />
+        </svg>
+      </button>
     </div>
   );
 }

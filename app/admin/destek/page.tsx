@@ -217,6 +217,14 @@ export default function AdminDestekPage() {
         setTimeout(() => scrollToBottom(), 300);
         setTimeout(() => scrollToBottom(), 600);
         setTimeout(() => scrollToBottom(), 900);
+        
+        // URL'yi temizle
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('userId');
+          url.searchParams.delete('supportId');
+          window.history.replaceState({}, '', url.pathname);
+        }
       }
     }
   }, [destekMesajlari, searchParams]);

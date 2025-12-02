@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
 import { 
@@ -63,6 +63,7 @@ interface Conversation {
 
 export default function MesajlarPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { userData, loading: userDataLoading } = useUserData();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -162,6 +163,26 @@ export default function MesajlarPage() {
       }
     }
   }, [user, userData, authLoading, userDataLoading, router]);
+
+  // URL parametrelerinden conversation seçimi (bildirimden geldiğinde)
+  useEffect(() => {
+    const conversationId = searchParams.get('conversationId');
+    
+    if (conversationId && conversations.length > 0) {
+      const conv = conversations.find(c => c.id === conversationId);
+      if (conv) {
+        console.log('[Student Messages] Opening conversation from notification:', conversationId);
+        setSelectedConversation(conv);
+        
+        // URL'yi temizle
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('conversationId');
+          window.history.replaceState({}, '', url.pathname);
+        }
+      }
+    }
+  }, [conversations]);
 
   // Fetch all coaches and their conversations
   useEffect(() => {
@@ -690,8 +711,18 @@ export default function MesajlarPage() {
       });
 
       // Send notification
-      try {
-        await fetch("/api/admin/send-notification", {
+      // THROTTLE: Ses mesajı için localStorage kontrolü
+      const voiceNow = Date.now();
+      const voiceThrottleKey = `last_notification_${selectedConversation.id}`;
+      const voiceLastNotificationStr = localStorage.getItem(voiceThrottleKey);
+      const voiceLastNotificationTime = voiceLastNotificationStr ? parseInt(voiceLastNotificationStr) : 0;
+      const voiceTimeSince = voiceNow - voiceLastNotificationTime;
+      
+      if (voiceTimeSince > 10000 || voiceLastNotificationTime === 0) {
+        console.log("[Student Messages] 📤 ✅ SENDING voice notification...");
+        localStorage.setItem(voiceThrottleKey, voiceNow.toString());
+        
+        fetch("/api/admin/send-notification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -701,11 +732,15 @@ export default function MesajlarPage() {
             data: {
               type: "message",
               conversationId: selectedConversation.id,
+              userId: user.uid,
             },
           }),
-        });
-      } catch (error) {
-        console.error("Bildirim gönderilirken hata:", error);
+        })
+        .then(res => res.json())
+        .then(data => console.log("[Student Messages] ✅ Voice notification response:", data))
+        .catch(error => console.error("[Student Messages] ❌ Voice notification error:", error));
+      } else {
+        console.log(`[Student Messages] 🚫🚫🚫 VOICE THROTTLED: ${voiceTimeSince}ms önce, ${10000 - voiceTimeSince}ms sonra tekrar`);
       }
 
       setTimeout(() => scrollToBottom(), 100);
@@ -733,6 +768,14 @@ export default function MesajlarPage() {
     e.preventDefault();
     if (!user || !selectedConversation || (!yeniMesaj.trim() && selectedFiles.length === 0) || gonderiliyor) return;
 
+    // Aggressive double submit prevention
+    if (gonderiliyor) {
+      console.log("[Student Messages] ⚠️ Already sending, prevented duplicate");
+      return;
+    }
+    
+    console.log("[Student Messages] 🚀 Sending message...");
+    
     try {
       setGonderiliyor(true);
       setUploadingFiles(true);
@@ -782,38 +825,62 @@ export default function MesajlarPage() {
         updatedAt: serverTimestamp(),
       });
 
-      // Send notification to coach (FCM)
-      try {
-        await fetch("/api/admin/send-notification", {
+      // THROTTLE: localStorage kullanarak kalıcı kontrol
+      const now = Date.now();
+      const throttleKey = `last_notification_${selectedConversation.id}`;
+      const lastNotificationStr = localStorage.getItem(throttleKey);
+      const lastNotificationTime = lastNotificationStr ? parseInt(lastNotificationStr) : 0;
+      const timeSinceLastNotification = now - lastNotificationTime;
+      
+      console.log(`[Student Messages] 🔍 Throttle Check:`, {
+        conversationId: selectedConversation.id,
+        lastNotificationTime: lastNotificationTime,
+        now: now,
+        timeSince: timeSinceLastNotification,
+        threshold: 10000,
+        willSend: timeSinceLastNotification > 10000 || lastNotificationTime === 0
+      });
+      console.log(`[Student Messages] LocalStorage value:`, localStorage.getItem(throttleKey));
+      
+      // 10 saniyede max 1 bildirim
+      if (timeSinceLastNotification > 10000 || lastNotificationTime === 0) {
+        console.log("[Student Messages] 📤 ✅ SENDING notification to coach...");
+        localStorage.setItem(throttleKey, now.toString());
+        
+        // Send FCM notification (non-blocking)
+        fetch("/api/admin/send-notification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: selectedConversation.coachId,
-            title: "Yeni Mesaj",
+            title: "Yeni Öğrenci Mesajı",
             body: `${userData?.name || "Öğrenci"}: ${yeniMesaj.trim() || "Dosya gönderildi"}`,
             data: {
               type: "message",
               conversationId: selectedConversation.id,
+              userId: user.uid,
             },
           }),
-        });
-      } catch (error) {
-        console.error("Bildirim gönderilirken hata:", error);
-      }
-
-      // Send WhatsApp notification to coach (if WhatsApp Web is connected)
-      try {
-        await fetch("/api/whatsapp/send", {
+        })
+        .then(res => res.json())
+        .then(data => {
+          console.log("[Student Messages] ✅ Notification response:", data);
+        })
+        .catch(error => console.error("[Student Messages] ❌ Notification error:", error));
+        
+        // WhatsApp notification (optional, non-blocking)
+        fetch("/api/whatsapp/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: selectedConversation.coachId,
             message: `📨 Yeni Mesaj\n\n${userData?.name || "Öğrenci"}: ${yeniMesaj.trim() || "Dosya gönderildi"}\n\nMesajı görüntülemek için uygulamaya giriş yapın.`,
           }),
-        });
-      } catch (error) {
-        // WhatsApp bildirimi başarısız olsa bile devam et (opsiyonel)
-        console.error("WhatsApp bildirimi gönderilirken hata:", error);
+        })
+        .then(() => console.log("[Student Messages] ✅ WhatsApp sent"))
+        .catch(() => console.log("[Student Messages] ℹ️ WhatsApp skipped"));
+      } else {
+        console.log(`[Student Messages] 🚫🚫🚫 THROTTLED: Son bildirim ${timeSinceLastNotification}ms önce, ${10000 - timeSinceLastNotification}ms sonra tekrar deneyin`);
       }
 
       setYeniMesaj("");
@@ -1005,7 +1072,7 @@ export default function MesajlarPage() {
                   {/* Messages */}
                   <div
                     ref={messagesContainerRefDesktop}
-                    className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#f0f2f5]"
+                    className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 bg-[#f0f2f5] min-w-0"
                     style={{
                       backgroundImage: "radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.03) 0%, transparent 50%)"
                     }}
@@ -1050,7 +1117,7 @@ export default function MesajlarPage() {
                                   )}
                         </div>
                       )}
-                      <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} ${!mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0 ? (isUser ? "ml-auto" : "mr-auto") : "max-w-[75%]"} ${!showAvatar ? (isUser ? "mr-12" : "ml-12") : ""}`}>
+                      <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} ${!mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0 ? (isUser ? "ml-auto" : "mr-auto") : isUser ? "max-w-[90%] sm:max-w-[85%] md:max-w-[75%]" : "max-w-[85%] sm:max-w-[80%] md:max-w-[75%]"} ${!showAvatar ? (isUser ? "mr-1 sm:mr-2 md:mr-12" : "ml-1 sm:ml-2 md:ml-12") : ""}`}>
                         {showAvatar && (
                           <span className={`text-xs font-medium mb-1 ${isUser ? "text-green-600" : "text-blue-600"}`}>
                             {mesaj.senderName}
@@ -1061,8 +1128,8 @@ export default function MesajlarPage() {
                             !mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0
                               ? 'p-0 bg-transparent shadow-none'
                               : isUser
-                              ? "bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-sm shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-3.5 py-2.5 shadow-sm backdrop-blur-sm"
-                              : "bg-white/95 backdrop-blur-md text-gray-900 rounded-bl-sm shadow-gray-200/30 border border-gray-100/50 px-3.5 py-2.5 shadow-sm"
+                              ? "bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-sm shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-3.5 md:py-2.5 shadow-sm backdrop-blur-sm"
+                              : "bg-white/95 backdrop-blur-md text-gray-900 rounded-bl-sm shadow-gray-200/30 border border-gray-100/50 px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-3.5 md:py-2.5 shadow-sm"
                           }`}
                           onContextMenu={(e) => {
                             if (mesaj.senderId === user?.uid) {
@@ -1165,7 +1232,7 @@ export default function MesajlarPage() {
                               ) : (
                                 <>
                               {mesaj.text && (
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                   {mesaj.text}
                                   {mesaj.edited && (
                                     <span className="text-xs opacity-70 ml-1 italic">(düzenlendi)</span>
@@ -1452,7 +1519,7 @@ export default function MesajlarPage() {
               {/* Mobile Messages Container */}
               <div 
                 ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 bg-[#f0f2f5]"
+                className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-[#f0f2f5] min-w-0"
               >
                 {mesajlar.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
@@ -1476,7 +1543,7 @@ export default function MesajlarPage() {
                                   className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                 />
                               ) : (
-                                <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                                <div className={`flex-shrink-0 w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br ${isUser ? "from-blue-400 to-indigo-500" : "from-blue-400 to-indigo-500"} flex items-center justify-center`}>
                                   <span className="text-white font-semibold text-xs">
                                     {mesaj.senderName.charAt(0).toUpperCase()}
                                   </span>
@@ -1485,11 +1552,11 @@ export default function MesajlarPage() {
                             ) : (
                               <div className="w-8 flex-shrink-0" />
                             )}
-                            <div className={`flex flex-col ${!mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[75%] items-end'}`}>
+                            <div className={`flex flex-col ${!mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[90%] sm:max-w-[85%] md:max-w-[75%] items-end'}`}>
                               <div className={`rounded-2xl overflow-hidden ${
                                 !mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0
                                   ? 'p-0 bg-transparent shadow-none'
-                                  : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-4 py-2.5'
+                                  : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-4 md:py-2.5'
                               }`}
                               onContextMenu={(e) => {
                                 if (mesaj.senderId === user?.uid) {
@@ -1559,7 +1626,7 @@ export default function MesajlarPage() {
                                 ) : (
                                   <>
                                     {mesaj.text && (
-                                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                                      <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                         {mesaj.text}
                                         {mesaj.edited && (
                                           <span className="text-xs opacity-70 ml-1 italic">(düzenlendi)</span>
@@ -1602,7 +1669,7 @@ export default function MesajlarPage() {
                             ) : (
                               <div className="w-8 flex-shrink-0" />
                             )}
-                            <div className={`flex flex-col ${!mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0 ? 'mr-auto' : 'max-w-[75%]'}`}>
+                            <div className={`flex flex-col ${!mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0 ? 'mr-auto' : 'max-w-[85%] sm:max-w-[80%] md:max-w-[75%]'}`}>
                               {showAvatar && (
                                 <span className="text-[11px] font-medium mb-1 text-blue-600 px-1">
                                   {mesaj.senderName}
@@ -1611,7 +1678,7 @@ export default function MesajlarPage() {
                               <div className={`rounded-2xl overflow-hidden ${
                                 !mesaj.text && !mesaj.audioUrl && mesaj.attachments && mesaj.attachments.length > 0
                                   ? 'p-0 bg-transparent shadow-none'
-                                  : 'bg-white rounded-bl-md shadow-sm px-4 py-2.5'
+                                  : 'bg-white rounded-bl-md shadow-sm px-2.5 py-2 md:px-4 md:py-2.5'
                               }`}
                               onContextMenu={(e) => {
                                 if (mesaj.senderId === user?.uid) {
@@ -1679,7 +1746,7 @@ export default function MesajlarPage() {
                                 ) : (
                                   <>
                                     {mesaj.text && (
-                                      <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
+                                      <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                         {mesaj.text}
                                         {mesaj.edited && (
                                           <span className="text-xs opacity-70 ml-1 italic">(düzenlendi)</span>

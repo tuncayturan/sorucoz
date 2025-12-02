@@ -488,6 +488,25 @@ function DestekPageContent() {
       
       await updateDoc(destekRef, updateData);
 
+      // Admin'e bildirim gönder (öğrenci yanıt verdiğinde)
+      try {
+        await fetch("/api/admin/send-notification-to-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "Destek Mesajına Yanıt",
+            body: `${userData?.name || user?.displayName || "Öğrenci"} destek mesajına yanıt verdi: "${selectedMessage.konu}"`,
+            data: {
+              type: "support_reply",
+              supportId: selectedMessage.id,
+              userId: user.uid,
+            },
+          }),
+        });
+      } catch (notifError) {
+        console.error("Admin bildirim gönderme hatası:", notifError);
+      }
+
       // Update local state
       const newReplyForState = {
         content: replyText.trim() || "",

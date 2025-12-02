@@ -92,11 +92,11 @@ export default function VoiceMessage({ audioUrl, isOwnMessage = false, onDelete 
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
       
       {/* Audio Player - No container, directly in message bubble */}
-      <div className="flex items-center gap-2 md:gap-2.5 min-w-0 max-w-full">
+      <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2.5 min-w-0 max-w-full">
         {/* Play/Pause Button */}
         <button
           onClick={togglePlayPause}
-          className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
+          className={`flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
             isOwnMessage
               ? "bg-white/20 hover:bg-white/30 text-white"
               : "bg-gray-100 hover:bg-gray-200 text-gray-700"
@@ -116,7 +116,7 @@ export default function VoiceMessage({ audioUrl, isOwnMessage = false, onDelete 
         </button>
 
         {/* Waveform Visualization */}
-        <div className="flex items-center gap-0.5 md:gap-0.5 flex-1 min-w-0 h-10 md:h-12 overflow-hidden max-w-full">
+        <div className="flex items-center gap-0.5 flex-1 min-w-0 h-9 sm:h-10 md:h-12 overflow-hidden max-w-full">
           {waveformBars.map((bar) => {
             const progressPoint = (bar.id / waveformBars.length) * duration;
             const isActive = currentTime >= progressPoint;

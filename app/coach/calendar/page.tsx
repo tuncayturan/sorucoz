@@ -104,7 +104,7 @@ export default function CoachCalendarPage() {
       const eventDate = new Date(year, month - 1, day, hours, minutes);
 
       const eventsRef = collection(db, "users", user.uid, "events");
-      await addDoc(eventsRef, {
+      const newEventRef = await addDoc(eventsRef, {
         title: eventForm.title.trim(),
         description: eventForm.description.trim() || "",
         date: Timestamp.fromDate(eventDate),
@@ -112,6 +112,28 @@ export default function CoachCalendarPage() {
         zoomLink: eventForm.type === "meeting" ? (eventForm.zoomLink.trim() || "") : "",
         createdAt: Timestamp.now(),
       });
+
+      // Tüm öğrencilere push bildirim gönder (arka planda, kaydı bloklamadan)
+      try {
+        fetch("/api/admin/send-notification-to-students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "Yeni Etkinlik",
+            body: `${userData?.name || "Koçunuz"} yeni bir etkinlik ekledi: ${eventForm.title.trim()}`,
+            data: {
+              type: "event",
+              eventId: newEventRef.id,
+              coachId: user.uid,
+              url: "/etkinlikler",
+            },
+          }),
+        }).catch((err) => {
+          console.error("Öğrencilere bildirim gönderilirken hata:", err);
+        });
+      } catch (notifError) {
+        console.error("Öğrencilere bildirim gönderilirken hata:", notifError);
+      }
 
       setEventForm({
         title: "",
@@ -164,6 +186,28 @@ export default function CoachCalendarPage() {
         type: eventForm.type,
         zoomLink: eventForm.type === "meeting" ? (eventForm.zoomLink.trim() || "") : "",
       });
+
+      // Etkinlik güncellendiğinde de isteğe bağlı bildirim gönder (arka planda)
+      try {
+        fetch("/api/admin/send-notification-to-students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "Etkinlik Güncellendi",
+            body: `${userData?.name || "Koçunuz"} bir etkinliği güncelledi: ${eventForm.title.trim()}`,
+            data: {
+              type: "event_update",
+              eventId: editingEventId,
+              coachId: user.uid,
+              url: "/etkinlikler",
+            },
+          }),
+        }).catch((err) => {
+          console.error("Öğrencilere güncelleme bildirimi gönderilirken hata:", err);
+        });
+      } catch (notifError) {
+        console.error("Öğrencilere güncelleme bildirimi gönderilirken hata:", notifError);
+      }
 
       setEventForm({
         title: "",

@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { collection, query, where, getDocs, doc, getDoc, addDoc, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { sendPushNotification } from "@/lib/firebase/admin";
+import { sendPushNotification, getAdminApp } from "@/lib/firebase/admin";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
+
+// Request deduplication - prevent duplicate API calls within short time
+const recentRequests = new Map<string, number>();
+const REQUEST_TIMEOUT = 2000; // 2 saniye içinde aynı request'i tekrar işleme
 
 // Admin'lere push notification gönderme
 export async function POST(request: NextRequest) {
@@ -15,16 +18,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Tüm admin ve coach kullanıcıları bul
-    const usersRef = collection(db, "users");
-    const adminQuery = query(usersRef, where("role", "==", "admin"));
-    const coachQuery = query(usersRef, where("role", "==", "coach"));
+    // Request deduplication - aynı request kısa sürede tekrar gelirse engelle
+    const requestKey = `${title}-${body}-${JSON.stringify(data)}`;
+    const lastRequestTime = recentRequests.get(requestKey);
+    const now = Date.now();
     
+    if (lastRequestTime && (now - lastRequestTime) < REQUEST_TIMEOUT) {
+      console.log('[Send Notification to Admin] ⚠️ Duplicate request prevented:', requestKey);
+      return NextResponse.json({
+        success: true,
+        message: "Duplicate request prevented",
+        notifiedUsers: 0,
+        tokensSent: 0,
+      });
+    }
+    
+    // Mark this request as processed
+    recentRequests.set(requestKey, now);
+    
+    // Clean up old entries after timeout
+    setTimeout(() => {
+      recentRequests.delete(requestKey);
+    }, REQUEST_TIMEOUT);
+
+    // Firebase Admin Firestore instance
+    const adminApp = getAdminApp();
+    const adminDb = getFirestore(adminApp);
+
+    // Site ayarlarından logo ve ses URL'sini al
+    let logoUrl: string | undefined;
+    let soundUrl: string | undefined;
+    try {
+      const settingsRef = adminDb.collection("siteSettings").doc("main");
+      const settingsSnap = await settingsRef.get();
+      if (settingsSnap.exists) {
+        const settingsData = settingsSnap.data();
+        logoUrl = settingsData?.logo || settingsData?.icon;
+        soundUrl = settingsData?.notificationSound;
+      }
+    } catch (error) {
+      console.warn("[Send Notification to Admin] Ayarlar alınamadı:", error);
+    }
+
+    // Tüm admin ve coach kullanıcıları bul
+    const usersRef = adminDb.collection("users");
     const [adminSnapshot, coachSnapshot] = await Promise.all([
-      getDocs(adminQuery),
-      getDocs(coachQuery)
+      usersRef.where("role", "==", "admin").get(),
+      usersRef.where("role", "==", "coach").get(),
     ]);
 
+    // Duplicate önleme: Kullanıcı ID'lerini Set ile takip et
+    const processedUserIds = new Set<string>();
     const allTokens: string[] = [];
     let notifiedUsers = 0;
 
@@ -34,13 +78,21 @@ export async function POST(request: NextRequest) {
     for (const adminDoc of adminSnapshot.docs) {
       const adminData = adminDoc.data();
       const adminId = adminDoc.id;
-      const fcmTokens = adminData.fcmTokens || [];
+      
+      // Bu kullanıcı zaten işlendiyse atla (duplicate önleme)
+      if (processedUserIds.has(adminId)) {
+        console.log(`[Send Notification to Admin/Coach] ⚠️ Duplicate user skipped: ${adminId}`);
+        continue;
+      }
+      
+      processedUserIds.add(adminId);
+      const fcmTokens = adminData?.fcmTokens || [];
 
       console.log(`[Send Notification to Admin/Coach] Admin: ${adminId}, FCM Tokens: ${fcmTokens.length}`);
 
-      // Firestore'a bildirim kaydet
-      const bildirimlerRef = collection(db, "users", adminId, "bildirimler");
-      await addDoc(bildirimlerRef, {
+      // Firestore'a bildirim kaydet (Admin SDK)
+      const bildirimlerRef = adminDb.collection("users").doc(adminId).collection("bildirimler");
+      await bildirimlerRef.add({
         title,
         body,
         data: data || {},
@@ -60,13 +112,21 @@ export async function POST(request: NextRequest) {
     for (const coachDoc of coachSnapshot.docs) {
       const coachData = coachDoc.data();
       const coachId = coachDoc.id;
-      const fcmTokens = coachData.fcmTokens || [];
+      
+      // Bu kullanıcı zaten işlendiyse atla (duplicate önleme)
+      if (processedUserIds.has(coachId)) {
+        console.log(`[Send Notification to Admin/Coach] ⚠️ Duplicate user skipped: ${coachId}`);
+        continue;
+      }
+      
+      processedUserIds.add(coachId);
+      const fcmTokens = coachData?.fcmTokens || [];
 
       console.log(`[Send Notification to Admin/Coach] Coach: ${coachId}, FCM Tokens: ${fcmTokens.length}`);
 
-      // Firestore'a bildirim kaydet
-      const bildirimlerRef = collection(db, "users", coachId, "bildirimler");
-      await addDoc(bildirimlerRef, {
+      // Firestore'a bildirim kaydet (Admin SDK)
+      const bildirimlerRef = adminDb.collection("users").doc(coachId).collection("bildirimler");
+      await bildirimlerRef.add({
         title,
         body,
         data: data || {},
@@ -93,11 +153,29 @@ export async function POST(request: NextRequest) {
           fcmData[key] = String(data[key]);
         });
       }
+      
+      // Add unique message ID for each notification
+      const notificationType = data?.type || 'general';
+      const timestamp = Date.now();
+      
+      // Generate unique but trackable message ID
+      if (data?.supportId) {
+        fcmData.messageId = `${notificationType}-${data.supportId}-${timestamp}`;
+        fcmData.supportId = data.supportId;
+        if (data?.userId) {
+          fcmData.userId = data.userId;
+        }
+      } else if (data?.conversationId) {
+        fcmData.messageId = `${notificationType}-${data.conversationId}-${timestamp}`;
+        fcmData.conversationId = data.conversationId;
+      } else {
+        fcmData.messageId = `${notificationType}-${timestamp}`;
+      }
 
-      // Send push notification to all admin tokens
+      // Send push notification to all admin tokens with logo and sound
       try {
-        await sendPushNotification(allTokens, title, body, fcmData);
-        console.log(`[Send Notification to Admin] Push notification sent successfully`);
+        await sendPushNotification(allTokens, title, body, fcmData, logoUrl, soundUrl);
+        console.log(`[Send Notification to Admin] Push notification sent successfully with sound: ${soundUrl || 'default'}`);
       } catch (pushError) {
         console.error(`[Send Notification to Admin] Error sending push notification:`, pushError);
       }

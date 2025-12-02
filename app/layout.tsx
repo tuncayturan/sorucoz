@@ -1,9 +1,7 @@
 import "./globals.css";
-import { Inter } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
-import { Metadata } from "next";
-
-const inter = Inter({ subsets: ["latin"] });
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "SoruÇöz",
@@ -23,7 +21,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body className={inter.className}>
+      <body>
+        <ServiceWorkerRegistration />
         <AuthProvider>
           {children}
         </AuthProvider>

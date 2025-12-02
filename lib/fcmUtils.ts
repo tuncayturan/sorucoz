@@ -4,6 +4,8 @@ import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 /**
  * Service worker'ı kaydeder ve aktif olmasını bekler
+ * Not: ServiceWorkerRegistration component'i zaten otomatik kayıt yapar,
+ * bu fonksiyon sadece mevcut registration'ı kontrol eder
  */
 async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
@@ -16,12 +18,13 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
     
     if (!registration) {
       // Yeni service worker kaydet - Firebase'in varsayılan scope'unu kullan
+      console.log("[FCM] No existing service worker found, registering new one...");
       registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
         scope: "/firebase-cloud-messaging-push-scope",
       });
       console.log("[FCM] Service Worker registered:", registration);
     } else {
-      console.log("[FCM] Service Worker already registered:", registration);
+      console.log("[FCM] Service Worker already registered (using existing):", registration.scope);
     }
 
     // Service worker'ın aktif olmasını bekle

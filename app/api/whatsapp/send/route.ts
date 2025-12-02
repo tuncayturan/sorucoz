@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getAdminApp } from "@/lib/firebase/admin";
+import { getFirestore } from "firebase-admin/firestore";
 
 /**
  * WhatsApp mesajı gönderir (coach'a bildirim)
@@ -19,11 +19,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Kullanıcının WhatsApp numarasını al
-    const userRef = doc(db, "users", userId);
-    const userSnap = await getDoc(userRef);
+    // Firebase Admin Firestore instance
+    const adminApp = getAdminApp();
+    const adminDb = getFirestore(adminApp);
 
-    if (!userSnap.exists()) {
+    // Kullanıcının WhatsApp numarasını al
+    const userRef = adminDb.collection("users").doc(userId);
+    const userSnap = await userRef.get();
+
+    if (!userSnap.exists) {
       return NextResponse.json(
         { error: "Kullanıcı bulunamadı" },
         { status: 404 }
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest) {
     const userData = userSnap.data();
     
     // Coach'un WhatsApp numarasını al (kendi numarası - bildirim için)
-    const coachPhoneNumber = userData.whatsappPhoneNumber;
+    const coachPhoneNumber = userData?.whatsappPhoneNumber;
     
     if (!coachPhoneNumber) {
       return NextResponse.json(

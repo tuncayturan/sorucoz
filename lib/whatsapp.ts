@@ -330,7 +330,29 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         const { db } = await import("@/lib/firebase");
         const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
         
-        const messageData = {
+        // Contact bilgilerini al (profil fotoğrafı ve isim)
+        let profilePicUrl: string | null = null;
+        let contactName: string | null = null;
+        
+        try {
+          const contact = await message.getContact();
+          
+          // Profil fotoğrafını al
+          try {
+            profilePicUrl = await contact.getProfilePicUrl();
+            console.log(`📸 WhatsApp profil fotoğrafı alındı (From: ${message.from})`);
+          } catch (error) {
+            console.log(`⚠️ Profil fotoğrafı alınamadı (From: ${message.from}):`, error);
+          }
+          
+          // Contact adını al
+          contactName = contact.pushname || contact.name || null;
+          console.log(`📝 WhatsApp contact adı: ${contactName}`);
+        } catch (error) {
+          console.error("Contact bilgisi alınırken hata:", error);
+        }
+        
+        const messageData: any = {
           coachId: coachId,
           from: message.from,
           to: message.to || null,
@@ -341,6 +363,8 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
           mediaUrl: null as string | null,
           isFromCoach: false, // Gelen mesaj
           createdAt: serverTimestamp(),
+          profilePicUrl: profilePicUrl, // WhatsApp profil fotoğrafı
+          contactName: contactName, // WhatsApp contact adı
         };
 
         // Eğer medya varsa, medya URL'sini al
@@ -357,7 +381,7 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
 
         // Firestore'a kaydet
         await addDoc(collection(db, "whatsapp_messages"), messageData);
-        console.log(`📨 WhatsApp mesajı kaydedildi (Coach: ${coachId}, From: ${message.from})`);
+        console.log(`📨 WhatsApp mesajı kaydedildi (Coach: ${coachId}, From: ${message.from}, Contact: ${contactName})`);
       } catch (error) {
         console.error("WhatsApp mesaj kaydetme hatası:", error);
       }
@@ -373,7 +397,29 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         const { db } = await import("@/lib/firebase");
         const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
         
-        const messageData = {
+        // Alıcı contact bilgilerini al (profil fotoğrafı ve isim)
+        let profilePicUrl: string | null = null;
+        let contactName: string | null = null;
+        
+        try {
+          const contact = await message.getContact();
+          
+          // Profil fotoğrafını al
+          try {
+            profilePicUrl = await contact.getProfilePicUrl();
+            console.log(`📸 WhatsApp profil fotoğrafı alındı (To: ${message.to})`);
+          } catch (error) {
+            console.log(`⚠️ Profil fotoğrafı alınamadı (To: ${message.to}):`, error);
+          }
+          
+          // Contact adını al
+          contactName = contact.pushname || contact.name || null;
+          console.log(`📝 WhatsApp contact adı: ${contactName}`);
+        } catch (error) {
+          console.error("Contact bilgisi alınırken hata:", error);
+        }
+        
+        const messageData: any = {
           coachId: coachId,
           from: message.from || null,
           to: message.to || null,
@@ -384,6 +430,8 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
           mediaUrl: null as string | null,
           isFromCoach: true, // Coach'un gönderdiği mesaj
           createdAt: serverTimestamp(),
+          profilePicUrl: profilePicUrl, // WhatsApp profil fotoğrafı
+          contactName: contactName, // WhatsApp contact adı
         };
 
         // Eğer medya varsa, medya URL'sini al
@@ -400,7 +448,7 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
 
         // Firestore'a kaydet
         await addDoc(collection(db, "whatsapp_messages"), messageData);
-        console.log(`📤 WhatsApp mesajı kaydedildi (Coach: ${coachId}, To: ${message.to})`);
+        console.log(`📤 WhatsApp mesajı kaydedildi (Coach: ${coachId}, To: ${message.to}, Contact: ${contactName})`);
       } catch (error) {
         console.error("WhatsApp mesaj kaydetme hatası:", error);
       }

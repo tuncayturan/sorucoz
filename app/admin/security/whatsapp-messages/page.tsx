@@ -20,6 +20,8 @@ interface WhatsAppMessage {
   mediaUrl: string | null;
   isFromCoach: boolean;
   createdAt: Timestamp | null;
+  profilePicUrl: string | null; // WhatsApp profil fotoğrafı
+  contactName: string | null; // WhatsApp contact adı
 }
 
 export default function WhatsAppMessagesPage() {
@@ -161,24 +163,38 @@ export default function WhatsAppMessagesPage() {
               {messages.map((message) => (
                 <div key={message.id} className="p-6 hover:bg-gray-50 transition">
                   <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${
-                      message.isFromCoach 
-                        ? "bg-gradient-to-br from-blue-500 to-indigo-600" 
-                        : "bg-gradient-to-br from-green-500 to-emerald-600"
-                    }`}>
-                      {message.isFromCoach 
-                        ? "C" 
-                        : formatPhoneNumber(message.from || message.to || "").charAt(formatPhoneNumber(message.from || message.to || "").length - 1)
-                      }
-                    </div>
+                    {/* Profile Photo */}
+                    {message.profilePicUrl ? (
+                      <img
+                        src={message.profilePicUrl}
+                        alt="WhatsApp Profile"
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${
+                        message.isFromCoach 
+                          ? "bg-gradient-to-br from-blue-500 to-indigo-600" 
+                          : "bg-gradient-to-br from-green-500 to-emerald-600"
+                      }`}>
+                        {message.isFromCoach 
+                          ? "C" 
+                          : (message.contactName || formatPhoneNumber(message.from || message.to || "")).charAt(0).toUpperCase()
+                        }
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-semibold text-gray-900">
                           {message.isFromCoach 
                             ? "Coach (Gönderen)" 
-                            : formatPhoneNumber(message.from || message.to || "")
+                            : message.contactName || formatPhoneNumber(message.from || message.to || "")
                           }
                         </span>
+                        {!message.isFromCoach && message.contactName && (
+                          <span className="text-xs text-gray-500">
+                            ({formatPhoneNumber(message.from || message.to || "")})
+                          </span>
+                        )}
                         {message.isGroup && (
                           <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
                             Grup

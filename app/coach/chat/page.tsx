@@ -621,8 +621,18 @@ export default function CoachChatPage() {
         updatedAt: serverTimestamp(),
       });
 
-      try {
-        await fetch("/api/admin/send-notification", {
+      // THROTTLE: Ses mesajı için localStorage kontrolü
+      const voiceNow = Date.now();
+      const voiceThrottleKey = `last_notification_${selectedConversation.id}`;
+      const voiceLastNotificationStr = localStorage.getItem(voiceThrottleKey);
+      const voiceLastNotificationTime = voiceLastNotificationStr ? parseInt(voiceLastNotificationStr) : 0;
+      const voiceTimeSince = voiceNow - voiceLastNotificationTime;
+      
+      if (voiceTimeSince > 10000 || voiceLastNotificationTime === 0) {
+        console.log("[Coach Chat] 📤 ✅ SENDING voice notification...");
+        localStorage.setItem(voiceThrottleKey, voiceNow.toString());
+        
+        fetch("/api/admin/send-notification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -632,11 +642,15 @@ export default function CoachChatPage() {
             data: {
               type: "message",
               conversationId: selectedConversation.id,
+              userId: selectedConversation.studentId,
             },
           }),
-        });
-      } catch (error) {
-        console.error("Bildirim gönderilirken hata:", error);
+        })
+        .then(res => res.json())
+        .then(data => console.log("[Coach Chat] ✅ Voice notification response:", data))
+        .catch(error => console.error("[Coach Chat] ❌ Voice notification error:", error));
+      } else {
+        console.log(`[Coach Chat] 🚫🚫🚫 VOICE THROTTLED: ${voiceTimeSince}ms önce, ${10000 - voiceTimeSince}ms sonra`);
       }
 
       setTimeout(() => scrollToBottom(), 100);
@@ -663,6 +677,14 @@ export default function CoachChatPage() {
   const handleMesajYanit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!selectedConversation || (!replyText.trim() && selectedFiles.length === 0) || !user) return;
+
+    // Double submit prevention
+    if (replying) {
+      console.log("[Coach Chat] ⚠️ Already sending, preventing duplicate");
+      return;
+    }
+    
+    console.log("[Coach Chat] 🚀 Sending message...");
 
     try {
       setReplying(true);
@@ -706,23 +728,43 @@ export default function CoachChatPage() {
         updatedAt: serverTimestamp(),
       });
 
-      // Send notification to student
-      try {
-        await fetch("/api/admin/send-notification", {
+      // THROTTLE: localStorage ile kalıcı kontrol
+      const now = Date.now();
+      const throttleKey = `last_notification_${selectedConversation.id}`;
+      const lastNotificationStr = localStorage.getItem(throttleKey);
+      const lastNotificationTime = lastNotificationStr ? parseInt(lastNotificationStr) : 0;
+      const timeSince = now - lastNotificationTime;
+      
+      console.log(`[Coach Chat] 🔍 Throttle Check:`, {
+        conversationId: selectedConversation.id,
+        timeSince,
+        threshold: 10000,
+        willSend: timeSince > 10000 || lastNotificationTime === 0
+      });
+      
+      if (timeSince > 10000 || lastNotificationTime === 0) {
+        console.log("[Coach Chat] 📤 ✅ SENDING notification to student...");
+        localStorage.setItem(throttleKey, now.toString());
+        
+        fetch("/api/admin/send-notification", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: selectedConversation.studentId,
-            title: "Yeni Mesaj",
+            title: "Yeni Coach Mesajı",
             body: `${userData?.name || "Coach"}: ${replyText.trim() || "Dosya gönderildi"}`,
             data: {
               type: "message",
               conversationId: selectedConversation.id,
+              userId: selectedConversation.studentId,
             },
           }),
-        });
-      } catch (notifError) {
-        console.error("Bildirim gönderme hatası:", notifError);
+        })
+        .then(res => res.json())
+        .then(data => console.log("[Coach Chat] ✅ Notification response:", data))
+        .catch(notifError => console.error("[Coach Chat] ❌ Notification error:", notifError));
+      } else {
+        console.log(`[Coach Chat] 🚫🚫🚫 THROTTLED: ${timeSince}ms önce, ${10000 - timeSince}ms sonra tekrar`);
       }
 
       setReplyText("");
@@ -809,10 +851,32 @@ export default function CoachChatPage() {
   // URL'den conversation seçimi (bildirimden geldiğinde)
   useEffect(() => {
     const userId = searchParams.get('userId');
-    if (userId && conversations.length > 0) {
-      const conv = conversations.find(c => c.studentId === userId);
+    const conversationId = searchParams.get('conversationId');
+    
+    if (conversations.length > 0) {
+      let conv = null;
+      
+      // Önce conversationId ile ara
+      if (conversationId) {
+        conv = conversations.find(c => c.id === conversationId);
+      }
+      
+      // conversationId yoksa userId ile ara
+      if (!conv && userId) {
+        conv = conversations.find(c => c.studentId === userId);
+      }
+      
       if (conv) {
         setSelectedConversation(conv);
+        console.log('[Coach Chat] Bildirimden conversation açıldı:', conv.id);
+        
+        // URL'yi temizle
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('userId');
+          url.searchParams.delete('conversationId');
+          window.history.replaceState({}, '', url.pathname);
+        }
       }
     }
   }, [searchParams, conversations]);
@@ -959,7 +1023,7 @@ export default function CoachChatPage() {
                 {/* iOS Style Messages Container */}
                 <div 
                   ref={messagesContainerRefDesktop}
-                  className="flex-1 overflow-y-auto p-4 bg-[#f0f2f5]"
+                  className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-[#f0f2f5] min-w-0"
                   style={{
                     backgroundImage: "radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.03) 0%, transparent 50%)"
                   }}
@@ -996,7 +1060,7 @@ export default function CoachChatPage() {
                           ) : (
                             <div className="w-8 flex-shrink-0" />
                           )}
-                          <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'mr-auto' : 'max-w-[75%]'}`}>
+                          <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'mr-auto' : 'max-w-[85%] sm:max-w-[80%] md:max-w-[75%]'}`}>
                             {showAvatar && (
                               <span className="text-[11px] font-medium mb-1 text-gray-500 px-1">
                                 {selectedConversation.studentName}
@@ -1005,7 +1069,7 @@ export default function CoachChatPage() {
                             <div className={`rounded-2xl overflow-hidden ${
                               !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
                                 ? 'p-0 bg-transparent shadow-none'
-                                : 'bg-white rounded-bl-md shadow-sm px-3.5 py-2'
+                                : 'bg-white rounded-bl-md shadow-sm px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-3.5 md:py-2'
                             }`}
                             onContextMenu={(e) => {
                               if (msg.senderId === user?.uid) {
@@ -1112,7 +1176,7 @@ export default function CoachChatPage() {
                                   ) : (
                                     <>
                                       {msg.text && (
-                                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
+                                        <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                           {msg.text}
                                           {msg.edited && (
                                             <span className="text-xs opacity-70 ml-1 italic">(düzenlendi)</span>
@@ -1165,7 +1229,7 @@ export default function CoachChatPage() {
                           ) : (
                             <div className="w-8 flex-shrink-0" />
                           )}
-                          <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[75%] items-end'}`}>
+                          <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[90%] sm:max-w-[85%] md:max-w-[75%] items-end'}`}>
                             {showAvatar && (
                               <span className="text-[11px] font-medium mb-1 text-green-600 px-1">
                                 {msg.senderName || "Coach"}
@@ -1174,7 +1238,7 @@ export default function CoachChatPage() {
                             <div className={`rounded-2xl overflow-hidden ${
                               !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
                                 ? 'p-0 bg-transparent shadow-none'
-                                : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-3.5 py-2'
+                                : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-3.5 md:py-2'
                             }`}
                             onContextMenu={(e) => {
                               if (msg.senderId === user?.uid) {
@@ -1276,7 +1340,7 @@ export default function CoachChatPage() {
                                   ) : (
                                     <>
                                       {msg.text && (
-                                        <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                                        <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                           {msg.text}
                                           {msg.edited && (
                                             <span className="text-xs opacity-75 ml-1 italic">(düzenlendi)</span>
@@ -1565,7 +1629,7 @@ export default function CoachChatPage() {
               {/* Mobile Messages Container */}
               <div 
                 ref={messagesContainerRef}
-                className="flex-1 overflow-y-auto p-4 bg-[#f0f2f5]"
+                className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-[#f0f2f5] min-w-0"
               >
                 {conversationMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
@@ -1598,11 +1662,11 @@ export default function CoachChatPage() {
                         ) : (
                           <div className="w-8 flex-shrink-0" />
                         )}
-                        <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'mr-auto' : 'max-w-[75%]'}`}>
+                        <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'mr-auto' : 'max-w-[85%] sm:max-w-[80%] md:max-w-[75%]'}`}>
                           <div className={`rounded-2xl overflow-hidden ${
                             !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
                               ? 'p-0 bg-transparent shadow-none'
-                              : 'bg-white rounded-bl-md shadow-sm px-4 py-2.5'
+                              : 'bg-white rounded-bl-md shadow-sm px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-4 md:py-2.5'
                           }`}
                           onContextMenu={(e) => {
                             if (msg.senderId === user?.uid && !msg.audioUrl) {
@@ -1670,7 +1734,7 @@ export default function CoachChatPage() {
                             ) : (
                               <>
                                 {msg.text && (
-                                  <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
+                                  <p className="text-[15px] text-gray-800 leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                     {msg.text}
                                   </p>
                                 )}
@@ -1709,7 +1773,7 @@ export default function CoachChatPage() {
                         ) : (
                           <div className="w-8 flex-shrink-0" />
                         )}
-                        <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[75%] items-end'}`}>
+                        <div className={`flex flex-col ${!msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0 ? 'ml-auto items-end' : 'max-w-[90%] sm:max-w-[85%] md:max-w-[75%] items-end'}`}>
                           {showAvatar && (
                             <span className="text-[11px] font-medium mb-1 text-green-600 px-1">
                               {msg.senderName || "Coach"}
@@ -1718,7 +1782,7 @@ export default function CoachChatPage() {
                           <div className={`rounded-2xl overflow-hidden ${
                             !msg.text && !msg.audioUrl && msg.attachments && msg.attachments.length > 0
                               ? 'p-0 bg-transparent shadow-none'
-                              : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-4 py-2.5'
+                              : 'bg-gradient-to-br from-green-400 via-green-500 to-emerald-500 text-white rounded-br-md shadow-[0_2px_8px_rgba(34,197,94,0.25)] px-2 py-1.5 sm:px-2.5 sm:py-2 md:px-4 md:py-2.5'
                           }`}
                           onContextMenu={(e) => {
                             if (msg.senderId === user?.uid && !msg.audioUrl) {
@@ -1788,7 +1852,7 @@ export default function CoachChatPage() {
                             ) : (
                               <>
                                 {msg.text && (
-                                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-all min-w-0">
                                     {msg.text}
                                   </p>
                                 )}

@@ -77,7 +77,9 @@ export async function sendPushNotification(
   tokens: string[],
   title: string,
   body: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
+  icon?: string,
+  sound?: string
 ): Promise<void> {
   try {
     if (tokens.length === 0) {
@@ -85,23 +87,79 @@ export async function sendPushNotification(
       return;
     }
 
-    console.log(`[Push Notification] Preparing to send to ${tokens.length} token(s)`);
-    console.log(`[Push Notification] Title: ${title}, Body: ${body}`);
+    // Token deduplication - remove duplicate tokens
+    const uniqueTokens = [...new Set(tokens)];
+    
+    if (uniqueTokens.length !== tokens.length) {
+      console.log(`[Push Notification] ⚠️ Removed ${tokens.length - uniqueTokens.length} duplicate token(s)`);
+    }
+
+    console.log(`[Push Notification] Preparing to send to ${uniqueTokens.length} unique token(s)`);
+    console.log(`[Push Notification] Title: ${title}, Body: ${body}, Icon: ${icon || 'default'}, Sound: ${sound || 'default'}`);
     
     const adminMessaging = getAdminMessaging();
 
     // Split tokens into batches of 500 (FCM limit)
     const batchSize = 500;
-    for (let i = 0; i < tokens.length; i += batchSize) {
-      const batch = tokens.slice(i, i + batchSize);
+    for (let i = 0; i < uniqueTokens.length; i += batchSize) {
+      const batch = uniqueTokens.slice(i, i + batchSize);
 
-      const message = {
+      // Prepare data payload - icon ve sound data'da olmalı, notification'da değil
+      const messageData: Record<string, string> = { ...(data || {}) };
+      if (icon) {
+        messageData.icon = icon;
+      }
+      if (sound) {
+        messageData.sound = sound;
+      }
+
+      const message: any = {
         notification: {
           title,
           body,
         },
-        data: data || {},
+        data: messageData,
         tokens: batch,
+        // Android specific configuration
+        android: {
+          notification: {
+            sound: sound || 'default',
+            channelId: 'default',
+            imageUrl: icon, // Android için image
+          },
+        },
+        // Apple specific configuration
+        apns: {
+          payload: {
+            aps: {
+              sound: sound || 'default',
+              badge: 1,
+            },
+          },
+          fcm_options: icon ? {
+            image: icon, // iOS için image
+          } : undefined,
+        },
+        // Web push configuration
+        webpush: icon ? {
+          notification: {
+            icon: icon,
+            badge: icon,
+            vibrate: [200, 100, 200],
+            requireInteraction: false,
+          },
+          fcm_options: {
+            link: '/',
+          },
+        } : {
+          notification: {
+            vibrate: [200, 100, 200],
+            requireInteraction: false,
+          },
+          fcm_options: {
+            link: '/',
+          },
+        },
       };
 
       try {

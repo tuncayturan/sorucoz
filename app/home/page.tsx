@@ -13,6 +13,7 @@ import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, can
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 
 const SUBJECT_COLORS: { [key: string]: string } = {
   "Matematik": "from-blue-500 to-indigo-600",
@@ -120,6 +121,34 @@ export default function HomePage() {
       }
     }
   }, [user, userData, authLoading, userDataLoading, router]);
+
+  // Giriş yapan öğrenci için bildirim izni yoksa iste
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!user || !userData || userData.role !== "student") return;
+
+    // Kullanıcı bildirimleri tamamen kapattıysa zorlamayalım
+    if (userData.notificationsEnabled === false) return;
+
+    if (!("Notification" in window)) return;
+
+    // Zaten izin verdiyse tekrar sorma
+    if (Notification.permission === "granted") return;
+
+    // Kullanıcı daha önce 'block' ettiyse, tarayıcı ayarlarından açması gerekir
+    if (Notification.permission === "denied") return;
+
+    // 'default' durumunda, nazikçe izin iste
+    requestNotificationPermission()
+      .then((token) => {
+        if (token) {
+          return saveFCMTokenToUser(user.uid, token);
+        }
+      })
+      .catch((err) => {
+        console.error("[Home] Bildirim izni alınırken hata:", err);
+      });
+  }, [user, userData]);
 
   // Scroll to top button visibility
   useEffect(() => {
