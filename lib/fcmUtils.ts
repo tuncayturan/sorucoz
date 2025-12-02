@@ -123,17 +123,23 @@ export async function getFCMToken(): Promise<string | null> {
 
 /**
  * Kullanıcının FCM token'ını Firestore'a kaydeder
- * Token'ları array olarak saklar (bir kullanıcının birden fazla cihazı olabilir)
+ * SADECE SON TOKEN'I TUTAR - Eski token'lar silinir
+ * Bu sayede duplicate notification sorunu ortadan kalkar
  */
 export async function saveFCMTokenToUser(userId: string, token: string): Promise<void> {
   try {
     console.log("[FCM] Saving token to Firestore for user:", userId);
     const userRef = doc(db, "users", userId);
+    
+    // SADECE son token'ı tut - eski token'ları sil
+    // Bu duplicate notification sorununu çözer
     await updateDoc(userRef, {
-      fcmTokens: arrayUnion(token),
+      fcmTokens: [token], // Array'e sadece yeni token'ı koy
       lastTokenUpdate: new Date(),
     });
-    console.log("[FCM] Token saved successfully to Firestore");
+    
+    console.log("[FCM] ✅ Token saved successfully (old tokens removed)");
+    console.log("[FCM] Token:", token.substring(0, 30) + "...");
   } catch (error) {
     console.error("[FCM] Error saving FCM token to Firestore:", error);
     throw error;
