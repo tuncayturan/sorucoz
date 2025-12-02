@@ -29,7 +29,6 @@ import Image from "next/image";
 import StudentFooter from "@/components/StudentFooter";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 import EmojiPicker from "@/components/EmojiPicker";
-import EmojiPicker from "@/components/ui/EmojiPicker";
 import VoiceMessage from "@/components/ui/VoiceMessage";
 import MessageContextMenu from "@/components/ui/MessageContextMenu";
 
