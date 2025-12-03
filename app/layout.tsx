@@ -2,6 +2,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import FCMTokenManager from "@/components/FCMTokenManager";
+import AddToHomeScreenPrompt from "@/components/AddToHomeScreenPrompt";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           {children}
           <FCMTokenManager />
+          <AddToHomeScreenPrompt />
         </AuthProvider>
       </body>
     </html>
