@@ -49,24 +49,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // ✅ MOBIL TOKEN FIX: Kullanıcı giriş yaptığında token'ı otomatik al
             if (u) {
-              console.log("[AuthContext] User authenticated, requesting FCM token...");
+              console.log("[AuthContext] 🔐 User authenticated:", u.email);
+              console.log("[AuthContext] 📱 Starting FCM token process...");
               
-              // Token alma işlemini arka planda başlat (auth flow'u bloklamaz)
-              setTimeout(async () => {
-                try {
-                  const token = await requestNotificationPermission();
-                  if (token) {
-                    console.log("[AuthContext] ✅ FCM token received, saving...");
-                    await saveFCMTokenToUser(u.uid, token);
-                    console.log("[AuthContext] ✅ Token saved successfully");
-                  } else {
-                    console.warn("[AuthContext] ⚠️ No FCM token received (permission denied or not supported)");
+              // Service worker'ın hazır olmasını garantilemek için bekleme ve retry mekanizması
+              // Mobil cihazlar için daha uzun süre ve daha fazla deneme
+              const waitForServiceWorkerAndGetToken = async (maxRetries = 8, delayMs = 3000) => {
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                  try {
+                    console.log(`[AuthContext] 🔄 Attempt ${attempt}/${maxRetries} - Checking service worker...`);
+                    
+                    // Service worker kontrolü
+                    if ('serviceWorker' in navigator) {
+                      const registration = await navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope');
+                      
+                      if (registration && registration.active) {
+                        console.log("[AuthContext] ✅ Service worker is active");
+                        
+                        // Token alma işlemi
+                        console.log("[AuthContext] 📞 Requesting notification permission...");
+                        const token = await requestNotificationPermission();
+                        
+                        if (token) {
+                          console.log("[AuthContext] ✅ FCM token received!");
+                          console.log("[AuthContext] 💾 Saving token to Firestore...");
+                          await saveFCMTokenToUser(u.uid, token);
+                          console.log("[AuthContext] ✅ Token saved successfully to Firestore!");
+                          return; // Başarılı, döngüyü kır
+                        } else {
+                          console.warn(`[AuthContext] ⚠️ No token received on attempt ${attempt}`);
+                          console.warn("[AuthContext] Possible reasons: permission denied, VAPID key missing, or network error");
+                        }
+                      } else {
+                        console.warn(`[AuthContext] ⏳ Service worker not ready yet (attempt ${attempt}/${maxRetries})`);
+                      }
+                    } else {
+                      console.error("[AuthContext] ❌ Service worker not supported in this browser");
+                      return; // Service worker desteklenmiyor, çık
+                    }
+                    
+                    // Son denemede değilse bekle
+                    if (attempt < maxRetries) {
+                      console.log(`[AuthContext] ⏱️ Waiting ${delayMs}ms before retry...`);
+                      await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
+                  } catch (error) {
+                    console.error(`[AuthContext] ❌ Error on attempt ${attempt}:`, error);
+                    
+                    // Son denemede değilse bekle ve tekrar dene
+                    if (attempt < maxRetries) {
+                      await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
                   }
-                } catch (error) {
-                  console.error("[AuthContext] ❌ Error in FCM token process:", error);
-                  // Token hatası uygulamayı durdurmamalı
                 }
-              }, 1000); // 1 saniye bekle - service worker'ın hazır olmasını garantile
+                
+                console.error("[AuthContext] ❌ Failed to get FCM token after all retries");
+                console.error("[AuthContext] Please check:");
+                console.error("  1. Notification permission granted?");
+                console.error("  2. VAPID key set in environment variables?");
+                console.error("  3. Service worker registered correctly?");
+                console.error("  4. Network connection stable?");
+              };
+              
+              // Arka planda token alma işlemini başlat
+              waitForServiceWorkerAndGetToken().catch(err => {
+                console.error("[AuthContext] ❌ Fatal error in token process:", err);
+              });
             }
           });
         } else {

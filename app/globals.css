@@ -43,6 +43,21 @@ body {
     animation: floatUp 0.9s ease-out;
   }
 
+  /* Slide up animation (for notifications) */
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
   /* Button glow */
   .btn-glow {
     transition: box-shadow 0.25s ease;
