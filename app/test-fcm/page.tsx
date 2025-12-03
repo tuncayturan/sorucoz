@@ -157,13 +157,64 @@ export default function TestFCMPage() {
   const checkEnvironment = () => {
     addLog("🔍 Ortam kontrolleri yapılıyor...");
     addLog(`📱 User Agent: ${navigator.userAgent}`);
+    
+    // iOS version detection
+    const ua = navigator.userAgent;
+    const iOSMatch = ua.match(/OS (\d+)_(\d+)_?(\d+)?/);
+    if (iOSMatch) {
+      const iOSVersion = `${iOSMatch[1]}.${iOSMatch[2]}${iOSMatch[3] ? '.' + iOSMatch[3] : ''}`;
+      addLog(`🍎 iOS Version: ${iOSVersion}`);
+      
+      const majorVersion = parseInt(iOSMatch[1]);
+      const minorVersion = parseInt(iOSMatch[2]);
+      
+      if (majorVersion < 16 || (majorVersion === 16 && minorVersion < 4)) {
+        addLog(`❌ UYARI: iOS ${iOSVersion} - Web Push için iOS 16.4+ gerekli!`);
+        addLog(`⚠️ Lütfen iOS'unuzu güncelleyin: Ayarlar > Genel > Yazılım Güncelleme`);
+      } else {
+        addLog(`✅ iOS ${iOSVersion} - Web Push destekleniyor`);
+      }
+    }
+    
+    // Browser detection
+    const isIOSSafari = /iPhone|iPad|iPod/i.test(ua) && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+    const isIOSChrome = /iPhone|iPad|iPod/i.test(ua) && /CriOS/i.test(ua);
+    
+    if (isIOSSafari) {
+      addLog(`🌐 Tarayıcı: Safari (iOS)`);
+    } else if (isIOSChrome) {
+      addLog(`🌐 Tarayıcı: Chrome (iOS) - ❌ Web Push desteklenmiyor`);
+    } else {
+      addLog(`🌐 Tarayıcı: ${ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' : ua.includes('Safari') ? 'Safari' : 'Bilinmiyor'}`);
+    }
+    
+    // Private mode detection (iOS Safari)
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+      addLog(`🔓 Tarayıcı Modu: Normal`);
+    } catch (e) {
+      addLog(`🔒 Tarayıcı Modu: Özel/Gizli - ❌ Bildirimler çalışmaz!`);
+      addLog(`⚠️ Lütfen normal modda açın`);
+    }
+    
+    // PWA detection
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+    addLog(`📱 PWA Modu: ${isPWA ? 'Evet (Ana ekrandan açıldı)' : 'Hayır (Tarayıcıdan açıldı)'}`);
+    
     addLog(`🌐 Online: ${navigator.onLine ? 'Evet' : 'Hayır'}`);
-    addLog(`🔔 Notification API: ${('Notification' in window) ? 'Var' : 'Yok'}`);
-    addLog(`👷 Service Worker: ${('serviceWorker' in navigator) ? 'Var' : 'Yok'}`);
-    addLog(`🔒 HTTPS: ${window.location.protocol === 'https:' ? 'Evet' : 'Hayır (gerekli!)'}`);
+    addLog(`🔔 Notification API: ${('Notification' in window) ? 'Var ✅' : 'Yok ❌'}`);
+    addLog(`👷 Service Worker: ${('serviceWorker' in navigator) ? 'Var ✅' : 'Yok ❌'}`);
+    addLog(`🔒 HTTPS: ${window.location.protocol === 'https:' ? 'Evet ✅' : 'Hayır ❌ (gerekli!)'}`);
+    addLog(`🔐 Secure Context: ${window.isSecureContext ? 'Evet ✅' : 'Hayır ❌'}`);
     
     if ('Notification' in window) {
       addLog(`📋 Bildirim İzni: ${Notification.permission}`);
+    } else {
+      addLog(`❌ Notification API bulunamadı! Olası sebepler:`);
+      addLog(`  1. iOS versiyonu 16.4'ten eski`);
+      addLog(`  2. Özel/Gizli mod kullanılıyor`);
+      addLog(`  3. Safari dışı tarayıcı (iOS'ta)`);
     }
   };
 
