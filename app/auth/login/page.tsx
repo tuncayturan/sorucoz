@@ -12,6 +12,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 import { createTrialData } from "@/lib/subscriptionUtils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -138,8 +139,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen w-full flex justify-center items-center bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] px-6 overflow-hidden relative">
-      {/* Decorative gradient circles */}
+    <>
+      <IOSInstallPrompt />
+      <div className="h-screen w-full flex justify-center items-center bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] px-6 overflow-hidden relative">
+        {/* Decorative gradient circles */}
       <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl"></div>
       <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
 
@@ -257,5 +260,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

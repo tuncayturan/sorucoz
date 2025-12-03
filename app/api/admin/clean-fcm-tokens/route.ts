@@ -4,7 +4,74 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
 /**
- * Kullanıcının geçersiz FCM token'larını temizler
+ * TÜM kullanıcıların FCM token'larını agresif temizle
+ * Her kullanıcı için sadece EN SON 1 token bırak
+ * GET /api/admin/clean-fcm-tokens
+ */
+export async function GET() {
+  try {
+    console.log("[Clean ALL Tokens] ========== STARTING AGGRESSIVE CLEANUP ==========");
+    const adminApp = getAdminApp();
+    const adminDb = getFirestore(adminApp);
+
+    // Tüm kullanıcıları al
+    const usersSnapshot = await adminDb.collection("users").get();
+    console.log(`[Clean ALL Tokens] Found ${usersSnapshot.size} users`);
+
+    let totalCleaned = 0;
+    let usersWithMultipleTokens = 0;
+
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userData = userDoc.data();
+        const fcmTokens = userData.fcmTokens || [];
+
+        if (!Array.isArray(fcmTokens) || fcmTokens.length === 0) {
+          continue;
+        }
+
+        // Eğer birden fazla token varsa, sadece son token'ı tut
+        if (fcmTokens.length > 1) {
+          const lastToken = fcmTokens[fcmTokens.length - 1];
+          
+          console.log(`[Clean ALL Tokens] User ${userDoc.id}: ${fcmTokens.length} tokens → 1 token`);
+          
+          await userDoc.ref.update({
+            fcmTokens: [lastToken], // Sadece son token
+            lastTokenCleanup: new Date(),
+          });
+
+          totalCleaned += (fcmTokens.length - 1);
+          usersWithMultipleTokens++;
+        }
+      } catch (error) {
+        console.error(`[Clean ALL Tokens] Error with user ${userDoc.id}:`, error);
+      }
+    }
+
+    const summary = {
+      success: true,
+      message: "AGGRESSIVE cleanup completed",
+      usersChecked: usersSnapshot.size,
+      usersWithMultipleTokens,
+      totalTokensCleaned: totalCleaned,
+    };
+
+    console.log("[Clean ALL Tokens] ========== SUMMARY ==========");
+    console.log(JSON.stringify(summary, null, 2));
+
+    return NextResponse.json(summary);
+  } catch (error: any) {
+    console.error("[Clean ALL Tokens] FATAL ERROR:", error);
+    return NextResponse.json(
+      { error: error.message || "Cleanup failed" },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Tek kullanıcının geçersiz FCM token'larını temizler
  * POST /api/admin/clean-fcm-tokens
  * Body: { userId: string }
  */
