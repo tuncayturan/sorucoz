@@ -82,6 +82,30 @@ export default function FCMTokenManager() {
       setLoading(true);
       console.log("[FCMTokenManager] 📱 User clicked - requesting permission...");
       console.log("[FCMTokenManager] 👤 User:", user.email);
+      console.log("[FCMTokenManager] 🌐 Environment:", {
+        hasNotification: 'Notification' in window,
+        hasServiceWorker: 'serviceWorker' in navigator,
+        notificationPermission: 'Notification' in window ? Notification.permission : 'N/A',
+        userAgent: navigator.userAgent.substring(0, 100)
+      });
+      
+      // İlk kontrol: Notification API var mı?
+      if (!('Notification' in window)) {
+        console.error("[FCMTokenManager] ❌ Notification API not available");
+        alert("❌ Bu tarayıcıda bildirimler desteklenmiyor.\n\niOS kullanıyorsanız Safari tarayıcısını kullanın.");
+        setLoading(false);
+        return;
+      }
+      
+      // İkinci kontrol: Service Worker var mı?
+      if (!('serviceWorker' in navigator)) {
+        console.error("[FCMTokenManager] ❌ Service Worker not supported");
+        alert("❌ Service Worker desteklenmiyor.\n\nLütfen tarayıcınızı güncelleyin.");
+        setLoading(false);
+        return;
+      }
+      
+      console.log("[FCMTokenManager] ✅ All APIs available, requesting permission...");
       
       // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır
       const token = await requestNotificationPermission();
@@ -97,20 +121,35 @@ export default function FCMTokenManager() {
         setShow(false);
         
         // Başarı mesajı
-        alert("✅ Bildirimler aktif edildi! Artık mesaj ve soru yanıtlarını anında alacaksınız.");
+        alert("✅ Bildirimler aktif edildi!\n\nArtık mesaj ve soru yanıtlarını anında alacaksınız.");
       } else {
-        console.warn("[FCMTokenManager] ⚠️ Token could not be retrieved");
-        console.warn("[FCMTokenManager] Possible reasons:");
-        console.warn("  - User denied permission");
-        console.warn("  - Service worker not ready");
-        console.warn("  - VAPID key missing/invalid");
+        console.error("[FCMTokenManager] ❌ Token is null");
         
-        alert("Bildirim izni alınamadı. Lütfen:\n1. Tarayıcı bildirim iznini kontrol edin\n2. Sayfayı yenileyin\n3. Tekrar deneyin");
+        // Detaylı hata debug
+        const debugInfo = {
+          notificationPermission: Notification.permission,
+          swReady: 'serviceWorker' in navigator ? await navigator.serviceWorker.ready.then(() => true).catch(() => false) : false
+        };
+        
+        console.error("[FCMTokenManager] Debug info:", debugInfo);
+        
+        alert(`❌ Token alınamadı\n\nHata detayları:\n- İzin durumu: ${debugInfo.notificationPermission}\n- Service Worker: ${debugInfo.swReady ? 'Hazır' : 'Hazır değil'}\n\nLütfen sayfayı yenileyin ve tekrar deneyin.`);
       }
     } catch (error: any) {
       console.error("[FCMTokenManager] ❌ Error:", error);
-      console.error("[FCMTokenManager] Error details:", error.message || error);
-      alert("Bir hata oluştu: " + (error.message || "Bilinmeyen hata"));
+      console.error("[FCMTokenManager] Error stack:", error.stack);
+      
+      // Hata mesajını daha detaylı göster
+      let errorMsg = "Bir hata oluştu:\n\n";
+      errorMsg += error.message || error.toString();
+      
+      if (error.code) {
+        errorMsg += `\n\nHata kodu: ${error.code}`;
+      }
+      
+      errorMsg += "\n\nLütfen:\n1. Sayfayı yenileyin\n2. Tarayıcı ayarlarından bildirimlere izin verin\n3. Tekrar deneyin";
+      
+      alert(errorMsg);
     } finally {
       setLoading(false);
     }
