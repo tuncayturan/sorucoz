@@ -35,6 +35,31 @@ export default function DebugNotificationsPage() {
     // Check notification permission
     if ("Notification" in window) {
       setPermission(Notification.permission);
+      
+      // Eğer permission granted ise otomatik token al
+      if (Notification.permission === "granted") {
+        console.log("[Debug] Permission granted, getting token...");
+        requestNotificationPermission().then((token) => {
+          console.log("[Debug] Token received:", token ? "YES" : "NO");
+          setFcmToken(token);
+          
+          // Token alındıysa Firestore'a kaydet
+          if (token && user) {
+            saveFCMTokenToUser(user.uid, token)
+              .then(() => {
+                console.log("[Debug] Token saved to Firestore");
+                // Refresh Firestore tokens
+                return getDoc(doc(db, "users", user.uid));
+              })
+              .then((snap) => {
+                if (snap?.exists()) {
+                  setFirestoreTokens(snap.data().fcmTokens || []);
+                }
+              })
+              .catch(err => console.error("[Debug] Error saving token:", err));
+          }
+        });
+      }
     }
 
     // Check service worker
@@ -42,6 +67,7 @@ export default function DebugNotificationsPage() {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         if (registrations.length > 0) {
           setServiceWorkerStatus(`Registered: ${registrations.length} worker(s)`);
+          console.log("[Debug] Service Workers:", registrations.map(r => r.scope));
         } else {
           setServiceWorkerStatus("Not registered");
         }
@@ -49,11 +75,6 @@ export default function DebugNotificationsPage() {
     } else {
       setServiceWorkerStatus("Not supported");
     }
-
-    // Get current FCM token
-    requestNotificationPermission().then((token) => {
-      setFcmToken(token);
-    });
 
     // Get tokens from Firestore
     if (user) {
@@ -68,11 +89,37 @@ export default function DebugNotificationsPage() {
 
   const requestPermission = async () => {
     if ("Notification" in window) {
+      console.log("[Debug] Requesting permission...");
       const result = await Notification.requestPermission();
+      console.log("[Debug] Permission result:", result);
       setPermission(result);
+      
       if (result === "granted") {
+        console.log("[Debug] Permission granted! Getting token...");
         const token = await requestNotificationPermission();
+        console.log("[Debug] Token received:", token ? "YES" : "NO");
         setFcmToken(token);
+        
+        // Otomatik Firestore'a kaydet
+        if (token && user) {
+          console.log("[Debug] Saving token to Firestore...");
+          try {
+            await saveFCMTokenToUser(user.uid, token);
+            console.log("[Debug] ✅ Token saved!");
+            alert("✅ FCM Token alındı ve kaydedildi!");
+            
+            // Refresh Firestore tokens
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()) {
+              setFirestoreTokens(snap.data().fcmTokens || []);
+            }
+          } catch (error) {
+            console.error("[Debug] Error saving token:", error);
+            alert("❌ Token kaydedilirken hata: " + (error as Error).message);
+          }
+        }
+      } else {
+        alert("❌ Bildirim izni reddedildi. Tarayıcı ayarlarından manuel açmalısınız.");
       }
     }
   };
