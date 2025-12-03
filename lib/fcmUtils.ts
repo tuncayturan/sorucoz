@@ -263,9 +263,6 @@ export async function saveFCMTokenToUser(userId: string, token: string): Promise
   }
 }
 
-// Import getDoc for reading current tokens
-import { getDoc } from "firebase/firestore";
-
 /**
  * Kullanıcının eski FCM token'ını Firestore'dan kaldırır
  */
