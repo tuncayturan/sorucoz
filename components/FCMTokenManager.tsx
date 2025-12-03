@@ -15,6 +15,23 @@ export default function FCMTokenManager() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
 
   useEffect(() => {
+    // iOS Chrome/Firefox tespit - Notification API desteklemiyor
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isIOSChrome = isIOS && /CriOS/i.test(navigator.userAgent);
+    const isIOSFirefox = isIOS && /FxiOS/i.test(navigator.userAgent);
+    const isIOSEdge = isIOS && /EdgiOS/i.test(navigator.userAgent);
+    const isIOSNonSafari = isIOSChrome || isIOSFirefox || isIOSEdge;
+    
+    // iOS'ta Safari olmayan tarayıcıda Notification API yok
+    if (isIOSNonSafari) {
+      console.warn("[FCMTokenManager] ⚠️ iOS non-Safari browser detected - Notifications not supported");
+      // iOS'ta Safari dışı tarayıcı uyarısı göster
+      if (user) {
+        setShow(true);
+      }
+      return;
+    }
+    
     // Bildirim iznini kontrol et
     if (typeof window !== "undefined" && "Notification" in window) {
       setPermission(Notification.permission);
@@ -32,6 +49,10 @@ export default function FCMTokenManager() {
           setTimeout(() => setShow(true), 2000);
         }
       }
+    } else if (user) {
+      // Notification API yok - muhtemelen iOS non-Safari
+      console.warn("[FCMTokenManager] ⚠️ Notification API not available");
+      setShow(true);
     }
   }, [user]);
 
@@ -88,6 +109,48 @@ export default function FCMTokenManager() {
   // İzin verilmişse veya kullanıcı yoksa gösterme
   if (!show || !user || permission === "granted") {
     return null;
+  }
+
+  // iOS non-Safari kontrolü
+  const isIOS = typeof window !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isIOSChrome = isIOS && /CriOS/i.test(navigator.userAgent);
+  const isIOSFirefox = isIOS && /FxiOS/i.test(navigator.userAgent);
+  const isIOSEdge = isIOS && /EdgiOS/i.test(navigator.userAgent);
+  const isIOSNonSafari = isIOSChrome || isIOSFirefox || isIOSEdge;
+  const notificationNotSupported = typeof window !== "undefined" && !("Notification" in window);
+
+  // iOS'ta Safari olmayan tarayıcı uyarısı
+  if (isIOSNonSafari || (isIOS && notificationNotSupported)) {
+    return (
+      <div className="fixed bottom-20 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-slide-up">
+        <div className="bg-orange-500 text-white rounded-lg shadow-2xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="text-3xl">🍎</div>
+            <div className="flex-1">
+              <p className="font-bold text-base mb-1">
+                iOS'ta Safari Kullanın
+              </p>
+              <p className="text-sm opacity-90 mb-2">
+                iPhone'da bildirimler sadece <strong>Safari tarayıcısında</strong> çalışır.
+                {isIOSChrome && " Chrome'da "}
+                {isIOSFirefox && " Firefox'ta "}
+                {isIOSEdge && " Edge'de "}
+                web bildirimleri desteklenmez.
+              </p>
+              <p className="text-xs opacity-80 mb-3">
+                💡 Safari'yi açın ve giriş yapın, bildirimleri aktif edin.
+              </p>
+              <button
+                onClick={() => setShow(false)}
+                className="w-full bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition"
+              >
+                Anladım
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // İzin reddedilmişse farklı bir mesaj
