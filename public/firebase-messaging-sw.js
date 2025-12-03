@@ -285,27 +285,49 @@ messaging.onBackgroundMessage(async (payload) => {
   
   console.log('[firebase-messaging-sw.js] 🏷️ Notification Tag:', notificationTag);
   
-  // ========== AGGRESSIVE NOTIFICATION CLEANUP ==========
-  // Tüm eski bildirimleri kapat, sadece yeni mesaj göster
-  console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing ALL old notifications...');
+  // ========== ULTRA AGGRESSIVE NOTIFICATION CLEANUP ==========
+  // Tüm eski bildirimleri kapat - SYNC ve ASYNC
+  console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing ALL old notifications (ULTRA AGGRESSIVE)...');
   
+  let closedCount = 0;
   try {
-    // Tüm mevcut bildirimleri al
+    // Tüm mevcut bildirimleri al (tag filter YOK - hepsini al!)
     const existingNotifications = await self.registration.getNotifications();
-    console.log(`[firebase-messaging-sw.js] Found ${existingNotifications.length} existing notification(s)`);
+    console.log(`[firebase-messaging-sw.js] 📋 Found ${existingNotifications.length} existing notification(s)`);
     
-    // HEPSİNİ kapat (biriken bildirimleri önle)
-    // Sadece yeni mesaj bildirimi gösterilecek
-    existingNotifications.forEach((notification, index) => {
-      console.log(`[firebase-messaging-sw.js] 🗑️ Closing notification #${index + 1}: ${notification.title}`);
-      notification.close();
-    });
-    
-    console.log(`[firebase-messaging-sw.js] ✅ Closed ${existingNotifications.length} old notification(s)`);
-    console.log('[firebase-messaging-sw.js] Only new message will be shown');
+    if (existingNotifications.length > 0) {
+      // Her birini logla ve kapat
+      for (let i = 0; i < existingNotifications.length; i++) {
+        const notification = existingNotifications[i];
+        console.log(`[firebase-messaging-sw.js] 🗑️ Closing #${i + 1}:`, {
+          title: notification.title,
+          body: notification.body,
+          tag: notification.tag,
+          timestamp: notification.timestamp
+        });
+        
+        try {
+          notification.close();
+          closedCount++;
+          console.log(`[firebase-messaging-sw.js] ✅ Closed #${i + 1} successfully`);
+        } catch (closeError) {
+          console.error(`[firebase-messaging-sw.js] ❌ Failed to close #${i + 1}:`, closeError);
+        }
+      }
+      
+      // Kapanmaları tamamlanması için kısa bekle
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log(`[firebase-messaging-sw.js] ✅ CLEANUP COMPLETE: Closed ${closedCount}/${existingNotifications.length} notification(s)`);
+    } else {
+      console.log('[firebase-messaging-sw.js] ℹ️ No existing notifications to clean');
+    }
   } catch (error) {
-    console.error('[firebase-messaging-sw.js] ❌ Error closing old notifications:', error);
+    console.error('[firebase-messaging-sw.js] ❌ Error in cleanup process:', error);
+    console.error('[firebase-messaging-sw.js] Error details:', error.message, error.stack);
   }
+  
+  console.log('[firebase-messaging-sw.js] 🎯 Proceeding to show NEW notification (only one visible)');
   
   const notificationOptions = {
     body: notificationBody,
