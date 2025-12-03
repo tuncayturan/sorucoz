@@ -815,7 +815,7 @@ function MesajlarContent() {
     }
     
     console.log("[Student Messages] 🚀 Sending message...");
-    
+
     try {
       setGonderiliyor(true);
       setUploadingFiles(true);
@@ -907,7 +907,7 @@ function MesajlarContent() {
           console.log("[Student Messages] ✅ Notification response:", data);
         })
         .catch(error => console.error("[Student Messages] ❌ Notification error:", error));
-        
+
         // WhatsApp notification (optional, non-blocking)
         fetch("/api/whatsapp/send", {
           method: "POST",

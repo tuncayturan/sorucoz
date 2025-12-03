@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
           fcmData[key] = String(data[key]);
         });
       }
-      
+
       // Add message ID for duplicate prevention
       // Round timestamp to 5-second intervals
       const notificationType = data?.type || 'general';
