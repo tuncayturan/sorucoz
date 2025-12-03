@@ -47,74 +47,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(u);
             setLoading(false);
 
-            // ✅ MOBIL TOKEN FIX: Kullanıcı giriş yaptığında token'ı otomatik al
+            // ✅ MOBIL TOKEN FIX: Kullanıcı giriş yaptığında izin durumunu kontrol et
             if (u) {
               console.log("[AuthContext] 🔐 User authenticated:", u.email);
-              console.log("[AuthContext] 📱 Starting FCM token process...");
               
-              // Service worker'ın hazır olmasını garantilemek için bekleme ve retry mekanizması
-              // Mobil cihazlar için daha uzun süre ve daha fazla deneme
-              const waitForServiceWorkerAndGetToken = async (maxRetries = 8, delayMs = 3000) => {
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+              // Sadece izin durumunu kontrol et, token almayı deneme
+              // Mobilde Notification.requestPermission() user gesture gerektirir
+              // Bu yüzden FCMTokenManager component'i kullanıcıya popup gösterecek
+              
+              if ('Notification' in window && Notification.permission === 'granted') {
+                console.log("[AuthContext] ✅ Notification permission already granted");
+                console.log("[AuthContext] 📱 Trying to get token silently...");
+                
+                // İzin zaten verilmişse, arka planda token almayı dene
+                setTimeout(async () => {
                   try {
-                    console.log(`[AuthContext] 🔄 Attempt ${attempt}/${maxRetries} - Checking service worker...`);
-                    
-                    // Service worker kontrolü
-                    if ('serviceWorker' in navigator) {
-                      const registration = await navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope');
-                      
-                      if (registration && registration.active) {
-                        console.log("[AuthContext] ✅ Service worker is active");
-                        
-                        // Token alma işlemi
-                        console.log("[AuthContext] 📞 Requesting notification permission...");
-                        const token = await requestNotificationPermission();
-                        
-                        if (token) {
-                          console.log("[AuthContext] ✅ FCM token received!");
-                          console.log("[AuthContext] 💾 Saving token to Firestore...");
-                          await saveFCMTokenToUser(u.uid, token);
-                          console.log("[AuthContext] ✅ Token saved successfully to Firestore!");
-                          return; // Başarılı, döngüyü kır
-                        } else {
-                          console.warn(`[AuthContext] ⚠️ No token received on attempt ${attempt}`);
-                          console.warn("[AuthContext] Possible reasons: permission denied, VAPID key missing, or network error");
-                        }
-                      } else {
-                        console.warn(`[AuthContext] ⏳ Service worker not ready yet (attempt ${attempt}/${maxRetries})`);
-                      }
-                    } else {
-                      console.error("[AuthContext] ❌ Service worker not supported in this browser");
-                      return; // Service worker desteklenmiyor, çık
-                    }
-                    
-                    // Son denemede değilse bekle
-                    if (attempt < maxRetries) {
-                      console.log(`[AuthContext] ⏱️ Waiting ${delayMs}ms before retry...`);
-                      await new Promise(resolve => setTimeout(resolve, delayMs));
+                    const token = await requestNotificationPermission();
+                    if (token) {
+                      console.log("[AuthContext] ✅ Token received silently");
+                      await saveFCMTokenToUser(u.uid, token);
+                      console.log("[AuthContext] ✅ Token saved to Firestore");
                     }
                   } catch (error) {
-                    console.error(`[AuthContext] ❌ Error on attempt ${attempt}:`, error);
-                    
-                    // Son denemede değilse bekle ve tekrar dene
-                    if (attempt < maxRetries) {
-                      await new Promise(resolve => setTimeout(resolve, delayMs));
-                    }
+                    console.log("[AuthContext] ⚠️ Silent token fetch failed (this is OK)");
+                    // Hata durumunda FCMTokenManager popup gösterecek
                   }
-                }
-                
-                console.error("[AuthContext] ❌ Failed to get FCM token after all retries");
-                console.error("[AuthContext] Please check:");
-                console.error("  1. Notification permission granted?");
-                console.error("  2. VAPID key set in environment variables?");
-                console.error("  3. Service worker registered correctly?");
-                console.error("  4. Network connection stable?");
-              };
-              
-              // Arka planda token alma işlemini başlat
-              waitForServiceWorkerAndGetToken().catch(err => {
-                console.error("[AuthContext] ❌ Fatal error in token process:", err);
-              });
+                }, 2000);
+              } else {
+                console.log("[AuthContext] ℹ️ Permission not granted yet, FCMTokenManager will show popup");
+              }
             }
           });
         } else {

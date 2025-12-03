@@ -43,26 +43,37 @@ export default function FCMTokenManager() {
 
     try {
       setLoading(true);
-      console.log("[FCMTokenManager] 📱 Kullanıcı token istedi");
+      console.log("[FCMTokenManager] 📱 User clicked - requesting permission...");
+      console.log("[FCMTokenManager] 👤 User:", user.email);
       
+      // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır
       const token = await requestNotificationPermission();
       
       if (token) {
-        console.log("[FCMTokenManager] ✅ Token alındı");
+        console.log("[FCMTokenManager] ✅ Token received:", token.substring(0, 30) + "...");
+        console.log("[FCMTokenManager] 💾 Saving to Firestore...");
+        
         await saveFCMTokenToUser(user.uid, token);
-        console.log("[FCMTokenManager] ✅ Token kaydedildi");
+        
+        console.log("[FCMTokenManager] ✅ Token saved successfully!");
         setPermission("granted");
         setShow(false);
         
-        // Başarı mesajı göster
-        alert("✅ Bildirimler aktif edildi!");
+        // Başarı mesajı
+        alert("✅ Bildirimler aktif edildi! Artık mesaj ve soru yanıtlarını anında alacaksınız.");
       } else {
-        console.warn("[FCMTokenManager] ⚠️ Token alınamadı");
-        alert("Bildirim izni alınamadı. Lütfen tarayıcı ayarlarından izin verin.");
+        console.warn("[FCMTokenManager] ⚠️ Token could not be retrieved");
+        console.warn("[FCMTokenManager] Possible reasons:");
+        console.warn("  - User denied permission");
+        console.warn("  - Service worker not ready");
+        console.warn("  - VAPID key missing/invalid");
+        
+        alert("Bildirim izni alınamadı. Lütfen:\n1. Tarayıcı bildirim iznini kontrol edin\n2. Sayfayı yenileyin\n3. Tekrar deneyin");
       }
-    } catch (error) {
-      console.error("[FCMTokenManager] ❌ Hata:", error);
-      alert("Bir hata oluştu. Lütfen tekrar deneyin.");
+    } catch (error: any) {
+      console.error("[FCMTokenManager] ❌ Error:", error);
+      console.error("[FCMTokenManager] Error details:", error.message || error);
+      alert("Bir hata oluştu: " + (error.message || "Bilinmeyen hata"));
     } finally {
       setLoading(false);
     }
