@@ -81,12 +81,20 @@ export async function getFCMToken(): Promise<string | null> {
       return null;
     }
 
-    let registration = await navigator.serviceWorker.getRegistration("/firebase-cloud-messaging-push-scope");
+    // iOS tespit - iOS Safari için farklı scope
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
+    const swScope = isIOSSafari ? "/" : "/firebase-cloud-messaging-push-scope";
+    
+    console.log("[FCM] Device info:", { isIOS, isIOSSafari, scope: swScope });
+    
+    let registration = await navigator.serviceWorker.getRegistration(swScope);
     
     if (!registration) {
-      console.log("[FCM] 📝 Registering service worker...");
+      console.log("[FCM] 📝 Registering service worker with scope:", swScope);
       registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
-        scope: "/firebase-cloud-messaging-push-scope",
+        scope: swScope,
+        type: "classic"
       });
       
       // Service worker'ın aktif olmasını bekle

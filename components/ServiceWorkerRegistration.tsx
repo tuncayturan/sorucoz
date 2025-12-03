@@ -18,10 +18,19 @@ export default function ServiceWorkerRegistration() {
       try {
         console.log("[Service Worker] 🔄 Starting registration...");
         
+        // iOS tespit
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
+        
+        console.log("[Service Worker] Device:", { isIOS, isIOSSafari });
+        
+        // iOS Safari için farklı scope kullan
+        const swScope = isIOSSafari ? "/" : "/firebase-cloud-messaging-push-scope";
+        
+        console.log("[Service Worker] Using scope:", swScope);
+        
         // Önce mevcut service worker'ları kontrol et
-        const existingRegistration = await navigator.serviceWorker.getRegistration(
-          "/firebase-cloud-messaging-push-scope"
-        );
+        const existingRegistration = await navigator.serviceWorker.getRegistration(swScope);
         
         if (existingRegistration) {
           console.log("[Service Worker] ✅ Already registered:", existingRegistration.scope);
@@ -35,10 +44,12 @@ export default function ServiceWorkerRegistration() {
         }
         
         // Yeni service worker kaydet
+        console.log("[Service Worker] Registering new SW with scope:", swScope);
         const registration = await navigator.serviceWorker.register(
           "/firebase-messaging-sw.js",
           {
-            scope: "/firebase-cloud-messaging-push-scope",
+            scope: swScope,
+            type: "classic"
           }
         );
         
@@ -88,10 +99,16 @@ export default function ServiceWorkerRegistration() {
     // Sayfa yüklendiğinde kontrol et
     window.addEventListener("load", () => {
       console.log("[Service Worker] 🔄 Page loaded, checking registration...");
-      navigator.serviceWorker.getRegistration("/firebase-cloud-messaging-push-scope")
+      
+      // iOS tespit
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/i.test(navigator.userAgent);
+      const swScope = isIOSSafari ? "/" : "/firebase-cloud-messaging-push-scope";
+      
+      navigator.serviceWorker.getRegistration(swScope)
         .then((registration) => {
           if (registration) {
-            console.log("[Service Worker] ✅ Active on page load");
+            console.log("[Service Worker] ✅ Active on page load, scope:", registration.scope);
           } else {
             console.log("[Service Worker] ⚠️ Not registered on page load, re-registering...");
             registerServiceWorker();

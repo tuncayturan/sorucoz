@@ -15,12 +15,28 @@ export default function FCMTokenManager() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
 
   useEffect(() => {
-    // iOS Chrome/Firefox tespit - Notification API desteklemiyor
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isIOSChrome = isIOS && /CriOS/i.test(navigator.userAgent);
-    const isIOSFirefox = isIOS && /FxiOS/i.test(navigator.userAgent);
-    const isIOSEdge = isIOS && /EdgiOS/i.test(navigator.userAgent);
+    // iOS browser tespit
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    
+    // iOS'ta Safari: "Version/" içerir ve CriOS/FxiOS/EdgiOS içermez
+    const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+    
+    // iOS'ta diğer tarayıcılar
+    const isIOSChrome = isIOS && /CriOS/i.test(ua);
+    const isIOSFirefox = isIOS && /FxiOS/i.test(ua);
+    const isIOSEdge = isIOS && /EdgiOS/i.test(ua);
     const isIOSNonSafari = isIOSChrome || isIOSFirefox || isIOSEdge;
+    
+    console.log("[FCMTokenManager] Browser detection:", {
+      isIOS,
+      isIOSSafari,
+      isIOSChrome,
+      isIOSFirefox,
+      isIOSEdge,
+      isIOSNonSafari,
+      userAgent: ua
+    });
     
     // iOS'ta Safari olmayan tarayıcıda Notification API yok
     if (isIOSNonSafari) {
@@ -111,16 +127,18 @@ export default function FCMTokenManager() {
     return null;
   }
 
-  // iOS non-Safari kontrolü
-  const isIOS = typeof window !== "undefined" && /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isIOSChrome = isIOS && /CriOS/i.test(navigator.userAgent);
-  const isIOSFirefox = isIOS && /FxiOS/i.test(navigator.userAgent);
-  const isIOSEdge = isIOS && /EdgiOS/i.test(navigator.userAgent);
+  // iOS browser tespit (render içinde)
+  const ua = typeof window !== "undefined" ? navigator.userAgent : "";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+  const isIOSChrome = isIOS && /CriOS/i.test(ua);
+  const isIOSFirefox = isIOS && /FxiOS/i.test(ua);
+  const isIOSEdge = isIOS && /EdgiOS/i.test(ua);
   const isIOSNonSafari = isIOSChrome || isIOSFirefox || isIOSEdge;
   const notificationNotSupported = typeof window !== "undefined" && !("Notification" in window);
 
-  // iOS'ta Safari olmayan tarayıcı uyarısı
-  if (isIOSNonSafari || (isIOS && notificationNotSupported)) {
+  // iOS'ta Safari olmayan tarayıcı uyarısı (Safari değilse VE Notification yoksa)
+  if (isIOSNonSafari && notificationNotSupported) {
     return (
       <div className="fixed bottom-20 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-slide-up">
         <div className="bg-orange-500 text-white rounded-lg shadow-2xl p-4">
