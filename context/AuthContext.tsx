@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, getAuth } from "firebase/auth";
 import { getFirebaseApp } from "@/lib/firebase";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
+import { autoCleanupUserTokens } from "@/lib/autoCleanupTokens";
 
 const AuthContext = createContext<any>(null);
 
@@ -47,11 +48,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(u);
             setLoading(false);
 
-            // ✅ MOBIL TOKEN FIX: Kullanıcı giriş yaptığında izin durumunu kontrol et
+            // ✅ MOBIL TOKEN FIX + AUTO CLEANUP
             if (u) {
               console.log("[AuthContext] 🔐 User authenticated:", u.email);
               
-              // Sadece izin durumunu kontrol et, token almayı deneme
+              // 1. ÖNCE: Otomatik token cleanup (duplicate'leri temizle)
+              setTimeout(() => {
+                autoCleanupUserTokens(u.uid).catch(err => {
+                  console.error("[AuthContext] Auto cleanup error:", err);
+                });
+              }, 1000);
+              
+              // 2. SONRA: Notification permission kontrol
               // Mobilde Notification.requestPermission() user gesture gerektirir
               // Bu yüzden FCMTokenManager component'i kullanıcıya popup gösterecek
               
