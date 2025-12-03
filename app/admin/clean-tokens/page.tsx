@@ -8,6 +8,40 @@ export default function CleanTokensPage() {
   const [userId, setUserId] = useState("");
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [allResult, setAllResult] = useState<any>(null);
+
+  const handleCleanAll = async () => {
+    if (!confirm("⚠️ TÜM kullanıcıların token'larını temizlemek istediğinizden emin misiniz?\n\nHer kullanıcıda sadece EN SON 1 TOKEN kalacak.")) {
+      return;
+    }
+
+    try {
+      setLoadingAll(true);
+      setAllResult(null);
+      
+      const response = await fetch("/api/admin/clean-fcm-tokens", {
+        method: "GET",
+      });
+
+      const data = await response.json();
+      setAllResult(data);
+      
+      if (data.success) {
+        alert(`✅ TÜM KULLANICILAR TEMİZLENDİ!\n\n` +
+              `Kontrol edilen: ${data.usersChecked} kullanıcı\n` +
+              `Birden fazla token'ı olan: ${data.usersWithMultipleTokens}\n` +
+              `Toplam temizlenen token: ${data.totalTokensCleaned}\n\n` +
+              `Artık herkesin sadece 1 token'ı var! 🎉`);
+      } else {
+        alert(`❌ Hata: ${data.error}`);
+      }
+    } catch (error: any) {
+      alert(`❌ Hata: ${error.message}`);
+    } finally {
+      setLoadingAll(false);
+    }
+  };
 
   const handleClean = async () => {
     if (!userId) {
@@ -42,10 +76,41 @@ export default function CleanTokensPage() {
     <div className="max-w-2xl mx-auto p-8">
       <h1 className="text-3xl font-bold mb-6">FCM Token Temizleme</h1>
       
+      {/* TÜM KULLANICILAR İÇİN TEMİZLİK */}
+      <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg p-6 shadow-lg mb-6">
+        <h2 className="text-xl font-bold mb-2">🔥 Tüm Kullanıcılar İçin Agresif Temizlik</h2>
+        <p className="text-sm mb-4 opacity-90">
+          Duplicate bildirim sorununu çözmek için TÜM kullanıcıların token'larını temizler.
+          Her kullanıcıda sadece EN SON 1 TOKEN kalır.
+        </p>
+        
+        <button
+          onClick={handleCleanAll}
+          disabled={loadingAll}
+          className="w-full px-6 py-3 bg-white text-red-600 rounded-lg font-bold hover:bg-gray-100 disabled:opacity-50 transition"
+        >
+          {loadingAll ? "⏳ Tüm Kullanıcılar Temizleniyor..." : "🚀 TÜM KULLANICILARI TEMİZLE"}
+        </button>
+
+        {allResult && (
+          <div className="mt-4 p-4 bg-white/20 rounded-lg backdrop-blur">
+            <h3 className="font-semibold mb-2">✅ Sonuç:</h3>
+            <div className="text-sm space-y-1">
+              <p>👥 Kontrol edilen: <strong>{allResult.usersChecked}</strong> kullanıcı</p>
+              <p>🔧 Birden fazla token'ı olan: <strong>{allResult.usersWithMultipleTokens}</strong></p>
+              <p>🗑️ Toplam temizlenen: <strong>{allResult.totalTokensCleaned}</strong> token</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* TEK KULLANICI İÇİN TEMİZLİK */}
       <div className="bg-white rounded-lg p-6 shadow-lg">
+        <h2 className="text-lg font-bold mb-4">Tek Kullanıcı İçin Temizlik</h2>
+        
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">
-            User ID (Coach ID):
+            User ID:
           </label>
           <input
             type="text"
