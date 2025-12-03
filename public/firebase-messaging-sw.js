@@ -285,6 +285,28 @@ messaging.onBackgroundMessage(async (payload) => {
   
   console.log('[firebase-messaging-sw.js] 🏷️ Notification Tag:', notificationTag);
   
+  // ========== AGGRESSIVE NOTIFICATION CLEANUP ==========
+  // Tüm eski bildirimleri kapat, sadece yeni mesaj göster
+  console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing ALL old notifications...');
+  
+  try {
+    // Tüm mevcut bildirimleri al
+    const existingNotifications = await self.registration.getNotifications();
+    console.log(`[firebase-messaging-sw.js] Found ${existingNotifications.length} existing notification(s)`);
+    
+    // HEPSİNİ kapat (biriken bildirimleri önle)
+    // Sadece yeni mesaj bildirimi gösterilecek
+    existingNotifications.forEach((notification, index) => {
+      console.log(`[firebase-messaging-sw.js] 🗑️ Closing notification #${index + 1}: ${notification.title}`);
+      notification.close();
+    });
+    
+    console.log(`[firebase-messaging-sw.js] ✅ Closed ${existingNotifications.length} old notification(s)`);
+    console.log('[firebase-messaging-sw.js] Only new message will be shown');
+  } catch (error) {
+    console.error('[firebase-messaging-sw.js] ❌ Error closing old notifications:', error);
+  }
+  
   const notificationOptions = {
     body: notificationBody,
     icon: iconUrl,
@@ -294,7 +316,7 @@ messaging.onBackgroundMessage(async (payload) => {
     silent: false,
     vibrate: [200, 100, 200],
     tag: notificationTag, // STABLE TAG - aynı conversation her zaman aynı tag
-    renotify: true, // Yeni mesaj geldiğinde ses + titreşim
+    renotify: false, // false yap - manuel cleanup yapıyoruz
     timestamp: Date.now(),
   };
   
