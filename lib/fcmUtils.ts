@@ -1,6 +1,6 @@
 import { getMessagingInstance, db } from "./firebase";
 import { getToken, onMessage } from "firebase/messaging";
-import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
 import { defaultVapidKey } from "./firebase/config";
 
 /**
@@ -213,27 +213,58 @@ export async function getFCMToken(): Promise<string | null> {
 /**
  * Kullanıcının FCM token'ını Firestore'a kaydeder
  * SADECE SON TOKEN'I TUTAR - Eski token'lar silinir
- * Bu sayede duplicate notification sorunu ortadan kalkar
+ * AGGRESSIVE DUPLICATE PREVENTION
  */
 export async function saveFCMTokenToUser(userId: string, token: string): Promise<void> {
   try {
-    console.log("[FCM] Saving token to Firestore for user:", userId);
+    console.log("[FCM] 💾 === SAVING TOKEN TO FIRESTORE ===");
+    console.log("[FCM] User:", userId);
+    console.log("[FCM] Token (preview):", token.substring(0, 40) + "...");
+    
     const userRef = doc(db, "users", userId);
     
-    // SADECE son token'ı tut - eski token'ları sil
-    // Bu duplicate notification sorununu çözer
+    // AGGRESSIVE: Önce mevcut token'ları kontrol et
+    try {
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const existingTokens = (userSnap.data().fcmTokens as string[]) || [];
+        console.log("[FCM] 📊 Existing tokens count:", existingTokens.length);
+        
+        // Eğer bu token zaten varsa ve tek token ise, güncelleme yapma
+        if (existingTokens.length === 1 && existingTokens[0] === token) {
+          console.log("[FCM] ✅ Token already exists and is the only one, no update needed");
+          return;
+        }
+        
+        // Duplicate token kontrolü
+        const uniqueTokens = [...new Set(existingTokens)];
+        if (uniqueTokens.length !== existingTokens.length) {
+          console.warn("[FCM] ⚠️ Found", existingTokens.length - uniqueTokens.length, "duplicate tokens!");
+        }
+      }
+    } catch (error) {
+      console.warn("[FCM] Could not read existing tokens:", error);
+    }
+    
+    // SADECE YENİ TOKEN'I KAYDET - TÜM ESKİLERİ SİL
+    // Bu duplicate notification sorununu %100 çözer
     await updateDoc(userRef, {
-      fcmTokens: [token], // Array'e sadece yeni token'ı koy
+      fcmTokens: [token], // Array'e sadece yeni token'ı koy, eski tüm token'ları sil
       lastTokenUpdate: new Date(),
     });
     
-    console.log("[FCM] ✅ Token saved successfully (old tokens removed)");
-    console.log("[FCM] Token:", token.substring(0, 30) + "...");
-  } catch (error) {
-    console.error("[FCM] Error saving FCM token to Firestore:", error);
+    console.log("[FCM] ✅ === TOKEN SAVED SUCCESSFULLY ===");
+    console.log("[FCM] Old tokens removed, only new token remains");
+    console.log("[FCM] Token (full):", token);
+  } catch (error: any) {
+    console.error("[FCM] ❌ === ERROR SAVING TOKEN ===");
+    console.error("[FCM] Error:", error.message || error);
     throw error;
   }
 }
+
+// Import getDoc for reading current tokens
+import { getDoc } from "firebase/firestore";
 
 /**
  * Kullanıcının eski FCM token'ını Firestore'dan kaldırır
