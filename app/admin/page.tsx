@@ -27,11 +27,6 @@ interface SupportStats {
   total: number;
 }
 
-interface MessageStats {
-  total: number;
-  unread: number;
-}
-
 export default function AdminDashboard() {
   const [kullanicilar, setKullanicilar] = useState<Kullanici[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,10 +36,6 @@ export default function AdminDashboard() {
     answered: 0,
     closed: 0,
     total: 0,
-  });
-  const [messageStats, setMessageStats] = useState<MessageStats>({
-    total: 0,
-    unread: 0,
   });
   const [toast, setToast] = useState<{
     message: string;
@@ -106,9 +97,6 @@ export default function AdminDashboard() {
 
       // Fetch support messages statistics
       await fetchSupportStats();
-      
-      // Fetch user messages statistics
-      await fetchMessageStats();
     } catch (error) {
       console.error("Kullanıcılar yüklenirken hata:", error);
       showToast("Veri yüklenirken bir hata oluştu.", "error");
@@ -152,33 +140,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchMessageStats = async () => {
-    try {
-      let total = 0;
-      let unread = 0;
-
-      const usersRef = collection(db, "users");
-      const usersSnapshot = await getDocs(usersRef);
-
-      for (const userDoc of usersSnapshot.docs) {
-        const userId = userDoc.id;
-        const mesajlarRef = collection(db, "users", userId, "mesajlar");
-        const mesajlarSnapshot = await getDocs(mesajlarRef);
-
-        mesajlarSnapshot.forEach((doc) => {
-          const data = doc.data();
-          total++;
-          if (!data.read) {
-            unread++;
-          }
-        });
-      }
-
-      setMessageStats({ total, unread });
-    } catch (error) {
-      console.error("Kullanıcı mesajları istatistikleri yüklenirken hata:", error);
-    }
-  };
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type, isVisible: true });
@@ -463,58 +424,32 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Destek Mesajları ve Kullanıcı Mesajları İstatistikleri */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Destek Mesajları İstatistikleri */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-200/20 rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">💬</span>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Destek Mesajları</h2>
+      {/* Destek Mesajları İstatistikleri */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden mb-8">
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-200/20 rounded-full blur-3xl"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl">💬</span>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl p-4 border border-yellow-100">
-                <p className="text-sm text-gray-600 font-medium mb-1">Bekleyen</p>
-                <p className="text-3xl font-bold text-yellow-600">{supportStats.pending}</p>
-              </div>
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
-                <p className="text-sm text-gray-600 font-medium mb-1">Yanıt Verilen</p>
-                <p className="text-3xl font-bold text-blue-600">{supportStats.answered}</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100">
-                <p className="text-sm text-gray-600 font-medium mb-1">Çözülmüş</p>
-                <p className="text-3xl font-bold text-green-600">{supportStats.closed}</p>
-              </div>
-              <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-4 border border-gray-100">
-                <p className="text-sm text-gray-600 font-medium mb-1">Toplam</p>
-                <p className="text-3xl font-bold text-gray-600">{supportStats.total}</p>
-              </div>
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Destek Mesajları</h2>
           </div>
-        </div>
-
-        {/* Kullanıcı Mesajları İstatistikleri */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-200/20 rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">📨</span>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Kullanıcı Mesajları</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl p-4 border border-yellow-100">
+              <p className="text-sm text-gray-600 font-medium mb-1">Bekleyen</p>
+              <p className="text-3xl font-bold text-yellow-600">{supportStats.pending}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-4 border border-gray-100">
-                <p className="text-sm text-gray-600 font-medium mb-1">Toplam</p>
-                <p className="text-3xl font-bold text-gray-600">{messageStats.total}</p>
-              </div>
-              <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl p-4 border border-red-100">
-                <p className="text-sm text-gray-600 font-medium mb-1">Okunmamış</p>
-                <p className="text-3xl font-bold text-red-600">{messageStats.unread}</p>
-              </div>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
+              <p className="text-sm text-gray-600 font-medium mb-1">Yanıt Verilen</p>
+              <p className="text-3xl font-bold text-blue-600">{supportStats.answered}</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100">
+              <p className="text-sm text-gray-600 font-medium mb-1">Çözülmüş</p>
+              <p className="text-3xl font-bold text-green-600">{supportStats.closed}</p>
+            </div>
+            <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-4 border border-gray-100">
+              <p className="text-sm text-gray-600 font-medium mb-1">Toplam</p>
+              <p className="text-3xl font-bold text-gray-600">{supportStats.total}</p>
             </div>
           </div>
         </div>
@@ -569,13 +504,6 @@ export default function AdminDashboard() {
             >
               <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">💬</div>
               <p className="font-bold text-gray-900 text-sm">Destek</p>
-            </a>
-            <a
-              href="/admin/mesajlar"
-              className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 hover:shadow-lg hover:scale-105 transition-all text-center group"
-            >
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📨</div>
-              <p className="font-bold text-gray-900 text-sm">Kullanıcı Mesajları</p>
             </a>
             <a
               href="/admin/kullanicilar"

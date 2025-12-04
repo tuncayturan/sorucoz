@@ -413,7 +413,7 @@ export default function AdminLayout({
               <h1 className="text-xl font-bold text-gray-900">
                 {userData?.name || user?.displayName || "Admin"}
               </h1>
-              <p className="text-xs text-gray-500">Admin Panel</p>
+              <p className="text-xs text-gray-500">{userData?.email || user?.email || ""}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
