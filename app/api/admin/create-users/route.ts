@@ -8,6 +8,17 @@ interface UserData {
   password?: string;
 }
 
+interface SuccessResult {
+  email: string;
+  name: string;
+  password: string;
+}
+
+interface ErrorResult {
+  email: string;
+  error: string;
+}
+
 // Otomatik şifre oluşturucu
 function generatePassword(): string {
   const length = 12;
@@ -34,7 +45,10 @@ export async function POST(req: NextRequest) {
     const adminAuth = getAdminAuth();
     const adminDb = getAdminFirestore();
 
-    const results = {
+    const results: {
+      success: SuccessResult[];
+      errors: ErrorResult[];
+    } = {
       success: [],
       errors: [],
     };
