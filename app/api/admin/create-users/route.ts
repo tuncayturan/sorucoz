@@ -12,6 +12,7 @@ interface SuccessResult {
   email: string;
   name: string;
   password: string;
+  uid: string;
 }
 
 interface ErrorResult {
