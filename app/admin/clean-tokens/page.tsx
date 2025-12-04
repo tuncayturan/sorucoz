@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import Toast from "@/components/ui/Toast";
 
 export default function CleanTokensPage() {
   const { user } = useAuth();
@@ -10,6 +11,23 @@ export default function CleanTokensPage() {
   const [loading, setLoading] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [allResult, setAllResult] = useState<any>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   const handleCleanAll = async () => {
     if (!confirm("⚠️ TÜM kullanıcıların token'larını temizlemek istediğinizden emin misiniz?\n\nHer kullanıcıda sadece EN SON 1 TOKEN kalacak.")) {
@@ -28,16 +46,12 @@ export default function CleanTokensPage() {
       setAllResult(data);
       
       if (data.success) {
-        alert(`✅ TÜM KULLANICILAR TEMİZLENDİ!\n\n` +
-              `Kontrol edilen: ${data.usersChecked} kullanıcı\n` +
-              `Birden fazla token'ı olan: ${data.usersWithMultipleTokens}\n` +
-              `Toplam temizlenen token: ${data.totalTokensCleaned}\n\n` +
-              `Artık herkesin sadece 1 token'ı var! 🎉`);
+        showToast(`✅ Tüm kullanıcılar temizlendi! ${data.usersChecked} kullanıcı kontrol edildi, ${data.totalTokensCleaned} token temizlendi.`, "success");
       } else {
-        alert(`❌ Hata: ${data.error}`);
+        showToast(`Hata: ${data.error}`, "error");
       }
     } catch (error: any) {
-      alert(`❌ Hata: ${error.message}`);
+      showToast(`Hata: ${error.message}`, "error");
     } finally {
       setLoadingAll(false);
     }
@@ -45,7 +59,7 @@ export default function CleanTokensPage() {
 
   const handleClean = async () => {
     if (!userId) {
-      alert("Lütfen user ID girin");
+      showToast("Lütfen user ID girin", "error");
       return;
     }
 
@@ -61,12 +75,12 @@ export default function CleanTokensPage() {
       setResult(data);
       
       if (data.success) {
-        alert(`✅ Başarılı!\n\nTemizlenen: ${data.cleaned}\nKalan: ${data.remaining}`);
+        showToast(`Başarılı! ${data.cleaned} token temizlendi, ${data.remaining} token kaldı.`, "success");
       } else {
-        alert(`❌ Hata: ${data.error}`);
+        showToast(`Hata: ${data.error}`, "error");
       }
     } catch (error: any) {
-      alert(`❌ Hata: ${error.message}`);
+      showToast(`Hata: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -147,6 +161,14 @@ export default function CleanTokensPage() {
           Admin Panel → Kullanıcılar → Coach'u bulun → ID'yi kopyalayın
         </p>
       </div>
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }

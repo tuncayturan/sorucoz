@@ -10,7 +10,7 @@ import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import StudentFooter from "@/components/StudentFooter";
 import Toast from "@/components/ui/Toast";
-import { canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
+import { canAskQuestion, getDailyQuestionLimit, hasAIAccess, isFreemiumMode, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { checkSubscriptionStatus } from "@/lib/subscriptionUtils";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
@@ -46,16 +46,28 @@ export default function SoruSorPage() {
         userData.trialEndDate || null,
         userData.subscriptionEndDate || null,
         userData.premium,
-        userData.createdAt
+        userData.createdAt,
+        userData.subscriptionPlan
       )
     : null;
-
+  
+  // Plan bilgisi - subscription status'e göre belirle
   let currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
   if (subscriptionStatus === "trial") {
     currentPlan = "trial";
   } else if (subscriptionStatus === "active" && userData?.subscriptionPlan) {
     currentPlan = userData.subscriptionPlan;
+  } else if (subscriptionStatus === "freemium") {
+    currentPlan = "freemium";
   }
+  
+  const isExpired = subscriptionStatus === "expired";
+  
+  // FREEMIUM kontrolü
+  const isFreemium = isFreemiumMode(currentPlan, subscriptionStatus || "trial");
+  
+  // AI erişimi kontrolü
+  const canUseAI = hasAIAccess(currentPlan, isExpired);
 
   const questionInfo = userData
     ? canAskQuestion(
@@ -64,7 +76,7 @@ export default function SoruSorPage() {
         userData.lastQuestionDate
       )
     : { canAsk: true, remaining: Infinity };
-  const dailyLimit = getDailyQuestionLimit(currentPlan);
+  const dailyLimit = getDailyQuestionLimit(currentPlan, isExpired);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -247,45 +259,52 @@ export default function SoruSorPage() {
         createdAt: Timestamp.now(),
         status: "pending", // pending, answered, solved
         solution: null, // Çözüm adımları
-        solving: true, // Çözüm işlemi başladı
+        solving: canUseAI, // AI erişimi varsa çözüm başlat
       });
 
-      // AI ile soruyu çöz (arka planda)
-      try {
-        const solveResponse = await fetch("/api/ai/solve-question", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ imageUrl, ders: subject }),
-        });
+      // AI ile soruyu çöz (arka planda) - SADECE AI ERİŞİMİ VARSA
+      if (canUseAI) {
+        console.log("[Soru Sor] AI erişimi var, çözüm başlatılıyor...");
+        try {
+          const solveResponse = await fetch("/api/ai/solve-question", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ imageUrl, ders: subject }),
+          });
 
-        if (solveResponse.ok) {
-          const solutionData = await solveResponse.json();
-          
-          // Çözümü Firestore'a kaydet
+          if (solveResponse.ok) {
+            const solutionData = await solveResponse.json();
+            
+            // Çözümü Firestore'a kaydet
+            const questionDocRef = doc(db, "users", user.uid, "sorular", questionDoc.id);
+            await updateDoc(questionDocRef, {
+              solution: solutionData,
+              status: "answered", // Çözüm hazır
+              solving: false,
+            });
+          } else {
+            // Çözüm başarısız oldu, sadece durumu güncelle
+            const questionDocRef = doc(db, "users", user.uid, "sorular", questionDoc.id);
+            await updateDoc(questionDocRef, {
+              solving: false,
+            });
+          }
+        } catch (solveError: any) {
+          console.error("Çözüm hatası:", solveError);
+          // Hata olsa bile soru kaydedildi, sadece solving durumunu güncelle
           const questionDocRef = doc(db, "users", user.uid, "sorular", questionDoc.id);
           await updateDoc(questionDocRef, {
-            solution: solutionData,
-            status: "answered", // Çözüm hazır
             solving: false,
           });
-        } else {
-          // Çözüm başarısız oldu, sadece durumu güncelle
-          const questionDocRef = doc(db, "users", user.uid, "sorular", questionDoc.id);
-          await updateDoc(questionDocRef, {
-            solving: false,
-          });
+          // Hata mesajını logla ama kullanıcıya gösterme (arka planda çalışıyor)
+          console.warn("⚠️ Soru çözme arka planda başarısız oldu, soru kaydedildi:", solveError.message);
         }
-      } catch (solveError: any) {
-        console.error("Çözüm hatası:", solveError);
-        // Hata olsa bile soru kaydedildi, sadece solving durumunu güncelle
-        const questionDocRef = doc(db, "users", user.uid, "sorular", questionDoc.id);
-        await updateDoc(questionDocRef, {
-          solving: false,
-        });
-        // Hata mesajını logla ama kullanıcıya gösterme (arka planda çalışıyor)
-        console.warn("⚠️ Soru çözme arka planda başarısız oldu, soru kaydedildi:", solveError.message);
+      } else {
+        console.log("[Soru Sor] 🆓 Freemium mod: AI çözüm yok, sadece coach çözümü.");
+        // Freemium kullanıcısına bilgi ver
+        showToast("🆓 Freemium mod: Sorunuz kaydedildi. AI çözüm için Premium gerekli. Coach'unuz yardımcı olacak!", "info");
       }
 
       // Günlük soru sayısını güncelle
@@ -359,6 +378,66 @@ export default function SoruSorPage() {
             )}
           </div>
 
+          {/* Günlük Limit Doldu Banner */}
+          {!questionInfo.canAsk && (
+            <div className="mb-6 animate-slideFade">
+              <div className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-3xl p-6 shadow-[0_15px_35px_rgba(239,68,68,0.3)] border border-red-400/30 relative overflow-hidden">
+                {/* Decorative elements */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                      <span className="text-3xl">🚫</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold text-xl mb-2">Günlük Soru Limitiniz Doldu!</h3>
+                      <p className="text-white/95 text-sm leading-relaxed mb-4">
+                        {isFreemium ? (
+                          <>
+                            Freemium modunda günde sadece <strong>1 soru</strong> sorabilirsiniz. 
+                            Premium'a geçerek <strong>sınırsız soru</strong> ve <strong>AI çözüm</strong> kazanın!
+                          </>
+                        ) : currentPlan === "lite" ? (
+                          <>
+                            Lite planda günde <strong>10 soru</strong> sorabilirsiniz. Limitiniz doldu. 
+                            Premium'a yükseltin, <strong>sınırsız soru</strong> sorun!
+                          </>
+                        ) : (
+                          <>
+                            Bugünkü soru limitiniz doldu. Yarın tekrar <strong>{dailyLimit} soru</strong> sorabilirsiniz 
+                            veya <strong>Premium</strong>'a geçerek sınırsız soru kazanın!
+                          </>
+                        )}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() => router.push("/premium")}
+                          className="px-6 py-3 bg-white text-orange-600 font-bold rounded-xl hover:bg-orange-50 transition shadow-lg flex items-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          {isFreemium || currentPlan === "lite" ? "Premium'a Geç" : "Plan Seç"}
+                        </button>
+                        <button
+                          onClick={() => router.push("/sorularim")}
+                          className="px-6 py-3 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition backdrop-blur-sm flex items-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                          </svg>
+                          Sorularıma Dön
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Upload Area */}
           <div className="bg-gradient-to-br from-white via-white to-blue-50/30 backdrop-blur-xl rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-white/80 relative overflow-hidden animate-slideFade mb-6">
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl"></div>
@@ -377,7 +456,12 @@ export default function SoruSorPage() {
                     />
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-6 rounded-2xl border-2 border-dashed border-blue-300 hover:border-blue-500 transition-all bg-blue-50/50 hover:bg-blue-50"
+                      disabled={!questionInfo.canAsk}
+                      className={`w-full py-6 rounded-2xl border-2 border-dashed transition-all ${
+                        !questionInfo.canAsk
+                          ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                          : "border-blue-300 hover:border-blue-500 bg-blue-50/50 hover:bg-blue-50"
+                      }`}
                     >
                       <div className="flex flex-col items-center gap-3">
                         <svg className="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,7 +485,12 @@ export default function SoruSorPage() {
                   {/* Kameradan Çek */}
                   <button
                     onClick={handleOpenCamera}
-                    className="w-full py-6 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold hover:shadow-lg transition-all"
+                    disabled={!questionInfo.canAsk}
+                    className={`w-full py-6 rounded-2xl font-semibold transition-all ${
+                      !questionInfo.canAsk
+                        ? "bg-gray-400 cursor-not-allowed opacity-60"
+                        : "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:shadow-lg"
+                    }`}
                   >
                     <div className="flex items-center justify-center gap-3">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -9,11 +9,13 @@ import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import PopupMessage from "@/components/PopupMessage";
 import StudentFooter from "@/components/StudentFooter";
-import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, canAskQuestion, getDailyQuestionLimit, type SubscriptionPlan } from "@/lib/subscriptionUtils";
+import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, canAskQuestion, getDailyQuestionLimit, isFreemiumMode, hasAIAccess, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
-import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs, onSnapshot, Timestamp, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
+import { sendEmailVerification } from "firebase/auth";
+import Toast from "@/components/ui/Toast";
 
 const SUBJECT_COLORS: { [key: string]: string } = {
   "Matematik": "from-blue-500 to-indigo-600",
@@ -59,16 +61,47 @@ export default function HomePage() {
   const [workDuration, setWorkDuration] = useState<string>("");
   const [solvedQuestionsCount, setSolvedQuestionsCount] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [showEmailVerificationBanner, setShowEmailVerificationBanner] = useState(false);
+  const [sendingVerificationEmail, setSendingVerificationEmail] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
   
   const displayName = userData?.name || user?.displayName || "Öğrenci";
   const isPremium = userData?.premium || false;
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
+
+  // Bitiş tarihini formatlama
+  const formatEndDate = (endDate: any) => {
+    if (!endDate) return "";
+    const date = endDate.toDate ? endDate.toDate() : new Date(endDate.seconds * 1000);
+    return date.toLocaleDateString("tr-TR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
   
   const subscriptionStatus = userData
     ? checkSubscriptionStatus(
         userData.trialEndDate || null,
         userData.subscriptionEndDate || null,
         userData.premium,
-        userData.createdAt
+        userData.createdAt,
+        userData.subscriptionPlan
       )
     : null;
   const trialDaysLeft = userData ? getTrialDaysLeft(userData.trialEndDate || null, userData.createdAt) : 0;
@@ -80,7 +113,14 @@ export default function HomePage() {
     currentPlan = "trial";
   } else if (subscriptionStatus === "active" && userData?.subscriptionPlan) {
     currentPlan = userData.subscriptionPlan;
+  } else if (subscriptionStatus === "freemium") {
+    currentPlan = "freemium";
   }
+  
+  // FREEMIUM kontrolü
+  const isExpired = subscriptionStatus === "expired";
+  const isFreemium = isFreemiumMode(currentPlan, subscriptionStatus || "trial");
+  const canUseAI = hasAIAccess(currentPlan, isExpired);
   
   // Günlük soru bilgisi
   const questionInfo = userData
@@ -90,7 +130,7 @@ export default function HomePage() {
         userData.lastQuestionDate
       )
     : { canAsk: true, remaining: Infinity };
-  const dailyLimit = getDailyQuestionLimit(currentPlan);
+  const dailyLimit = getDailyQuestionLimit(currentPlan, isExpired);
 
   // Çevrimiçi durumunu güncelle
   useOnlineStatus();
@@ -101,6 +141,29 @@ export default function HomePage() {
       router.replace("/landing");
     }
   }, [user, authLoading, router]);
+
+  // Email doğrulama kontrolü - sadece email ile kayıt olanlar için
+  useEffect(() => {
+    if (!user || !userData) return;
+    
+    // Google ile giriş yapanlar için banner gösterme
+    const isGoogleUser = user.providerData?.some(p => p.providerId === 'google.com');
+    if (isGoogleUser) {
+      setShowEmailVerificationBanner(false);
+      return;
+    }
+
+    // Admin tarafından eklenmiş veya emailVerified:true olanlar için banner gösterme
+    if (userData.emailVerified === true) {
+      setShowEmailVerificationBanner(false);
+      return;
+    }
+
+    // Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için banner göster
+    if (userData.emailVerified === false) {
+      setShowEmailVerificationBanner(true);
+    }
+  }, [user, userData]);
 
   // Role kontrolü - sadece student buraya erişebilir
   useEffect(() => {
@@ -364,6 +427,97 @@ export default function HomePage() {
     }
   }, [userData?.createdAt]);
 
+  // Email doğrulama gönder
+  const handleSendVerificationEmail = async () => {
+    if (!user) return;
+
+    try {
+      setSendingVerificationEmail(true);
+      await sendEmailVerification(user);
+      showToast("✅ Doğrulama emaili gönderildi! Lütfen email kutunuzu kontrol edin.", "success");
+    } catch (error: any) {
+      console.error("Email gönderme hatası:", error);
+      if (error.code === "auth/too-many-requests") {
+        showToast("⚠️ Çok fazla istek gönderdiniz. Lütfen biraz bekleyin.", "error");
+      } else {
+        showToast("❌ Email gönderilemedi. Lütfen tekrar deneyin.", "error");
+      }
+    } finally {
+      setSendingVerificationEmail(false);
+    }
+  };
+
+  // Email doğrulandı olarak işaretle
+  const handleDismissVerificationBanner = async () => {
+    if (!user || !userData) return;
+
+    try {
+      // Firestore'da emailVerified'ı true yap
+      await updateDoc(doc(db, "users", user.uid), {
+        emailVerified: true,
+      });
+      setShowEmailVerificationBanner(false);
+      showToast("✅ Email doğrulama banner'ı kapatıldı.", "success");
+    } catch (error) {
+      console.error("Banner kapatma hatası:", error);
+    }
+  };
+
+  // Premium/Lite bitince otomatik Trial'a döndür, Trial bitince Freemium'a geçir
+  useEffect(() => {
+    if (!user || !userData) return;
+    
+    const plan = userData.subscriptionPlan || "trial";
+    const status = subscriptionStatus;
+    
+    // 1. Lite veya Premium süresi dolmuşsa → 7 günlük yeni Trial ver
+    if ((plan === "lite" || plan === "premium") && status === "expired") {
+      console.log("[Home] Premium/Lite süresi doldu, Trial'a geri dönüyor...");
+      
+      const now = new Date();
+      const trialEndDate = new Date(now);
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+      
+      const userRef = doc(db, "users", user.uid);
+      updateDoc(userRef, {
+        subscriptionPlan: "trial",
+        subscriptionStatus: "trial",
+        trialStartDate: Timestamp.fromDate(now),
+        trialEndDate: Timestamp.fromDate(trialEndDate),
+        premium: false,
+        dailyQuestionCount: 0,
+        lastQuestionDate: now.toISOString().split("T")[0],
+      }).then(() => {
+        console.log("[Home] ✅ Kullanıcı Trial'a döndürüldü");
+        showToast("Aboneliğiniz bitti. 7 günlük yeni Trial başlatıldı! Planınızı yenileyin.", "info");
+        refreshUserData();
+      }).catch((error) => {
+        console.error("[Home] Trial'a döndürme hatası:", error);
+      });
+    }
+    
+    // 2. Trial süresi dolmuşsa ve Firestore'da hala "trial" olarak işaretliyse → Freemium'a geçir
+    if (plan === "trial" && status === "freemium" && userData.subscriptionPlan !== "freemium") {
+      console.log("[Home] Trial süresi doldu, Freemium moduna geçiliyor...");
+      
+      const now = new Date();
+      const userRef = doc(db, "users", user.uid);
+      updateDoc(userRef, {
+        subscriptionPlan: "freemium",
+        subscriptionStatus: "freemium",
+        premium: false,
+        dailyQuestionCount: 0,
+        lastQuestionDate: now.toISOString().split("T")[0],
+      }).then(() => {
+        console.log("[Home] ✅ Kullanıcı Freemium moduna geçirildi");
+        showToast("Trial süreniz bitti. Freemium moduna geçtiniz. Premium için plan seçin!", "info");
+        refreshUserData();
+      }).catch((error) => {
+        console.error("[Home] Freemium'a geçme hatası:", error);
+      });
+    }
+  }, [user, userData, subscriptionStatus]);
+
   // Yükleniyor veya kullanıcı yoksa hiçbir şey gösterme
   if (authLoading || userDataLoading || !user) {
     return (
@@ -387,120 +541,66 @@ export default function HomePage() {
             <p className="text-gray-600">Hoş geldin, {displayName}</p>
           </div>
 
-          {/* Plan Banner */}
-          {subscriptionStatus && (
+          {/* EMAIL VERIFICATION BANNER */}
+          {showEmailVerificationBanner && (
             <div className="mb-6 animate-slideFade">
-              {subscriptionStatus === "trial" && (
-                <div
-                  onClick={() => router.push("/premium")}
-                  className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-3xl p-5 shadow-[0_15px_35px_rgba(59,130,246,0.3)] border border-blue-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(59,130,246,0.4)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-2xl">🆓</span>
+              <div className="bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-3xl p-5 shadow-[0_15px_35px_rgba(251,146,60,0.3)] border border-yellow-300/30 relative overflow-hidden">
+                {/* Decorative elements */}
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
+                        <span className="text-2xl">📧</span>
                       </div>
-                      <div>
-                        <h3 className="text-white font-bold text-lg mb-1">Trial Plan</h3>
-                        <p className="text-blue-100 text-sm">
-                          {trialDaysLeft > 0 ? (
-                            <>
-                              Kalan süre: <span className="font-bold">{trialDaysLeft} gün</span> • Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru soruldu • Kalan: <span className={`font-bold ${questionInfo.remaining > 0 ? "text-green-200" : "text-red-200"}`}>{questionInfo.remaining}</span> / {dailyLimit} soru
-                            </>
-                          ) : (
-                            "Trial süresi doldu"
-                          )}
+                      <div className="flex-1">
+                        <h3 className="text-white font-bold text-lg mb-2">Email Adresini Doğrula</h3>
+                        <p className="text-white/90 text-sm leading-relaxed mb-4">
+                          Hesabını güvenli tutmak için email adresini doğrulamanız gerekiyor. 
+                          Email kutunuzu kontrol edin veya yeni doğrulama linki gönderin.
                         </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={handleSendVerificationEmail}
+                            disabled={sendingVerificationEmail}
+                            className="px-4 py-2 bg-white text-orange-600 font-bold rounded-xl hover:bg-orange-50 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                          >
+                            {sendingVerificationEmail ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin"></div>
+                                <span>Gönderiliyor...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <span>Email Gönder</span>
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={handleDismissVerificationBanner}
+                            className="px-4 py-2 bg-white/20 text-white font-semibold rounded-xl hover:bg-white/30 transition text-sm backdrop-blur-sm"
+                          >
+                            Daha Sonra
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <button className="px-4 py-2 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition text-sm">
-                      Plan Seç
+                    <button
+                      onClick={() => setShowEmailVerificationBanner(false)}
+                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition backdrop-blur-sm flex-shrink-0"
+                    >
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 </div>
-              )}
-              
-              {subscriptionStatus === "active" && currentPlan === "lite" && (
-                <div
-                  onClick={() => router.push("/premium")}
-                  className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-3xl p-5 shadow-[0_15px_35px_rgba(59,130,246,0.3)] border border-blue-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(59,130,246,0.4)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-2xl">📚</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-bold text-lg mb-1">Lite Plan</h3>
-                        <p className="text-blue-100 text-sm">
-                          {subscriptionDaysLeft > 0 ? (
-                            <>
-                              Kalan süre: <span className="font-bold">{subscriptionDaysLeft} gün</span> • Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru soruldu • Kalan: <span className={`font-bold ${questionInfo.remaining > 0 ? "text-green-200" : "text-red-200"}`}>{questionInfo.remaining}</span> / {dailyLimit} soru
-                            </>
-                          ) : (
-                            "Abonelik süresi doldu"
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <button className="px-4 py-2 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition text-sm">
-                      Yükselt
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {subscriptionStatus === "active" && currentPlan === "premium" && (
-                <div
-                  onClick={() => router.push("/premium")}
-                  className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl p-5 shadow-[0_15px_35px_rgba(251,146,60,0.3)] border border-yellow-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(251,146,60,0.4)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-2xl">⭐</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-bold text-lg mb-1">Premium Plan</h3>
-                        <p className="text-yellow-100 text-sm">
-                          {subscriptionDaysLeft > 0 ? (
-                            <>
-                              Kalan süre: <span className="font-bold">{subscriptionDaysLeft} gün</span> • Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru soruldu • Sınırsız soru
-                            </>
-                          ) : (
-                            "Abonelik süresi doldu"
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <button className="px-4 py-2 bg-white text-orange-600 font-bold rounded-xl hover:bg-orange-50 transition text-sm">
-                      Yönet
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {subscriptionStatus === "expired" && (
-                <div
-                  onClick={() => router.push("/premium")}
-                  className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-3xl p-5 shadow-[0_15px_35px_rgba(239,68,68,0.3)] border border-red-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(239,68,68,0.4)]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-2xl">⚠️</span>
-                      </div>
-                      <div>
-                        <h3 className="text-white font-bold text-lg mb-1">Üyelik Süresi Doldu</h3>
-                        <p className="text-red-100 text-sm">Plan satın alarak devam edebilirsin</p>
-                      </div>
-                    </div>
-                    <button className="px-4 py-2 bg-white text-red-600 font-bold rounded-xl hover:bg-red-50 transition text-sm">
-                      Plan Seç
-                    </button>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -677,6 +777,205 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+
+              {/* PAKET BİLGİLERİ BANNER'I - Sol Kolonun Altında */}
+              {/* FREEMIUM BANNER */}
+              {isFreemium && (
+                <div className="animate-slideFade">
+                  <div
+                    onClick={() => router.push("/premium")}
+                    className="bg-gradient-to-r from-gray-700 via-gray-800 to-gray-900 rounded-3xl p-5 shadow-[0_15px_35px_rgba(0,0,0,0.3)] border border-gray-600/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(0,0,0,0.4)]"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                          <span className="text-2xl">🆓</span>
+                        </div>
+                        <div>
+                          <h3 className="text-white font-bold text-lg mb-1">Freemium Mod</h3>
+                          <p className="text-gray-300 text-sm">
+                            Günde sadece <span className="font-bold text-white">{dailyLimit} soru</span> sorabilirsin • Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru • Kalan: <span className={`font-bold ${questionInfo.remaining > 0 ? "text-green-300" : "text-red-300"}`}>{questionInfo.remaining}</span> / {dailyLimit} • ❌ AI Çözüm Yok
+                          </p>
+                        </div>
+                      </div>
+                      <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-xl hover:shadow-lg transition text-sm">
+                        Premium Al
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PLAN BANNER'LARI */}
+              {subscriptionStatus && !isFreemium && (
+                <div className="animate-slideFade space-y-4">
+                  {/* Trial Bitiyor Uyarısı */}
+                  {subscriptionStatus === "trial" && trialDaysLeft <= 2 && trialDaysLeft > 0 && (
+                    <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">⏰</span>
+                        <div className="flex-1">
+                          <h4 className="text-white font-bold text-sm">Trial Süreniz Bitiyor!</h4>
+                          <p className="text-white/90 text-xs">
+                            {trialDaysLeft} gün kaldı! Premium'a geçin, sınırsız soru + AI çözüm kazanın.
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => router.push("/premium")}
+                          className="px-3 py-1.5 bg-white text-orange-600 font-bold rounded-lg text-xs hover:bg-orange-50 transition"
+                        >
+                          Plan Seç
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Abonelik Bitiyor Uyarısı */}
+                  {subscriptionStatus === "active" && (currentPlan === "lite" || currentPlan === "premium") && subscriptionDaysLeft <= 7 && subscriptionDaysLeft > 0 && (
+                    <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-4 shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">⚠️</span>
+                        <div className="flex-1">
+                          <h4 className="text-white font-bold text-sm">Aboneliğiniz Bitiyor!</h4>
+                          <p className="text-white/90 text-xs">
+                            {subscriptionDaysLeft} gün kaldı! Şimdi yenilerseniz %15 indirim kazanın.
+                          </p>
+                        </div>
+                        <button 
+                          onClick={() => router.push("/premium")}
+                          className="px-3 py-1.5 bg-white text-red-600 font-bold rounded-lg text-xs hover:bg-red-50 transition"
+                        >
+                          Yenile
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Trial Plan Banner */}
+                  {subscriptionStatus === "trial" && (
+                    <div
+                      onClick={() => router.push("/premium")}
+                      className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-3xl p-5 shadow-[0_15px_35px_rgba(59,130,246,0.3)] border border-blue-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(59,130,246,0.4)]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <span className="text-2xl">🆓</span>
+                          </div>
+                          <div>
+                            <h3 className="text-white font-bold text-lg mb-1">Trial Plan</h3>
+                            <p className="text-blue-100 text-sm">
+                              {trialDaysLeft > 0 ? (
+                                <>
+                                  Kalan süre: <span className="font-bold">{trialDaysLeft} gün</span> • Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru soruldu • Kalan: <span className={`font-bold ${questionInfo.remaining > 0 ? "text-green-200" : "text-red-200"}`}>{questionInfo.remaining}</span> / {dailyLimit} soru
+                                </>
+                              ) : (
+                                "Trial süresi doldu"
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <button className="px-4 py-2 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition text-sm">
+                          Plan Seç
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Lite Plan Banner */}
+                  {subscriptionStatus === "active" && currentPlan === "lite" && (
+                    <div
+                      onClick={() => router.push("/premium")}
+                      className="bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 rounded-3xl p-5 shadow-[0_15px_35px_rgba(59,130,246,0.3)] border border-blue-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(59,130,246,0.4)]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <span className="text-2xl">📚</span>
+                          </div>
+                          <div>
+                            <h3 className="text-white font-bold text-lg mb-1">Lite Plan</h3>
+                            <p className="text-blue-100 text-sm">
+                              {subscriptionDaysLeft > 0 ? (
+                                <>
+                                  Bitiş: <span className="font-bold">{formatEndDate(userData.subscriptionEndDate)}</span>
+                                  {' '}({subscriptionDaysLeft} gün)
+                                </>
+                              ) : (
+                                "Abonelik süresi doldu"
+                              )}
+                            </p>
+                            <p className="text-blue-200 text-xs mt-1">
+                              Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru • Kalan: <span className={`font-bold ${questionInfo.remaining > 0 ? "text-green-200" : "text-red-200"}`}>{questionInfo.remaining}</span> / {dailyLimit}
+                            </p>
+                          </div>
+                        </div>
+                        <button className="px-4 py-2 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition text-sm">
+                          Yükselt
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Premium Plan Banner */}
+                  {subscriptionStatus === "active" && currentPlan === "premium" && (
+                    <div
+                      onClick={() => router.push("/premium")}
+                      className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-3xl p-5 shadow-[0_15px_35px_rgba(251,146,60,0.3)] border border-yellow-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(251,146,60,0.4)]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <span className="text-2xl">⭐</span>
+                          </div>
+                          <div>
+                            <h3 className="text-white font-bold text-lg mb-1">Premium Plan</h3>
+                            <p className="text-yellow-100 text-sm">
+                              {subscriptionDaysLeft > 0 ? (
+                                <>
+                                  Bitiş: <span className="font-bold">{formatEndDate(userData.subscriptionEndDate)}</span>
+                                  {' '}({subscriptionDaysLeft} gün)
+                                </>
+                              ) : (
+                                "Abonelik süresi doldu"
+                              )}
+                            </p>
+                            <p className="text-yellow-200 text-xs mt-1">
+                              Bugün: <span className="font-bold text-white">{todayQuestionsCount}</span> soru • Sınırsız soru hakkı
+                            </p>
+                          </div>
+                        </div>
+                        <button className="px-4 py-2 bg-white text-orange-600 font-bold rounded-xl hover:bg-orange-50 transition text-sm">
+                          Yönet
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expired Banner */}
+                  {subscriptionStatus === "expired" && (
+                    <div
+                      onClick={() => router.push("/premium")}
+                      className="bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 rounded-3xl p-5 shadow-[0_15px_35px_rgba(239,68,68,0.3)] border border-red-400/30 cursor-pointer active:scale-[0.98] transition-all hover:shadow-[0_20px_45px_rgba(239,68,68,0.4)]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                            <span className="text-2xl">⚠️</span>
+                          </div>
+                          <div>
+                            <h3 className="text-white font-bold text-lg mb-1">Üyelik Süresi Doldu</h3>
+                            <p className="text-red-100 text-sm">Plan satın alarak devam edebilirsin</p>
+                          </div>
+                        </div>
+                        <button className="px-4 py-2 bg-white text-red-600 font-bold rounded-xl hover:bg-red-50 transition text-sm">
+                          Plan Seç
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* RIGHT COLUMN - Side Cards */}
@@ -719,21 +1018,22 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* YAKLAŞAN ETKİNLİKLER CARD */}
-              <div className="animate-slideFade" style={{ animationDelay: "0.5s" }}>
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-200/20 rounded-full blur-3xl"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+              {/* YAKLAŞAN ETKİNLİKLER CARD - Freemium kullanıcılar için gizli */}
+              {!isFreemium && (
+                <div className="animate-slideFade" style={{ animationDelay: "0.5s" }}>
+                  <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-200/20 rounded-full blur-3xl"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900">Yaklaşan Etkinlikler</h3>
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900">Yaklaşan Etkinlikler</h3>
                       </div>
-                    </div>
                     {upcomingEvents.length === 0 ? (
                       <div className="text-center py-8">
                         <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
@@ -831,6 +1131,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* QUICK STATS CARD - Premium */}
               <div className="animate-slideFade" style={{ animationDelay: "0.6s" }}>
@@ -926,6 +1227,14 @@ export default function HomePage() {
       </button>
       
       <StudentFooter />
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }

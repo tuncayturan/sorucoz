@@ -246,6 +246,8 @@ export default function CoachLayout({
   }
 
   const menuItems = [
+    { href: "/coach", label: "Ana Sayfa", icon: "🏠", badge: null },
+    { href: "/coach/students", label: "Öğrenciler", icon: "👥", badge: null },
     { href: "/coach/chat", label: "Mesajlar", icon: "💬", badge: unreadCount > 0 ? unreadCount : null },
     { href: "/coach/calendar", label: "Takvim", icon: "📅", badge: null },
     { href: "/coach/profile", label: "Profil", icon: "👤", badge: null },

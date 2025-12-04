@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase/firestore";
 
-export type SubscriptionStatus = "trial" | "active" | "expired";
-export type SubscriptionPlan = "trial" | "lite" | "premium";
+export type SubscriptionStatus = "trial" | "active" | "expired" | "freemium";
+export type SubscriptionPlan = "trial" | "lite" | "premium" | "freemium";
 
 export interface SubscriptionData {
   trialStartDate: Timestamp | null;
@@ -42,7 +42,8 @@ export function checkSubscriptionStatus(
   trialEndDate: Timestamp | null,
   subscriptionEndDate: Timestamp | null,
   premium: boolean,
-  createdAt?: any
+  createdAt?: any,
+  subscriptionPlan?: SubscriptionPlan
 ): SubscriptionStatus {
   const now = new Date();
   const subEnd = subscriptionEndDate ? subscriptionEndDate.toDate() : null;
@@ -52,13 +53,19 @@ export function checkSubscriptionStatus(
     return "active";
   }
 
+  // Premium veya Lite süresi dolmuşsa, "expired" döndür (7 gün trial'a dönüşecek)
+  if (subEnd && now > subEnd && (subscriptionPlan === "lite" || subscriptionPlan === "premium")) {
+    return "expired"; // Premium/Lite bitmiş, Trial'a dönecek
+  }
+
   // Eğer trialEndDate varsa, onu kullan
   if (trialEndDate) {
     const trialEnd = trialEndDate.toDate();
     
     // Trial süresi dolmuş mu?
     if (now > trialEnd) {
-      return "expired";
+      // Trial dolmuşsa "freemium" döndür
+      return "freemium";
     }
 
     // Trial aktif
@@ -87,15 +94,16 @@ export function checkSubscriptionStatus(
 
     // 7 gün dolmuş mu?
     if (now > trialEndDate) {
-      return "expired";
+      // Trial dolmuşsa "freemium" döndür
+      return "freemium";
     }
 
     // Hala 7 gün içindeyse trial
     return "trial";
   }
 
-  // Hiçbir bilgi yoksa expired döndür (eski davranış)
-  return "expired";
+  // Hiçbir bilgi yoksa freemium döndür
+  return "freemium";
 }
 
 /**
@@ -155,9 +163,17 @@ export function getSubscriptionDaysLeft(subscriptionEndDate: Timestamp | null): 
 
 /**
  * Plan'a göre günlük soru limitini döndürür
+ * isExpired parametresi ile Freemium modu kontrolü
  */
-export function getDailyQuestionLimit(plan: SubscriptionPlan): number {
+export function getDailyQuestionLimit(plan: SubscriptionPlan, isExpired: boolean = false): number {
+  // FREEMIUM MODU: Trial süresi dolmuşsa günde 1 soru
+  if (isExpired && plan === "trial") {
+    return 1; // Freemium: günde sadece 1 soru
+  }
+  
   switch (plan) {
+    case "freemium":
+      return 1; // Freemium'da günde sadece 1 soru
     case "trial":
       return 3; // Trial'da günde 3 soru
     case "lite":
@@ -167,6 +183,38 @@ export function getDailyQuestionLimit(plan: SubscriptionPlan): number {
     default:
       return 0;
   }
+}
+
+/**
+ * Kullanıcının AI çözüm erişimi olup olmadığını kontrol eder
+ */
+export function hasAIAccess(plan: SubscriptionPlan, isExpired: boolean = false): boolean {
+  // FREEMIUM MODU: AI yok
+  if (plan === "freemium") {
+    return false; // Freemium'da AI çözüm yok
+  }
+  
+  // Trial süresi dolmuşsa AI yok (expired trial = freemium)
+  if (isExpired && plan === "trial") {
+    return false;
+  }
+  
+  // Trial, Lite ve Premium'da AI var
+  return true;
+}
+
+/**
+ * Kullanıcının Freemium modunda olup olmadığını kontrol eder
+ */
+export function isFreemiumMode(plan: SubscriptionPlan, subscriptionStatus: SubscriptionStatus): boolean {
+  // Plan zaten freemium ise
+  if (plan === "freemium") return true;
+  
+  // Subscription status freemium ise
+  if (subscriptionStatus === "freemium") return true;
+  
+  // Trial süresi dolmuşsa (expired trial = freemium)
+  return plan === "trial" && subscriptionStatus === "expired";
 }
 
 /**

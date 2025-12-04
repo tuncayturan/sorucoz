@@ -14,6 +14,7 @@ import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 import { createTrialData } from "@/lib/subscriptionUtils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import Toast from "@/components/ui/Toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,9 +23,26 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
   
   const siteLogo = settings.logo || "/img/logo.png";
   const siteName = settings.siteName || "SoruÇöz";
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   // ----------------------------------------------------
   // GOOGLE REGISTER / LOGIN
@@ -89,7 +107,7 @@ export default function RegisterPage() {
       }
       
       console.error("Google Register Error:", err);
-      alert("Google ile kayıt başarısız. Lütfen tekrar deneyin.");
+      showToast("Google ile kayıt başarısız. Lütfen tekrar deneyin.", "error");
     }
   };
 
@@ -97,7 +115,10 @@ export default function RegisterPage() {
   // EMAIL REGISTER + VERIFICATION
   // ----------------------------------------------------
   const register = async () => {
-    if (!name || !email || !pass) return alert("Tüm alanlar zorunlu.");
+    if (!name || !email || !pass) {
+      showToast("Tüm alanlar zorunlu.", "error");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -138,12 +159,28 @@ export default function RegisterPage() {
           // Token kaydetme hatası kayıt işlemini durdurmaz
         });
 
-      router.replace("/auth/verify-email");
+      showToast("Kayıt başarılı! Email doğrulama sayfasına yönlendiriliyorsunuz...", "success");
+      
+      setTimeout(() => {
+        router.replace("/auth/verify-email");
+      }, 500);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("REGISTER ERROR:", err);
-      alert("Kayıt başarısız.");
-    } finally {
+      
+      let errorMessage = "Kayıt başarısız.";
+      
+      if (err.code === "auth/email-already-in-use") {
+        errorMessage = "Bu email adresi zaten kullanılıyor.";
+      } else if (err.code === "auth/weak-password") {
+        errorMessage = "Şifre çok zayıf. En az 6 karakter olmalıdır.";
+      } else if (err.code === "auth/invalid-email") {
+        errorMessage = "Geçersiz email adresi.";
+      } else if (err.code === "auth/network-request-failed") {
+        errorMessage = "Bağlantı hatası. İnternet bağlantınızı kontrol edin.";
+      }
+      
+      showToast(errorMessage, "error");
       setLoading(false);
     }
   };
@@ -281,6 +318,14 @@ export default function RegisterPage() {
           </span>
         </div>
       </div>
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
+import Toast from "@/components/ui/Toast";
 
 export default function TestFCMPage() {
   const { user } = useAuth();
@@ -11,6 +12,23 @@ export default function TestFCMPage() {
   const [loading, setLoading] = useState(false);
   const [swStatus, setSwStatus] = useState<string>("Checking...");
   const [permission, setPermission] = useState<string>("unknown");
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -72,7 +90,7 @@ export default function TestFCMPage() {
       addLog("🔍 Service Worker kontrol ediliyor...");
       if (!('serviceWorker' in navigator)) {
         addLog("❌ Service Worker desteklenmiyor");
-        alert("Service Worker bu tarayıcıda desteklenmiyor");
+        showToast("Service Worker bu tarayıcıda desteklenmiyor", "error");
         setLoading(false);
         return;
       }
@@ -117,7 +135,7 @@ export default function TestFCMPage() {
 
       if (currentPermission === 'denied') {
         addLog("❌ Bildirim izni reddedilmiş!");
-        alert("Bildirim izni reddedilmiş. Lütfen tarayıcı ayarlarından izin verin.");
+        showToast("Bildirim izni reddedilmiş. Lütfen tarayıcı ayarlarından izin verin.", "error");
         setLoading(false);
         return;
       }
@@ -135,20 +153,20 @@ export default function TestFCMPage() {
           addLog("💾 Token Firestore'a kaydediliyor...");
           await saveFCMTokenToUser(user.uid, fcmToken);
           addLog("✅ Token Firestore'a kaydedildi!");
-          alert("✅ Token başarıyla alındı ve kaydedildi!");
+          showToast("Token başarıyla alındı ve kaydedildi!", "success");
         } else {
           addLog("⚠️ Kullanıcı giriş yapmamış, token kaydedilmedi");
-          alert("Token alındı ancak kullanıcı giriş yapmamış");
+          showToast("Token alındı ancak kullanıcı giriş yapmamış", "info");
         }
       } else {
         addLog("❌ Token alınamadı");
-        alert("Token alınamadı. Lütfen logları kontrol edin.");
+        showToast("Token alınamadı. Lütfen logları kontrol edin.", "error");
       }
       
     } catch (error: any) {
       addLog(`❌ HATA: ${error.message || error}`);
       console.error("FCM Test Error:", error);
-      alert("Hata: " + (error.message || error));
+      showToast("Hata: " + (error.message || error), "error");
     } finally {
       setLoading(false);
     }
@@ -300,6 +318,14 @@ export default function TestFCMPage() {
           </ul>
         </div>
       </div>
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }

@@ -14,6 +14,16 @@ export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
+    // Masaüstü kontrolü - ekran boyutu ve user agent
+    const isMobileScreen = window.innerWidth <= 768;
+    const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Masaüstü ise hiç gösterme
+    if (!isMobileScreen && !isMobileUserAgent) {
+      console.log('[PWA] Desktop detected, not showing install prompt');
+      return;
+    }
+    
     // iOS detection
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     // @ts-ignore
@@ -36,9 +46,16 @@ export default function PWAInstallPrompt() {
       }
     }
 
-    // Android: beforeinstallprompt event'ini dinle
+    // Android: beforeinstallprompt event'ini dinle (sadece mobil ise)
     const handleBeforeInstallPrompt = (e: Event) => {
       console.log('[PWA] beforeinstallprompt event fired');
+      
+      // Masaüstü ise event'i görmezden gel
+      if (!isMobileScreen && !isMobileUserAgent) {
+        console.log('[PWA] Desktop detected in event, ignoring');
+        return;
+      }
+      
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       

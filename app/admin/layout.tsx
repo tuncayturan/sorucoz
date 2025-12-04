@@ -38,7 +38,6 @@ export default function AdminLayout({
   const [bildirimler, setBildirimler] = useState<AdminBildirim[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingSupportCount, setPendingSupportCount] = useState(0);
-  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const readNotificationsRef = useRef<Set<string>>(new Set());
 
   // Çevrimiçi durumunu güncelle
@@ -72,7 +71,6 @@ export default function AdminLayout({
 
     let unsubscribeFunctions: (() => void)[] = [];
     const supportMessagesMap = new Map<string, any[]>();
-    const userMessagesMap = new Map<string, any[]>();
 
     // Browser bildirim izni iste
     if ("Notification" in window && Notification.permission === "default") {
@@ -146,55 +144,6 @@ export default function AdminLayout({
           });
           
           unsubscribeFunctions.push(unsubscribeDestek);
-
-          // Kullanıcı mesajlarını real-time dinle
-          const mesajlarRef = collection(db, "users", userId, "mesajlar");
-          const mesajlarQuery = query(mesajlarRef, orderBy("createdAt", "desc"), limit(50));
-          
-          const unsubscribeMesajlar = onSnapshot(mesajlarQuery, (snapshot) => {
-            const unreadMessages: any[] = [];
-            snapshot.forEach((doc) => {
-              const data = doc.data();
-              if (data.type === "user" && !data.read) {
-                unreadMessages.push({
-                  id: `message-${userId}-${doc.id}`,
-                  title: "Yeni Kullanıcı Mesajı",
-                  body: `${data.senderName || "Kullanıcı"}: ${data.text.substring(0, 50)}${data.text.length > 50 ? "..." : ""}`,
-                  read: false,
-                  createdAt: data.createdAt,
-                  type: "message",
-                  data: {
-                    type: "message",
-                    messageId: doc.id,
-                    userId,
-                  },
-                });
-              }
-            });
-            
-            const prevCount = userMessagesMap.get(userId)?.length || 0;
-            userMessagesMap.set(userId, unreadMessages);
-            
-            // Tüm unread mesajları topla
-            const allUnread: any[] = [];
-            userMessagesMap.forEach((messages) => {
-              allUnread.push(...messages);
-            });
-            
-            setUnreadMessageCount(allUnread.length);
-            
-            // Yeni mesaj geldiğinde bildirim göster
-            if (allUnread.length > prevCount && prevCount >= 0) {
-              const newMessage = unreadMessages[0];
-              if (newMessage) {
-                showBrowserNotification(newMessage.title, newMessage.body);
-              }
-            }
-            
-            updateNotifications();
-          });
-          
-          unsubscribeFunctions.push(unsubscribeMesajlar);
         });
       } catch (error) {
         console.error("Real-time listeners kurulurken hata:", error);
@@ -203,17 +152,12 @@ export default function AdminLayout({
 
     const updateNotifications = () => {
       const allSupport: any[] = [];
-      const allUser: any[] = [];
       
       supportMessagesMap.forEach((messages) => {
         allSupport.push(...messages);
       });
       
-      userMessagesMap.forEach((messages) => {
-        allUser.push(...messages);
-      });
-      
-      const allNotifications = [...allSupport, ...allUser].map(notif => ({
+      const allNotifications = allSupport.map(notif => ({
         ...notif,
         read: readNotificationsRef.current.has(notif.id) || notif.read
       })).sort((a, b) => {
@@ -246,17 +190,6 @@ export default function AdminLayout({
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
     
-    // Mark message as read in Firestore if it's a message notification
-    if (bildirim.data?.type === "message" && bildirim.data?.userId && bildirim.data?.messageId) {
-      try {
-        const { doc, updateDoc } = await import("firebase/firestore");
-        const mesajRef = doc(db, "users", bildirim.data.userId, "mesajlar", bildirim.data.messageId);
-        await updateDoc(mesajRef, { read: true });
-      } catch (error) {
-        console.error("Mesaj okuma hatası:", error);
-      }
-    }
-    
     // Mark support message as viewed in Firestore if it's a support notification
     if (bildirim.data?.type === "support" && bildirim.data?.userId && bildirim.data?.supportId) {
       try {
@@ -279,14 +212,11 @@ export default function AdminLayout({
       }
     }
     
+    // Sadece destek bildirimleri için yönlendirme
     if (bildirim.data?.type === "support" && bildirim.data?.userId && bildirim.data?.supportId) {
       router.push(`/admin/destek?userId=${bildirim.data.userId}&supportId=${bildirim.data.supportId}`);
     } else if (bildirim.data?.type === "support") {
       router.push(`/admin/destek`);
-    } else if (bildirim.data?.type === "message" && bildirim.data?.userId && bildirim.data?.messageId) {
-      router.push(`/admin/mesajlar?userId=${bildirim.data.userId}&messageId=${bildirim.data.messageId}`);
-    } else if (bildirim.data?.type === "message") {
-      router.push(`/admin/mesajlar`);
     }
   };
 
@@ -317,7 +247,6 @@ export default function AdminLayout({
   const menuItems = [
     { href: "/admin", label: "Dashboard", icon: "📊", badge: null },
     { href: "/admin/destek", label: "Destek", icon: "💬", badge: pendingSupportCount > 0 ? pendingSupportCount : null },
-    { href: "/admin/mesajlar", label: "Kullanıcı Mesajları", icon: "📨", badge: unreadMessageCount > 0 ? unreadMessageCount : null },
     { href: "/admin/kullanicilar", label: "Kullanıcılar", icon: "👥", badge: null },
     { href: "/admin/coach-yonetimi", label: "Coach Yönetimi", icon: "👨‍🏫", badge: null },
     { href: "/admin/security", label: "Security", icon: "🔒", badge: null },

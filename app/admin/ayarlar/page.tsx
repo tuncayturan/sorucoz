@@ -14,6 +14,9 @@ interface SiteSettings {
   footerCopyright?: string;
   footerDescription?: string;
   notificationSound?: string; // Bildirim sesi URL'si
+  litePlanPrice?: number; // Lite plan fiyatı (₺/ay)
+  premiumPlanPrice?: number; // Premium plan fiyatı (₺/ay)
+  yearlyDiscountPercent?: number; // Yıllık plan indirim oranı (%)
 }
 
 export default function AdminAyarlarPage() {
@@ -55,12 +58,18 @@ export default function AdminAyarlarPage() {
           ...data,
           footerCopyright: data.footerCopyright || `© ${new Date().getFullYear()} ${data.siteName || "SoruÇöz"}. Tüm hakları saklıdır.`,
           footerDescription: data.footerDescription || "Açıklama Metni",
+          litePlanPrice: data.litePlanPrice || 99,
+          premiumPlanPrice: data.premiumPlanPrice || 399,
+          yearlyDiscountPercent: data.yearlyDiscountPercent || 15,
         });
       } else {
         // Hiç ayar yoksa varsayılan değerlerle başlat
         setSettings({
           footerCopyright: `© ${new Date().getFullYear()} SoruÇöz. Tüm hakları saklıdır.`,
           footerDescription: "Açıklama Metni",
+          litePlanPrice: 99,
+          premiumPlanPrice: 399,
+          yearlyDiscountPercent: 15,
         });
       }
     } catch (error) {
@@ -481,6 +490,134 @@ export default function AdminAyarlarPage() {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Paket Fiyatları */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 mb-6 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-green-200/20 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">💰</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Paket Fiyatları</h2>
+                <p className="text-sm text-gray-600">Premium sayfasında gösterilecek fiyatlar</p>
+                <p className="text-xs text-gray-500 mt-1">Fiyatlar TL cinsinden girilmelidir</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lite Plan Fiyatı (₺/ay)
+                </label>
+                <input
+                  type="number"
+                  value={settings.litePlanPrice || ""}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, litePlanPrice: parseInt(e.target.value) || 0 }))}
+                  onBlur={async () => {
+                    try {
+                      const settingsRef = doc(db, "siteSettings", "main");
+                      await setDoc(
+                        settingsRef,
+                        {
+                          litePlanPrice: settings.litePlanPrice || 99,
+                          updatedAt: new Date(),
+                        },
+                        { merge: true }
+                      );
+                      showToast("Lite plan fiyatı güncellendi!", "success");
+                    } catch (error: any) {
+                      showToast(error.message || "Güncelleme başarısız", "error");
+                    }
+                  }}
+                  placeholder="99"
+                  min="0"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Varsayılan: ₺99</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Premium Plan Fiyatı (₺/ay)
+                </label>
+                <input
+                  type="number"
+                  value={settings.premiumPlanPrice || ""}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, premiumPlanPrice: parseInt(e.target.value) || 0 }))}
+                  onBlur={async () => {
+                    try {
+                      const settingsRef = doc(db, "siteSettings", "main");
+                      await setDoc(
+                        settingsRef,
+                        {
+                          premiumPlanPrice: settings.premiumPlanPrice || 399,
+                          updatedAt: new Date(),
+                        },
+                        { merge: true }
+                      );
+                      showToast("Premium plan fiyatı güncellendi!", "success");
+                    } catch (error: any) {
+                      showToast(error.message || "Güncelleme başarısız", "error");
+                    }
+                  }}
+                  placeholder="399"
+                  min="0"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Varsayılan: ₺399</p>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Yıllık Plan İndirim Oranı (%)
+              </label>
+              <input
+                type="number"
+                value={settings.yearlyDiscountPercent || ""}
+                onChange={(e) => setSettings((prev) => ({ ...prev, yearlyDiscountPercent: parseInt(e.target.value) || 0 }))}
+                onBlur={async () => {
+                  try {
+                    const settingsRef = doc(db, "siteSettings", "main");
+                    await setDoc(
+                      settingsRef,
+                      {
+                        yearlyDiscountPercent: settings.yearlyDiscountPercent || 15,
+                        updatedAt: new Date(),
+                      },
+                      { merge: true }
+                    );
+                    showToast("Yıllık indirim oranı güncellendi!", "success");
+                  } catch (error: any) {
+                    showToast(error.message || "Güncelleme başarısız", "error");
+                  }
+                }}
+                placeholder="15"
+                min="0"
+                max="100"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Yıllık plan seçildiğinde uygulanacak indirim oranı. Varsayılan: %15
+              </p>
+              <div className="mt-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-xs text-yellow-800">
+                  <strong>Örnek:</strong> Lite aylık ₺{settings.litePlanPrice || 99}, yıllık indirim %{settings.yearlyDiscountPercent || 15} → 
+                  Yıllık fiyat: ₺{Math.round((settings.litePlanPrice || 99) * 12 * (1 - (settings.yearlyDiscountPercent || 15) / 100))}
+                  {' '}(₺{Math.round((settings.litePlanPrice || 99) * 12 * (1 - (settings.yearlyDiscountPercent || 15) / 100) / 12)}/ay)
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <p className="text-sm text-blue-800 font-semibold mb-2">💡 Bilgi:</p>
+              <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                <li>Fiyatlar değiştirildiğinde otomatik olarak kaydedilir</li>
+                <li>Premium sayfasında öğrencilere bu fiyatlar gösterilir</li>
+                <li>Fiyat değişiklikleri tüm kullanıcılar için geçerlidir</li>
+              </ul>
             </div>
           </div>
         </div>

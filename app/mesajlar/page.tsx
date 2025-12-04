@@ -443,7 +443,7 @@ function MesajlarContent() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length + selectedFiles.length > 5) {
-      alert("Maksimum 5 dosya seçebilirsiniz");
+      showToast("Maksimum 5 dosya seçebilirsiniz", "error");
       return;
     }
     
@@ -454,7 +454,7 @@ function MesajlarContent() {
     });
     
     if (invalidFiles.length > 0) {
-      alert("Sadece resim ve PDF dosyaları yüklenebilir");
+      showToast("Sadece resim ve PDF dosyaları yüklenebilir", "error");
       return;
     }
     
@@ -520,7 +520,7 @@ function MesajlarContent() {
       setEditingText("");
     } catch (error) {
       console.error("Mesaj düzenlenirken hata:", error);
-      alert("Mesaj düzenlenirken bir hata oluştu.");
+      showToast("Mesaj düzenlenirken bir hata oluştu.", "error");
     }
   };
 
@@ -535,7 +535,7 @@ function MesajlarContent() {
       await deleteDoc(messageRef);
     } catch (error) {
       console.error("Mesaj silinirken hata:", error);
-      alert("Mesaj silinirken bir hata oluştu.");
+      showToast("Mesaj silinirken bir hata oluştu.", "error");
     }
   };
 
@@ -627,7 +627,7 @@ function MesajlarContent() {
             await handleVoiceRecordingComplete(blob);
           } catch (error) {
             console.error("Ses işlenirken hata:", error);
-            alert("Ses kaydı işlenirken bir hata oluştu.");
+            showToast("Ses kaydı işlenirken bir hata oluştu.", "error");
           }
         } else {
           console.log("Kayıt gönderilmiyor - chunks:", audioChunksRef.current.length, "süre:", finalTime);
@@ -650,7 +650,7 @@ function MesajlarContent() {
       }, 100);
     } catch (error) {
       console.error("Ses kaydı başlatılırken hata:", error);
-      alert("Mikrofon erişimi reddedildi. Lütfen izin verin.");
+      showToast("Mikrofon erişimi reddedildi. Lütfen izin verin.", "error");
       setIsRecording(false);
     }
   };
@@ -694,7 +694,7 @@ function MesajlarContent() {
 
     if (!audioBlob || audioBlob.size === 0) {
       console.error("Ses dosyası geçersiz veya boş");
-      alert("Ses kaydı boş. Lütfen tekrar deneyin.");
+      showToast("Ses kaydı boş. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -786,7 +786,7 @@ function MesajlarContent() {
       setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error("Ses mesajı gönderilirken hata:", error);
-      alert("Ses mesajı gönderilirken bir hata oluştu.");
+      showToast("Ses mesajı gönderilirken bir hata oluştu.", "error");
     } finally {
       setGonderiliyor(false);
     }
@@ -931,7 +931,7 @@ function MesajlarContent() {
       setTimeout(() => scrollToBottom(), 100);
     } catch (error) {
       console.error("Mesaj gönderilirken hata:", error);
-      alert("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.");
+      showToast("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.", "error");
     } finally {
       setGonderiliyor(false);
       setUploadingFiles(false);

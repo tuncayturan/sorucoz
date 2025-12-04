@@ -5,9 +5,13 @@
 
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getMessaging, Messaging } from "firebase-admin/messaging";
+import { getAuth, Auth } from "firebase-admin/auth";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
 
 let adminApp: App | null = null;
 let messaging: Messaging | null = null;
+let auth: Auth | null = null;
+let firestore: Firestore | null = null;
 
 /**
  * Initialize Firebase Admin SDK
@@ -68,6 +72,32 @@ export function getAdminMessaging(): Messaging {
   const app = getAdminApp();
   messaging = getMessaging(app);
   return messaging;
+}
+
+/**
+ * Get Firebase Admin Auth instance
+ */
+export function getAdminAuth(): Auth {
+  if (auth) {
+    return auth;
+  }
+
+  const app = getAdminApp();
+  auth = getAuth(app);
+  return auth;
+}
+
+/**
+ * Get Firebase Admin Firestore instance
+ */
+export function getAdminFirestore(): Firestore {
+  if (firestore) {
+    return firestore;
+  }
+
+  const app = getAdminApp();
+  firestore = getFirestore(app);
+  return firestore;
 }
 
 /**

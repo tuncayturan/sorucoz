@@ -13,6 +13,7 @@ import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtil
 import { createTrialData } from "@/lib/subscriptionUtils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import IOSInstallPrompt from "@/components/IOSInstallPrompt";
+import Toast from "@/components/ui/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,15 +21,35 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
   
   const siteLogo = settings.logo || "/img/logo.png";
   const siteName = settings.siteName || "SoruÇöz";
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   // ----------------------------
   // EMAIL LOGIN
   // ----------------------------
   const login = async () => {
-    if (!email || !pass) return alert("Tüm alanlar zorunlu.");
+    if (!email || !pass) {
+      showToast("Tüm alanlar zorunlu.", "error");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -38,11 +59,20 @@ export default function LoginPage() {
       const snap = await getDoc(ref);
 
       if (!snap.exists()) {
-        alert("Hesap bulunamadı. Lütfen kayıt olun.");
+        showToast("Hesap bulunamadı. Lütfen kayıt olun.", "error");
+        setLoading(false);
         return;
       }
 
-      const role = snap.data().role;
+      const userData = snap.data();
+      const role = userData.role;
+      const emailVerified = userData.emailVerified || false;
+
+      // Email doğrulama kontrolü - sadece email ile kayıt olanlar için
+      if (!emailVerified && !cred.user.providerData.some(p => p.providerId === 'google.com')) {
+        showToast("⚠️ Email adresiniz doğrulanmamış! Lütfen email kutunuzu kontrol edin. Yine de giriş yapabilirsiniz.", "info");
+        // Kullanıcı yine de giriş yapabilir ama uyarı almış olur
+      }
 
       // FCM token'ı al ve kaydet (async, login'i bloklamaz)
       requestNotificationPermission()
@@ -59,14 +89,30 @@ export default function LoginPage() {
           // Token kaydetme hatası login işlemini durdurmaz
         });
 
-      if (role === "admin") router.replace("/admin");
-      else if (role === "coach") router.replace("/coach");
-      else router.replace("/home");
+      showToast("Giriş başarılı! Yönlendiriliyorsunuz...", "success");
+      
+      // Biraz bekle ki toast görünsün
+      setTimeout(() => {
+        if (role === "admin") router.replace("/admin");
+        else if (role === "coach") router.replace("/coach");
+        else router.replace("/home");
+      }, 500);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Giriş başarısız.");
-    } finally {
+      let errorMessage = "Giriş başarısız.";
+      
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+        errorMessage = "Email veya şifre hatalı.";
+      } else if (err.code === "auth/user-not-found") {
+        errorMessage = "Kullanıcı bulunamadı.";
+      } else if (err.code === "auth/too-many-requests") {
+        errorMessage = "Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.";
+      } else if (err.code === "auth/network-request-failed") {
+        errorMessage = "Bağlantı hatası. İnternet bağlantınızı kontrol edin.";
+      }
+      
+      showToast(errorMessage, "error");
       setLoading(false);
     }
   };
@@ -90,7 +136,7 @@ export default function LoginPage() {
           role: "student", // Tüm yeni kayıtlar student rolünde
           premium: false,
           createdAt: serverTimestamp(),
-          emailVerified: user.emailVerified,
+          emailVerified: true, // Google ile giriş yapanlar otomatik onaylı
           photoURL: user.photoURL || null, // Google profil resmini kaydet
           fcmTokens: [], // FCM token'ları için array
           ...trialData, // 7 günlük trial başlat
@@ -134,7 +180,7 @@ export default function LoginPage() {
       }
       
       console.error("Google Login Error:", err);
-      alert("Google ile giriş başarısız. Lütfen tekrar deneyin.");
+      showToast("Google ile giriş başarısız. Lütfen tekrar deneyin.", "error");
     }
   };
 
@@ -259,6 +305,14 @@ export default function LoginPage() {
           </span>
         </div>
       </div>
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
     </>
   );

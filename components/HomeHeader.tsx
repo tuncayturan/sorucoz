@@ -8,6 +8,7 @@ import { useUserData } from "@/hooks/useUserData";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { collection, query, orderBy, getDocs, doc, updateDoc, Timestamp, onSnapshot, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { checkSubscriptionStatus, isFreemiumMode, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 
 interface HomeHeaderProps {
   onMenuClick?: () => void;
@@ -42,6 +43,19 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
   const displayPhoto = userData?.photoURL || user?.photoURL || null;
   const logoUrl = settings.logo || null;
   const siteName = settings.siteName || "SoruÇöz"; // Site adı, yoksa varsayılan "SoruÇöz"
+  
+  // Freemium kontrolü
+  const subscriptionStatus = userData 
+    ? checkSubscriptionStatus(
+        userData.trialEndDate || null,
+        userData.subscriptionEndDate || null,
+        userData.premium,
+        userData.createdAt,
+        userData.subscriptionPlan
+      )
+    : "trial";
+  const currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
+  const isFreemium = isFreemiumMode(currentPlan, subscriptionStatus);
 
   // Bildirimleri çek
   useEffect(() => {
@@ -267,16 +281,50 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
 
           {/* RIGHT: User Profile */}
           <div className="flex items-center gap-3">
-            {/* Premium Badge (Desktop) */}
-            {isPremium && (
-              <span className="hidden sm:flex items-center gap-1.5 text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1.5 rounded-full font-medium shadow-sm">
-                <span>⭐</span>
-                <span>Premium</span>
-              </span>
+            {/* Plan Badge (Desktop) - Tıklanabilir, Premium sayfasına gider */}
+            {user && (
+              <button
+                onClick={() => router.push("/premium")}
+                className={`hidden sm:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 ${
+                  currentPlan === "freemium"
+                    ? "bg-gradient-to-r from-gray-600 to-gray-800 text-white"
+                    : currentPlan === "trial"
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                    : currentPlan === "lite"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                    : currentPlan === "premium"
+                    ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+                title="Plan detaylarını görüntüle"
+              >
+                <span>
+                  {currentPlan === "freemium"
+                    ? "🆓"
+                    : currentPlan === "trial"
+                    ? "🎁"
+                    : currentPlan === "lite"
+                    ? "📚"
+                    : currentPlan === "premium"
+                    ? "⭐"
+                    : "📦"}
+                </span>
+                <span>
+                  {currentPlan === "freemium"
+                    ? "Freemium"
+                    : currentPlan === "trial"
+                    ? "Trial"
+                    : currentPlan === "lite"
+                    ? "Lite"
+                    : currentPlan === "premium"
+                    ? "Premium"
+                    : "Plan Seç"}
+                </span>
+              </button>
             )}
 
-            {/* Events Button */}
-            {user && (
+            {/* Events Button - Freemium kullanıcılar için gizli */}
+            {user && !isFreemium && (
               <button
                 onClick={() => router.push("/etkinlikler")}
                 className="relative p-2 rounded-xl hover:bg-gray-100/80 active:scale-95 transition"

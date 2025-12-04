@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
-import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, getPlanPrice, type SubscriptionPlan } from "@/lib/subscriptionUtils";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, getPlanPrice, isFreemiumMode, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
+import SideMenu from "@/components/SideMenu";
 import Toast from "@/components/ui/Toast";
 import StudentFooter from "@/components/StudentFooter";
 
@@ -15,7 +17,10 @@ export default function PremiumPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { userData, loading, refresh: refreshUserData } = useUserData();
+  const { settings } = useSiteSettings();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "info";
@@ -44,11 +49,13 @@ export default function PremiumPage() {
     userData.trialEndDate || null,
     userData.subscriptionEndDate || null,
     userData.premium,
-    userData.createdAt
+    userData.createdAt,
+    userData.subscriptionPlan
   );
   const trialDaysLeft = getTrialDaysLeft(userData.trialEndDate || null, userData.createdAt);
   const subscriptionDaysLeft = getSubscriptionDaysLeft(userData.subscriptionEndDate || null);
   const currentPlan = userData.subscriptionPlan || "trial";
+  const isFreemium = isFreemiumMode(currentPlan, subscriptionStatus);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type, isVisible: true });
@@ -58,7 +65,7 @@ export default function PremiumPage() {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
 
-  const handlePurchase = async (plan: SubscriptionPlan) => {
+  const handlePurchase = async (plan: SubscriptionPlan, isYearly: boolean = false) => {
     if (!user) return;
 
     // Trial plan'ı satın alınamaz
@@ -66,6 +73,8 @@ export default function PremiumPage() {
       showToast("Trial planı zaten aktif!", "info");
       return;
     }
+    
+    const subscriptionDays = isYearly ? 365 : 30; // Yıllık: 365 gün, Aylık: 30 gün
 
     // Premium'dan Lite'a geçiş kontrolü
     if (currentPlan === "premium" && plan === "lite" && subscriptionStatus === "active") {
@@ -115,7 +124,7 @@ export default function PremiumPage() {
       // Yeni abonelik (Trial'dan veya expired'dan)
       else {
         const subscriptionEndDate = new Date(now);
-        subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30); // 30 gün sonra
+        subscriptionEndDate.setDate(subscriptionEndDate.getDate() + subscriptionDays);
 
         await updateDoc(userRef, {
           premium: plan === "premium",
@@ -123,12 +132,14 @@ export default function PremiumPage() {
           subscriptionStatus: "active",
           subscriptionStartDate: Timestamp.fromDate(now),
           subscriptionEndDate: Timestamp.fromDate(subscriptionEndDate),
+          billingPeriod: isYearly ? "yearly" : "monthly", // Faturalama periyodu
           dailyQuestionCount: 0,
           lastQuestionDate: now.toISOString().split("T")[0],
         });
 
         refreshUserData();
-        showToast(`${plan === "lite" ? "Lite" : "Premium"} plan başarıyla aktif edildi! (Test modu)`, "success");
+        const periodText = isYearly ? "yıllık" : "aylık";
+        showToast(`${plan === "lite" ? "Lite" : "Premium"} plan (${periodText}) başarıyla aktif edildi! (Test modu)`, "success");
       }
       
       setTimeout(() => {
@@ -142,18 +153,29 @@ export default function PremiumPage() {
     }
   };
 
+  // Admin'den fiyatları ve indirim oranını al veya varsayılan kullan
+  const litePriceMonthly = settings.litePlanPrice || 99;
+  const premiumPriceMonthly = settings.premiumPlanPrice || 399;
+  const yearlyDiscountPercent = settings.yearlyDiscountPercent || 15;
+  
+  // Yıllık fiyatlar (12 ay - admin'den gelen indirim oranı)
+  const discountMultiplier = 1 - (yearlyDiscountPercent / 100);
+  const litePriceYearly = Math.round(litePriceMonthly * 12 * discountMultiplier);
+  const premiumPriceYearly = Math.round(premiumPriceMonthly * 12 * discountMultiplier);
+
   const plans = [
     {
       id: "lite" as SubscriptionPlan,
       name: "Lite",
-      price: 99,
-      period: "ay",
+      priceMonthly: litePriceMonthly,
+      priceYearly: litePriceYearly,
       icon: "📚",
       colorClass: "from-blue-500 to-indigo-600",
       bgColorClass: "from-blue-50 to-indigo-50",
       borderColorClass: "border-blue-200",
       features: [
         "Günde 10 soru",
+        "AI çözüm desteği",
         "Koç desteği",
         "Temel istatistikler",
         "Email desteği",
@@ -162,8 +184,8 @@ export default function PremiumPage() {
     {
       id: "premium" as SubscriptionPlan,
       name: "Premium",
-      price: 399,
-      period: "ay",
+      priceMonthly: premiumPriceMonthly,
+      priceYearly: premiumPriceYearly,
       icon: "⭐",
       colorClass: "from-yellow-400 via-orange-500 to-red-500",
       bgColorClass: "from-yellow-50 to-orange-50",
@@ -171,6 +193,7 @@ export default function PremiumPage() {
       popular: true,
       features: [
         "Sınırsız soru sorma",
+        "Gelişmiş AI çözüm",
         "Özel koç desteği",
         "Detaylı istatistikler",
         "Öncelikli destek",
@@ -181,7 +204,8 @@ export default function PremiumPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1]">
-      <HomeHeader />
+      <HomeHeader onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
       
       <div className="flex justify-center items-start px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
         <div className="w-full max-w-6xl">
@@ -196,20 +220,46 @@ export default function PremiumPage() {
           </div>
 
           {/* Trial Status */}
-          {subscriptionStatus === "trial" && (
+          {subscriptionStatus === "trial" && !isFreemium && (
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-6 mb-6 border border-blue-200 animate-slideFade">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">🆓 Ücretsiz Deneme</h3>
                   <p className="text-gray-600 text-sm">
                     {trialDaysLeft > 0 ? (
-                      <>Kalan süre: <span className="font-bold text-blue-600">{trialDaysLeft} gün</span></>
+                      <>
+                        Kalan süre: <span className="font-bold text-blue-600">{trialDaysLeft} gün</span> • 
+                        Günde 3 soru + AI çözüm
+                      </>
                     ) : (
                       "Trial süresi doldu"
                     )}
                   </p>
                 </div>
                 <div className="text-3xl">🆓</div>
+              </div>
+            </div>
+          )}
+
+          {/* Freemium Status */}
+          {isFreemium && (
+            <div className="bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 rounded-3xl p-6 mb-6 border border-gray-600 animate-slideFade">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-2">🆓 Freemium Mod</h3>
+                  <p className="text-gray-300 text-sm mb-3">
+                    Trial süreniz doldu. Şu an kısıtlı moddasınız:
+                  </p>
+                  <ul className="text-gray-400 text-xs space-y-1">
+                    <li>✅ Günde 1 soru sorabilirsiniz</li>
+                    <li>❌ AI çözüm yok (sadece coach desteği)</li>
+                    <li>✅ Eski sorularınızı görebilirsiniz</li>
+                  </ul>
+                  <p className="text-yellow-300 text-sm mt-3 font-bold">
+                    💎 Premium'a geçin → Sınırsız soru + AI çözüm!
+                  </p>
+                </div>
+                <div className="text-4xl">🆓</div>
               </div>
             </div>
           )}
@@ -234,6 +284,35 @@ export default function PremiumPage() {
             </div>
           )}
 
+          {/* Billing Period Toggle */}
+          <div className="flex justify-center mb-6 animate-slideFade">
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/60 inline-flex gap-2">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={`px-6 py-3 rounded-xl font-bold transition-all ${
+                  billingPeriod === "monthly"
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Aylık
+              </button>
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={`px-6 py-3 rounded-xl font-bold transition-all relative ${
+                  billingPeriod === "yearly"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                Yıllık
+                <span className="ml-2 text-xs bg-yellow-400 text-gray-900 px-2 py-0.5 rounded-full font-bold">
+                  %{yearlyDiscountPercent} İndirim
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Plans Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {plans.map((plan) => {
@@ -242,6 +321,11 @@ export default function PremiumPage() {
               
               // Premium'dan Lite'a geçiş engellendi mi?
               const isDowngradeBlocked = currentPlan === "premium" && plan.id === "lite" && subscriptionStatus === "active" && subscriptionDaysLeft > 0;
+              
+              // Fiyatları belirle
+              const displayPrice = billingPeriod === "yearly" ? plan.priceYearly : plan.priceMonthly;
+              const monthlyEquivalent = billingPeriod === "yearly" ? Math.round(plan.priceYearly / 12) : plan.priceMonthly;
+              const savingsAmount = billingPeriod === "yearly" ? (plan.priceMonthly * 12 - plan.priceYearly) : 0;
 
               return (
                 <div
@@ -282,16 +366,35 @@ export default function PremiumPage() {
                       </div>
                       <div>
                         <h2 className="text-2xl font-bold text-gray-900">{plan.name}</h2>
-                        <p className="text-sm text-gray-500">Aylık abonelik</p>
+                        <p className="text-sm text-gray-500">
+                          {billingPeriod === "yearly" ? "Yıllık abonelik" : "Aylık abonelik"}
+                        </p>
                       </div>
                     </div>
 
                     {/* Price */}
                     <div className="mb-6">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-gray-900">{plan.price}₺</span>
-                        <span className="text-gray-500">/{plan.period}</span>
-                      </div>
+                      {billingPeriod === "yearly" ? (
+                        <>
+                          <div className="flex items-baseline gap-2 mb-2">
+                            <span className="text-4xl font-bold text-gray-900">{displayPrice}₺</span>
+                            <span className="text-gray-500">/yıl</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">
+                              ({monthlyEquivalent}₺/ay)
+                            </span>
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                              {savingsAmount}₺ tasarruf
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-bold text-gray-900">{displayPrice}₺</span>
+                          <span className="text-gray-500">/ay</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Features */}
@@ -310,7 +413,7 @@ export default function PremiumPage() {
 
                     {/* Purchase Button */}
                     <button
-                      onClick={() => handlePurchase(plan.id)}
+                      onClick={() => handlePurchase(plan.id, billingPeriod === "yearly")}
                       disabled={isProcessing || isCurrentPlan || isDowngradeBlocked}
                       className={`w-full py-4 rounded-2xl text-white font-bold text-lg
                                bg-gradient-to-r ${
@@ -330,7 +433,9 @@ export default function PremiumPage() {
                         ? "Aktif Plan"
                         : isDowngradeBlocked
                         ? `Mevcut abonelik bitene kadar bekleyin (${subscriptionDaysLeft} gün)`
-                        : `${plan.name} Plan'a Geç - ${plan.price}₺/ay`}
+                        : billingPeriod === "yearly"
+                        ? `${plan.name} Plan'a Geç - ${displayPrice}₺/yıl`
+                        : `${plan.name} Plan'a Geç - ${displayPrice}₺/ay`}
                     </button>
                     
                     {/* Downgrade Warning */}
@@ -397,7 +502,7 @@ export default function PremiumPage() {
 
           {/* Info */}
           <div className="text-center text-sm text-gray-500">
-            <p>Güvenli ödeme • İstediğin zaman iptal et • Tüm planlar aylık</p>
+            <p>Güvenli ödeme • İstediğin zaman iptal et • Aylık veya Yıllık ödeme seçenekleri</p>
           </div>
         </div>
       </div>

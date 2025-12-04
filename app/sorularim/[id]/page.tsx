@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
+import SideMenu from "@/components/SideMenu";
 import Image from "next/image";
 import Toast from "@/components/ui/Toast";
 import StudentFooter from "@/components/StudentFooter";
@@ -58,6 +59,7 @@ export default function SoruDetayPage() {
   const [loading, setLoading] = useState(true);
   const [solving, setSolving] = useState(false);
   const [quotaError, setQuotaError] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -218,7 +220,8 @@ export default function SoruDetayPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1]">
-      <HomeHeader />
+      <HomeHeader onMenuClick={() => setIsMenuOpen(true)} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
 
       <div className="flex justify-center items-start px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
         <div className="w-full max-w-4xl">

@@ -50,7 +50,7 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] flex items-center justify-center">
         <div className="relative">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <div className="absolute inset-0 w-16 h-16 border-4 border-purple-500 border-r-transparent rounded-full animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }}></div>
@@ -109,7 +109,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] overflow-x-hidden relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] overflow-x-hidden relative">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {/* Floating gradient orbs */}
@@ -144,8 +144,8 @@ export default function LandingPage() {
         />
 
         {/* Geometric shapes */}
-        <div className="absolute top-20 left-10 w-72 h-72 border border-white/5 rounded-full animate-spin" style={{ animationDuration: "20s" }} />
-        <div className="absolute bottom-20 right-10 w-96 h-96 border border-white/5 rounded-full animate-spin" style={{ animationDuration: "25s", animationDirection: "reverse" }} />
+        <div className="absolute top-20 left-10 w-72 h-72 border border-gray-200/30 rounded-full animate-spin" style={{ animationDuration: "20s" }} />
+        <div className="absolute bottom-20 right-10 w-96 h-96 border border-gray-200/30 rounded-full animate-spin" style={{ animationDuration: "25s", animationDirection: "reverse" }} />
       </div>
 
       {/* Hero Section */}
@@ -186,7 +186,7 @@ export default function LandingPage() {
                         className="w-full h-full object-cover rounded-[2.5rem]"
                       />
                     ) : (
-                      <span className="text-6xl font-black text-white drop-shadow-lg">{siteName.charAt(0).toUpperCase()}</span>
+                      <span className="text-6xl font-black text-gray-900 drop-shadow-lg">{siteName.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                   
@@ -206,13 +206,13 @@ export default function LandingPage() {
 
             {/* Main Headline with animated gradient */}
             <h1
-              className="text-6xl sm:text-7xl lg:text-8xl font-black text-white mb-8 leading-tight relative"
+              className="text-6xl sm:text-7xl lg:text-8xl font-black text-gray-900 mb-8 leading-tight relative"
               style={{
                 transform: `translateY(${scrollY * 0.1}px)`,
               }}
             >
               <span className="block mb-2">{siteName}</span>
-              <span className="block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+              <span className="block bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
                 ile Başarıya
               </span>
               <style jsx>{`
@@ -232,16 +232,16 @@ export default function LandingPage() {
 
             {/* Subheadline */}
             <p
-              className="text-xl sm:text-2xl lg:text-3xl text-gray-300 mb-16 max-w-3xl mx-auto leading-relaxed"
+              className="text-xl sm:text-2xl lg:text-3xl text-gray-700 mb-16 max-w-3xl mx-auto leading-relaxed"
               style={{
                 transform: `translateY(${scrollY * 0.05}px)`,
               }}
             >
-              <span className="bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-transparent font-semibold">
+              <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent font-semibold">
                 Yapay zeka ve uzman eğitim koçları
               </span>
               <br />
-              <span className="text-gray-400">ile öğrenme deneyiminizi bir üst seviyeye taşıyın</span>
+              <span className="text-gray-600">ile öğrenme deneyiminizi bir üst seviyeye taşıyın</span>
             </p>
 
             {/* Premium CTA Button */}
@@ -294,16 +294,16 @@ export default function LandingPage() {
                   <div className={`absolute -inset-0.5 bg-gradient-to-r ${item.gradient} rounded-2xl opacity-0 group-hover:opacity-50 blur-xl transition-opacity duration-500 ${item.glow}`} />
                   
                   {/* Card */}
-                  <div className={`relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl px-6 py-4 sm:px-8 sm:py-5 hover:border-white/20 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 ${item.bgGradient}`}>
+                  <div className={`relative bg-white/80 backdrop-blur-xl border border-gray-200/50 rounded-2xl px-6 py-4 sm:px-8 sm:py-5 hover:border-gray-300 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 shadow-[0_10px_40px_rgba(0,0,0,0.08)] ${item.bgGradient}`}>
                     {/* Text */}
                     <div className="text-center">
-                      <span className="font-bold text-white text-base sm:text-lg group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-gray-200 group-hover:bg-clip-text transition-all duration-500">
+                      <span className="font-bold text-gray-900 text-base sm:text-lg group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500 group-hover:bg-clip-text transition-all duration-500">
                         {item.text}
                       </span>
                     </div>
                     
                     {/* Decorative corner accent */}
-                    <div className={`absolute top-0 right-0 w-8 h-8 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-20 rounded-bl-2xl rounded-tr-2xl transition-opacity duration-500`} />
+                    <div className={`absolute top-0 right-0 w-8 h-8 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-30 rounded-bl-2xl rounded-tr-2xl transition-opacity duration-500`} />
                   </div>
                 </div>
               ))}
@@ -316,12 +316,12 @@ export default function LandingPage() {
       <div className="relative py-32 px-4 sm:px-6 lg:px-8 z-10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-5xl sm:text-6xl font-black text-white mb-6">
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h2 className="text-5xl sm:text-6xl font-black text-gray-900 mb-6">
+              <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
                 Neden {siteName}?
               </span>
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Öğrenme deneyiminizi dönüştüren özellikler
             </p>
           </div>
@@ -331,26 +331,26 @@ export default function LandingPage() {
               <div
                 key={index}
                 onClick={handleGetStarted}
-                className="group relative bg-white/5 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white/10 hover:border-white/20 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:-translate-y-2"
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-gray-200/50 hover:border-gray-300 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:-translate-y-2 shadow-[0_10px_40px_rgba(0,0,0,0.08)]"
                 style={{
                   animationDelay: `${index * 0.1}s`,
                   transform: `perspective(1000px) rotateY(${(mousePosition.x - 50) * 0.01}deg) rotateX(${(mousePosition.y - 50) * -0.01}deg)`,
                 }}
               >
                 {/* Gradient background on hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-10 rounded-[2.5rem] transition-opacity duration-500`} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-30 rounded-[2.5rem] transition-opacity duration-500`} />
                 
                 {/* Glow effect */}
-                <div className={`absolute -inset-1 bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-20 blur-xl rounded-[2.5rem] transition-opacity duration-500`} />
+                <div className={`absolute -inset-1 bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-30 blur-xl rounded-[2.5rem] transition-opacity duration-500`} />
 
                 <div className="relative z-10">
                   <div className={`text-6xl mb-6 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 inline-block`}>
                     {feature.icon}
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-purple-400 group-hover:bg-clip-text transition-all duration-500">
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500 group-hover:bg-clip-text transition-all duration-500">
                     {feature.title}
                   </h3>
-                  <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                  <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors">
                     {feature.description}
                   </p>
                 </div>
@@ -371,12 +371,12 @@ export default function LandingPage() {
             ].map((stat, index) => (
               <div
                 key={index}
-                className="group relative bg-white/5 backdrop-blur-2xl rounded-[2.5rem] p-12 border border-white/10 hover:border-white/20 text-center transform hover:scale-105 transition-all duration-500"
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-12 border border-gray-200/50 hover:border-gray-300 text-center transform hover:scale-105 transition-all duration-500 shadow-[0_10px_40px_rgba(0,0,0,0.08)]"
               >
                 <div className={`text-7xl font-black bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent mb-4 transform group-hover:scale-110 transition-transform duration-500`}>
                   {stat.number}
                 </div>
-                <div className="text-gray-400 font-semibold text-lg group-hover:text-white transition-colors">
+                <div className="text-gray-600 font-semibold text-lg group-hover:text-gray-900 transition-colors">
                   {stat.label}
                 </div>
               </div>
@@ -392,29 +392,30 @@ export default function LandingPage() {
             {/* Animated gradient background */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-[3rem] blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500 animate-pulse" />
             
-            <div className="relative bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 backdrop-blur-2xl rounded-[3rem] p-16 border border-white/20">
+            <div className="relative bg-white/80 backdrop-blur-xl rounded-[3rem] p-16 border border-gray-200/50 shadow-[0_20px_60px_rgba(0,0,0,0.1)]">
               <div className="text-center">
-                <h2 className="text-5xl sm:text-6xl font-black text-white mb-6">
+                <h2 className="text-5xl sm:text-6xl font-black text-gray-900 mb-6">
                   Hemen Başlayın
                 </h2>
-                <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed">
+                <p className="text-xl text-gray-700 mb-12 max-w-2xl mx-auto leading-relaxed">
                   Öğrenme yolculuğunuzu bugün başlatın.{" "}
-                  <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent font-bold">
+                  <span className="bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent font-bold">
                     Premium deneyim
                   </span>{" "}
                   sizi bekliyor.
                 </p>
                 <button
                   onClick={handleGetStarted}
-                  className="group relative inline-flex items-center justify-center px-14 py-6 bg-white text-gray-900 text-xl font-black rounded-[2rem] overflow-hidden transform hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_20px_60px_rgba(255,255,255,0.3)] hover:shadow-[0_25px_80px_rgba(255,255,255,0.4)]"
+                  className="group relative inline-flex items-center justify-center px-14 py-6 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white text-xl font-black rounded-[2rem] overflow-hidden transform hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_20px_60px_rgba(59,130,246,0.5)] hover:shadow-[0_25px_80px_rgba(59,130,246,0.7)]"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <span className="relative z-10 flex items-center gap-3">
                     Ücretsiz Başlayın
-                    <svg className="w-6 h-6 transform group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
                   </span>
+                  <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                 </button>
               </div>
             </div>
@@ -423,10 +424,10 @@ export default function LandingPage() {
       </div>
 
       {/* Footer */}
-      <div className="relative py-12 px-4 sm:px-6 lg:px-8 border-t border-white/10 z-10">
+      <div className="relative py-12 px-4 sm:px-6 lg:px-8 border-t border-gray-200/50 z-10">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-gray-500 text-sm">
-            © 2024 {siteName}. {settings.footerCopyright || "Tüm hakları saklıdır."}
+          <p className="text-gray-600 text-sm">
+            © 2025 {siteName}. {settings.footerCopyright || "Tüm hakları saklıdır."}
           </p>
         </div>
       </div>

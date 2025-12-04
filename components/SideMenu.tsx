@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
+import { checkSubscriptionStatus, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 
 interface SideMenuProps {
   isOpen: boolean;
@@ -24,6 +25,18 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
 
   const displayName = userData?.name || user?.displayName || "Öğrenci";
   const isPremium = userData?.premium || false;
+  
+  // Plan bilgisini hesapla
+  const subscriptionStatus = userData 
+    ? checkSubscriptionStatus(
+        userData.trialEndDate || null,
+        userData.subscriptionEndDate || null,
+        userData.premium,
+        userData.createdAt,
+        userData.subscriptionPlan
+      )
+    : "trial";
+  const currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
 
   const menuItems: MenuItem[] = [
     {
@@ -125,11 +138,45 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
                 </svg>
               </button>
             </div>
-            {isPremium && (
-              <div className="flex items-center gap-2 text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-2 rounded-full font-medium w-fit">
-                <span>⭐</span>
-                <span>Premium Üyelik</span>
-              </div>
+            {/* Plan Badge - Tıklanabilir, Premium sayfasına gider */}
+            {user && (
+              <button
+                onClick={() => handleNavigation("/premium")}
+                className={`flex items-center gap-2 text-xs px-3 py-2 rounded-full font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 w-fit ${
+                  currentPlan === "freemium"
+                    ? "bg-gradient-to-r from-gray-600 to-gray-800 text-white"
+                    : currentPlan === "trial"
+                    ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white"
+                    : currentPlan === "lite"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
+                    : currentPlan === "premium"
+                    ? "bg-gradient-to-r from-yellow-400 to-orange-400 text-white"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+              >
+                <span>
+                  {currentPlan === "freemium"
+                    ? "🆓"
+                    : currentPlan === "trial"
+                    ? "🎁"
+                    : currentPlan === "lite"
+                    ? "📚"
+                    : currentPlan === "premium"
+                    ? "⭐"
+                    : "📦"}
+                </span>
+                <span>
+                  {currentPlan === "freemium"
+                    ? "Freemium"
+                    : currentPlan === "trial"
+                    ? "Trial"
+                    : currentPlan === "lite"
+                    ? "Lite"
+                    : currentPlan === "premium"
+                    ? "Premium"
+                    : "Plan Seç"}
+                </span>
+              </button>
             )}
           </div>
 

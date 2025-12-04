@@ -163,7 +163,7 @@ export default function CoachChatPage() {
       try {
         setLoading(true);
         
-        // Get all conversations where this coach is involved
+        // Get all conversations where this coach is involved (gizlenmemiş olanlar)
         const conversationsQuery = query(
           collection(db, "conversations"),
           where("coachId", "==", user.uid)
@@ -180,6 +180,12 @@ export default function CoachChatPage() {
           if (convData.coachId !== user.uid) {
             console.warn(`Conversation ${conversationId} does not belong to coach ${user.uid}, skipping...`);
             continue; // Skip conversations that don't belong to this coach
+          }
+          
+          // Coach tarafından gizlenmiş conversation'ları atla
+          if (convData.hiddenForCoach === true) {
+            console.log(`Conversation ${conversationId} hidden for coach, skipping...`);
+            continue;
           }
           
           // Get student info
@@ -570,7 +576,7 @@ export default function CoachChatPage() {
       }, 100);
     } catch (error) {
       console.error("Ses kaydı başlatılırken hata:", error);
-      alert("Mikrofon erişimi reddedildi. Lütfen izin verin.");
+      showToast("Mikrofon erişimi reddedildi. Lütfen izin verin.", "error");
       setIsRecording(false);
     }
   };
@@ -824,6 +830,106 @@ export default function CoachChatPage() {
     }
   };
 
+  // Get or create conversation ID (deterministik ID)
+  const getConversationId = (studentId: string, coachId: string) => {
+    return [studentId, coachId].sort().join("_");
+  };
+
+  // Conversation'ı coach için gizle (sohbeti temizle)
+  const handleHideConversation = async () => {
+    if (!selectedConversation || !user) return;
+
+    const confirmDelete = window.confirm(
+      `${selectedConversation.studentName} ile olan sohbeti silmek istediğinize emin misiniz?`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const conversationRef = doc(db, "conversations", selectedConversation.id);
+      await updateDoc(conversationRef, {
+        hiddenForCoach: true,
+        hiddenAt: serverTimestamp(),
+      });
+
+      showToast("Sohbet başarıyla temizlendi!", "success");
+      
+      // Conversation'ı listeden kaldır ve seçimi temizle
+      setConversations(prev => prev.filter(c => c.id !== selectedConversation.id));
+      setSelectedConversation(null);
+      setConversationMessages([]);
+    } catch (error) {
+      console.error("Sohbet silme hatası:", error);
+      showToast("Sohbet silinirken bir hata oluştu.", "error");
+    }
+  };
+
+  // Yeni conversation oluştur veya mevcut olanı getir
+  const createNewConversation = async (targetStudentId: string): Promise<Conversation | null> => {
+    try {
+      if (!user) return null;
+
+      // Önce öğrencinin bilgilerini al
+      const studentRef = doc(db, "users", targetStudentId);
+      const studentSnap = await getDoc(studentRef);
+
+      if (!studentSnap.exists()) {
+        showToast("Öğrenci bulunamadı!", "error");
+        return null;
+      }
+
+      const studentData = studentSnap.data();
+
+      // Deterministik conversation ID oluştur
+      const conversationId = getConversationId(targetStudentId, user.uid);
+      const conversationRef = doc(db, "conversations", conversationId);
+
+      // Conversation var mı kontrol et
+      const conversationSnap = await getDoc(conversationRef);
+
+      if (!conversationSnap.exists()) {
+        // Yeni conversation oluştur (setDoc ile deterministik ID)
+        await setDoc(conversationRef, {
+          studentId: targetStudentId,
+          studentName: studentData.name || "Öğrenci",
+          studentEmail: studentData.email || "",
+          coachId: user.uid,
+          coachName: userData?.name || user.displayName || "Coach",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        
+        showToast("Yeni sohbet başlatıldı!", "success");
+      }
+
+      const newConv: Conversation = {
+        id: conversationId,
+        studentId: targetStudentId,
+        studentName: studentData.name || "Öğrenci",
+        studentEmail: studentData.email,
+        photoURL: studentData.photoURL || null,
+        lastMessage: Timestamp.now(),
+        lastMessageText: "",
+        unreadCount: 0,
+      };
+
+      // Conversations listesine ekle (eğer yoksa)
+      setConversations(prev => {
+        const exists = prev.find(c => c.id === conversationId);
+        if (!exists) {
+          return [newConv, ...prev];
+        }
+        return prev;
+      });
+      
+      return newConv;
+    } catch (error) {
+      console.error("Conversation oluşturma hatası:", error);
+      showToast("Sohbet başlatılamadı!", "error");
+      return null;
+    }
+  };
+
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
       const containers = [
@@ -890,38 +996,87 @@ export default function CoachChatPage() {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
 
-  // URL'den conversation seçimi (bildirimden geldiğinde)
+  // URL'den conversation seçimi (bildirimden veya öğrenci sayfasından geldiğinde)
   useEffect(() => {
     const userId = searchParams.get('userId');
+    const studentId = searchParams.get('studentId'); // Öğrenci sayfasından gelen parametre
     const conversationId = searchParams.get('conversationId');
     
-    if (conversations.length > 0) {
+    console.log('[Coach Chat] URL Params:', { userId, studentId, conversationId });
+    console.log('[Coach Chat] State:', { conversationsCount: conversations.length, loading, hasUser: !!user });
+    
+    // Loading bitmeden işlem yapma
+    if (loading) {
+      console.log('[Coach Chat] Still loading, waiting...');
+      return;
+    }
+    
+    if (!user) {
+      console.log('[Coach Chat] No user, waiting...');
+      return;
+    }
+    
+    if (userId || studentId || conversationId) {
       let conv = null;
       
       // Önce conversationId ile ara
       if (conversationId) {
         conv = conversations.find(c => c.id === conversationId);
+        console.log('[Coach Chat] ConversationId search result:', conv ? 'Found' : 'Not found');
       }
       
-      // conversationId yoksa userId ile ara
-      if (!conv && userId) {
-        conv = conversations.find(c => c.studentId === userId);
+      // conversationId yoksa userId veya studentId ile ara
+      if (!conv && (userId || studentId)) {
+        const targetStudentId = userId || studentId;
+        console.log('[Coach Chat] Searching for studentId:', targetStudentId);
+        
+        // Conversations varsa aramayı yap
+        if (conversations.length > 0) {
+          conv = conversations.find(c => c.studentId === targetStudentId);
+          console.log('[Coach Chat] StudentId search result:', conv ? `Found (${conv.id})` : 'Not found');
+        } else {
+          console.log('[Coach Chat] No conversations yet, will create new one');
+        }
+        
+        // Conversation bulunamazsa yeni conversation oluştur
+        if (!conv && targetStudentId) {
+          console.log('[Coach Chat] 🚀 Creating new conversation for student:', targetStudentId);
+          createNewConversation(targetStudentId).then((newConv) => {
+            if (newConv) {
+              setSelectedConversation(newConv);
+              console.log('[Coach Chat] ✅ Yeni conversation oluşturuldu ve seçildi:', newConv.id);
+            }
+          });
+          
+          // URL'yi temizle
+          if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('userId');
+            url.searchParams.delete('studentId');
+            url.searchParams.delete('conversationId');
+            window.history.replaceState({}, '', url.pathname);
+          }
+          return;
+        }
       }
       
       if (conv) {
         setSelectedConversation(conv);
-        console.log('[Coach Chat] Bildirimden conversation açıldı:', conv.id);
+        console.log('[Coach Chat] ✅ Conversation açıldı:', conv.id);
         
         // URL'yi temizle
         if (typeof window !== 'undefined') {
           const url = new URL(window.location.href);
           url.searchParams.delete('userId');
+          url.searchParams.delete('studentId');
           url.searchParams.delete('conversationId');
           window.history.replaceState({}, '', url.pathname);
         }
+      } else {
+        console.log('[Coach Chat] ❌ Conversation bulunamadı ve oluşturulamadı');
       }
     }
-  }, [searchParams, conversations]);
+  }, [searchParams, conversations, loading, user]);
 
   const coachPhotoURL = userData?.photoURL || user?.photoURL || null;
 
@@ -1064,6 +1219,17 @@ export default function CoachChatPage() {
                       <p className="text-xs text-gray-500">{selectedConversation.studentEmail || "Öğrenci"}</p>
                     </div>
                   </div>
+                  
+                  {/* Delete/Hide Conversation Button */}
+                  <button
+                    onClick={handleHideConversation}
+                    className="p-2 rounded-xl hover:bg-red-50 text-red-500 hover:text-red-600 transition-all group"
+                    title="Sohbeti Temizle"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* iOS Style Messages Container */}

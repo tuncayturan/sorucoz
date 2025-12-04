@@ -1,27 +1,63 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Image from "next/image";
+import Toast from "@/components/ui/Toast";
 
 export default function VerifyEmailPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   const resend = async () => {
     if (!user) return;
-    await sendEmailVerification(user);
-    alert("Doğrulama emaili tekrar gönderildi.");
+    try {
+      await sendEmailVerification(user);
+      showToast("Doğrulama emaili tekrar gönderildi. Email kutunuzu kontrol edin.", "success");
+    } catch (error: any) {
+      if (error.code === "auth/too-many-requests") {
+        showToast("Çok fazla istek gönderdiniz. Lütfen birkaç dakika bekleyin.", "error");
+      } else {
+        showToast("Email gönderilemedi. Lütfen tekrar deneyin.", "error");
+      }
+    }
   };
 
   const checkVerified = async () => {
-    await user.reload();
-    if (user.emailVerified) {
-      router.replace("/home");
-    } else {
-      alert("Email henüz doğrulanmamış.");
+    if (!user) return;
+    
+    try {
+      await user.reload();
+      if (user.emailVerified) {
+        showToast("Email doğrulandı! Ana sayfaya yönlendiriliyorsunuz...", "success");
+        setTimeout(() => {
+          router.replace("/home");
+        }, 1000);
+      } else {
+        showToast("Email henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin.", "info");
+      }
+    } catch (error) {
+      showToast("Doğrulama kontrolü yapılamadı. Lütfen tekrar deneyin.", "error");
     }
   };
 
@@ -59,6 +95,14 @@ export default function VerifyEmailPage() {
           Emaili tekrar gönder
         </button>
       </div>
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 }

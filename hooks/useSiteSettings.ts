@@ -21,6 +21,9 @@ interface SiteSettings {
   footerCopyright?: string;
   footerDescription?: string;
   aiSettings?: AISettings;
+  litePlanPrice?: number;
+  premiumPlanPrice?: number;
+  yearlyDiscountPercent?: number;
 }
 
 export function useSiteSettings() {

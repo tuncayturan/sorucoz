@@ -123,9 +123,8 @@ export default function CoachYonetimiPage() {
         email: coachForm.email.trim(),
         title: coachForm.title.trim() || null, // Coach ünvanı
         role: "coach",
-        premium: false,
         createdAt: Timestamp.now(),
-        emailVerified: false,
+        emailVerified: true, // Coach'lar otomatik onaylı
         photoURL: null,
         fcmTokens: [],
       });

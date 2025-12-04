@@ -284,12 +284,12 @@ function DestekPageContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      alert("Lütfen giriş yapın.");
+      showToast("Lütfen giriş yapın.", "error");
       return;
     }
 
     if (!formData.konu || (!formData.mesaj && selectedFiles.length === 0)) {
-      alert("Lütfen konu ve mesaj veya dosya seçin.");
+      showToast("Lütfen konu ve mesaj veya dosya seçin.", "error");
       return;
     }
 
@@ -364,7 +364,7 @@ function DestekPageContent() {
       setTimeout(() => setSubmitted(false), 5000);
     } catch (error) {
       console.error("Destek mesajı gönderilirken hata:", error);
-      alert("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.");
+      showToast("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.", "error");
     } finally {
       setSubmitting(false);
       setUploadingFiles(false);
@@ -440,7 +440,7 @@ function DestekPageContent() {
     if (!user || !selectedMessage) return;
 
     if (!replyText.trim() && replyFiles.length === 0) {
-      alert("Lütfen mesaj veya dosya ekleyin.");
+      showToast("Lütfen mesaj veya dosya ekleyin.", "error");
       return;
     }
 
@@ -556,7 +556,7 @@ function DestekPageContent() {
       setReplyFilePreviews([]);
     } catch (error) {
       console.error("Cevap gönderme hatası:", error);
-      alert("Cevap gönderilirken bir hata oluştu.");
+      showToast("Cevap gönderilirken bir hata oluştu.", "error");
     } finally {
       setReplying(false);
       setUploadingReplyFiles(false);

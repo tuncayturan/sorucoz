@@ -13,7 +13,6 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, type UserInfo } from "firebase/auth";
 import Toast from "@/components/ui/Toast";
-import { requestNotificationPermission, getFCMToken, saveFCMTokenToUser, removeFCMTokenFromUser } from "@/lib/fcmUtils";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 
 export default function AyarlarPage() {
@@ -30,15 +29,6 @@ export default function AyarlarPage() {
     new: "",
     confirm: "",
   });
-  const [notificationsEnabled, setNotificationsEnabled] = useState(
-    userData?.notificationsEnabled !== false // Default true
-  );
-  const [notificationTypes, setNotificationTypes] = useState({
-    messages: userData?.notificationTypes?.messages !== false, // Default true
-    questions: userData?.notificationTypes?.questions !== false, // Default true
-    system: userData?.notificationTypes?.system !== false, // Default true
-  });
-  const [updatingNotifications, setUpdatingNotifications] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
@@ -64,7 +54,8 @@ export default function AyarlarPage() {
         userData.trialEndDate || null,
         userData.subscriptionEndDate || null,
         userData.premium,
-        userData.createdAt
+        userData.createdAt,
+        userData.subscriptionPlan
       )
     : null;
   const trialDaysLeft = userData ? getTrialDaysLeft(userData.trialEndDate || null, userData.createdAt) : 0;
@@ -78,6 +69,8 @@ export default function AyarlarPage() {
     currentPlan = userData.subscriptionPlan;
   }
   
+  const isExpired = subscriptionStatus === "expired";
+  
   // Günlük soru bilgisi
   const questionInfo = userData
     ? canAskQuestion(
@@ -86,7 +79,7 @@ export default function AyarlarPage() {
         userData.lastQuestionDate
       )
     : { canAsk: true, remaining: Infinity };
-  const dailyLimit = getDailyQuestionLimit(currentPlan);
+  const dailyLimit = getDailyQuestionLimit(currentPlan, isExpired);
 
   // Kullanıcı giriş yapmamışsa landing sayfasına yönlendir
   useEffect(() => {
@@ -107,12 +100,6 @@ export default function AyarlarPage() {
   useEffect(() => {
     if (userData) {
       setName(userData.name || "");
-      setNotificationsEnabled(userData.notificationsEnabled !== false);
-      setNotificationTypes({
-        messages: userData.notificationTypes?.messages !== false,
-        questions: userData.notificationTypes?.questions !== false,
-        system: userData.notificationTypes?.system !== false,
-      });
     }
   }, [userData]);
 
@@ -211,74 +198,6 @@ export default function AyarlarPage() {
     } catch (error) {
       console.error("Error updating name:", error);
       showToast("İsim güncellenirken bir hata oluştu.", "error");
-    }
-  };
-
-  // Bildirim ayarlarını güncelle
-  const handleNotificationToggle = async (enabled: boolean) => {
-    if (!user) return;
-
-    try {
-      setUpdatingNotifications(true);
-      
-      await updateDoc(doc(db, "users", user.uid), {
-        notificationsEnabled: enabled,
-      });
-
-      setNotificationsEnabled(enabled);
-      
-      if (enabled) {
-        // Bildirimleri açıyorsa izin iste ve token al
-        const token = await requestNotificationPermission();
-        if (token) {
-          await saveFCMTokenToUser(user.uid, token);
-          showToast("Bildirimler açıldı!", "success");
-        } else {
-          showToast("Bildirim izni verilmedi. Lütfen tarayıcı ayarlarından izin verin.", "error");
-        }
-      } else {
-        // Bildirimleri kapatıyorsa token'ları temizle
-        if (userData?.fcmTokens && userData.fcmTokens.length > 0) {
-          for (const token of userData.fcmTokens) {
-            await removeFCMTokenFromUser(user.uid, token).catch(console.error);
-          }
-        }
-        showToast("Bildirimler kapatıldı!", "success");
-      }
-      
-      refreshUserData();
-    } catch (error) {
-      console.error("Notification toggle error:", error);
-      showToast("Bildirim ayarları güncellenirken bir hata oluştu.", "error");
-    } finally {
-      setUpdatingNotifications(false);
-    }
-  };
-
-  // Bildirim tipi ayarlarını güncelle
-  const handleNotificationTypeToggle = async (type: keyof typeof notificationTypes, enabled: boolean) => {
-    if (!user) return;
-
-    try {
-      setUpdatingNotifications(true);
-      
-      const newTypes = {
-        ...notificationTypes,
-        [type]: enabled,
-      };
-      
-      await updateDoc(doc(db, "users", user.uid), {
-        notificationTypes: newTypes,
-      });
-
-      setNotificationTypes(newTypes);
-      showToast("Bildirim tercihleri güncellendi!", "success");
-      refreshUserData();
-    } catch (error) {
-      console.error("Notification type toggle error:", error);
-      showToast("Bildirim tercihleri güncellenirken bir hata oluştu.", "error");
-    } finally {
-      setUpdatingNotifications(false);
     }
   };
 
@@ -554,132 +473,6 @@ export default function AyarlarPage() {
                 >
                   {subscriptionStatus === "active" ? "Aboneliği Yönet" : "Plan Seç"}
                 </button>
-              </div>
-            </div>
-          </div>
-
-          {/* BİLDİRİM AYARLARI CARD - Premium */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 mb-6 relative overflow-hidden animate-slideFade">
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-200/20 rounded-full blur-3xl"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900">Bildirim Ayarları</h2>
-              </div>
-
-              <div className="space-y-4">
-                {/* Genel Bildirim Aç/Kapat */}
-                <div className="flex items-center justify-between bg-gradient-to-br from-purple-50 to-pink-50 backdrop-blur-xl rounded-2xl p-6 shadow-[0_5px_20px_rgba(0,0,0,0.08)] border border-white/50">
-                  <div className="flex-1">
-                    <p className="font-bold text-gray-900 mb-1 text-lg">Bildirimler</p>
-                    <p className="text-sm text-gray-600 font-medium">Tüm bildirimleri aç/kapat</p>
-                  </div>
-                  <button
-                    onClick={() => handleNotificationToggle(!notificationsEnabled)}
-                    disabled={updatingNotifications}
-                    className={`relative w-16 h-9 rounded-full transition-colors duration-300 ${
-                      notificationsEnabled ? "bg-gradient-to-r from-purple-500 to-pink-600" : "bg-gray-300"
-                    } ${updatingNotifications ? "opacity-50 cursor-not-allowed" : ""} shadow-lg`}
-                  >
-                    <div
-                      className={`absolute top-1 left-1 w-7 h-7 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                        notificationsEnabled ? "translate-x-7" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {/* Bildirim Tipleri - Sadece bildirimler açıksa göster */}
-                {notificationsEnabled && (
-                  <div className="space-y-3 pt-4 border-t border-white/50">
-                    <p className="text-sm font-bold text-gray-700 mb-4">Bildirim Tercihleri</p>
-                    
-                    <div className="flex items-center justify-between bg-gradient-to-br from-blue-50 to-indigo-50 backdrop-blur-xl rounded-2xl p-5 shadow-[0_5px_20px_rgba(0,0,0,0.08)] border border-white/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">Mesaj Bildirimleri</p>
-                          <p className="text-sm text-gray-600 font-medium">Koçunuzdan gelen mesajlar</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleNotificationTypeToggle("messages", !notificationTypes.messages)}
-                        disabled={updatingNotifications}
-                        className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
-                          notificationTypes.messages ? "bg-gradient-to-r from-blue-500 to-indigo-600" : "bg-gray-300"
-                        } ${updatingNotifications ? "opacity-50 cursor-not-allowed" : ""} shadow-md`}
-                      >
-                        <div
-                          className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                            notificationTypes.messages ? "translate-x-6" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between bg-gradient-to-br from-green-50 to-emerald-50 backdrop-blur-xl rounded-2xl p-5 shadow-[0_5px_20px_rgba(0,0,0,0.08)] border border-white/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">Soru Bildirimleri</p>
-                          <p className="text-sm text-gray-600 font-medium">Sorularınızın çözümü hazır olduğunda</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleNotificationTypeToggle("questions", !notificationTypes.questions)}
-                        disabled={updatingNotifications}
-                        className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
-                          notificationTypes.questions ? "bg-gradient-to-r from-green-500 to-emerald-600" : "bg-gray-300"
-                        } ${updatingNotifications ? "opacity-50 cursor-not-allowed" : ""} shadow-md`}
-                      >
-                        <div
-                          className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                            notificationTypes.questions ? "translate-x-6" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between bg-gradient-to-br from-orange-50 to-amber-50 backdrop-blur-xl rounded-2xl p-5 shadow-[0_5px_20px_rgba(0,0,0,0.08)] border border-white/50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-md">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900">Sistem Bildirimleri</p>
-                          <p className="text-sm text-gray-600 font-medium">Güncellemeler ve önemli duyurular</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleNotificationTypeToggle("system", !notificationTypes.system)}
-                        disabled={updatingNotifications}
-                        className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${
-                          notificationTypes.system ? "bg-gradient-to-r from-orange-500 to-amber-600" : "bg-gray-300"
-                        } ${updatingNotifications ? "opacity-50 cursor-not-allowed" : ""} shadow-md`}
-                      >
-                        <div
-                          className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                            notificationTypes.system ? "translate-x-6" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
