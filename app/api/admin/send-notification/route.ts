@@ -5,7 +5,7 @@ import { getAdminApp } from "@/lib/firebase/admin";
 
 // Request deduplication - prevent duplicate API calls within short time
 const recentRequests = new Map<string, number>();
-const REQUEST_TIMEOUT = 2000; // 2 saniye içinde aynı request'i tekrar işleme
+const REQUEST_TIMEOUT = 5000; // 5 saniye içinde aynı request'i tekrar işleme (artırıldı)
 
 // FCM Admin SDK kullanarak bildirim gönderme
 export async function POST(request: NextRequest) {
@@ -22,7 +22,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Request deduplication - aynı request kısa sürede tekrar gelirse engelle
-    const requestKey = `${userId}-${title}-${JSON.stringify(data?.conversationId || data?.supportId || 'none')}`;
+    // CRITICAL: 5 saniyelik window içinde aynı mesaj için duplicate engelle
+    const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik window
+    const requestKey = `${userId}-${timestamp}-${title}-${JSON.stringify(data?.conversationId || data?.supportId || 'none')}`;
     const lastRequestTime = recentRequests.get(requestKey);
     const now = Date.now();
     

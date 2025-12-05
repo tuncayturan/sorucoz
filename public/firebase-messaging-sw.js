@@ -28,7 +28,7 @@ self.addEventListener('activate', (event) => {
 const DB_NAME = 'NotificationDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'shownNotifications';
-const NOTIFICATION_TIMEOUT = 10000; // 10 saniye içinde aynı bildirim tekrar gösterilmez
+const NOTIFICATION_TIMEOUT = 60000; // 60 saniye içinde aynı bildirim tekrar gösterilmez (ULTRA AGGRESSIVE)
 
 // TRIPLE PROTECTION:
 // 1. processingNotifications: Prevents concurrent processing (immediate)
@@ -42,7 +42,7 @@ let notificationCounter = 0;
 
 // Message handler debouncing - prevent rapid fire
 const messageHandlerLock = new Map(); // messageId -> timestamp
-const HANDLER_DEBOUNCE = 500; // 500ms içinde aynı message için sadece 1 kere işle
+const HANDLER_DEBOUNCE = 10000; // 10 saniye içinde aynı message için sadece 1 kere işle (ULTRA AGGRESSIVE)
 
 // Initialize IndexedDB for persistent cross-tab duplicate prevention
 const initDB = () => {
@@ -182,25 +182,33 @@ messaging.onBackgroundMessage(async (payload) => {
   const conversationId = payload.data?.conversationId || '';
   const messageType = payload.data?.type || 'general';
   
-  // STABLE ID: Use messageId from API
-  const notificationId = messageId || `${messageType}-${conversationId}-${Date.now()}`;
+      // STABLE ID: Use messageId from API (unique per user+conversation+time window)
+      // Eğer messageId yoksa, daha stable bir ID oluştur
+      // CRITICAL: Aynı mesaj için her zaman aynı ID olmalı
+      // ULTRA AGGRESSIVE: messageId varsa direkt kullan, yoksa daha geniş time window kullan
+      const timeWindow = Math.floor(Date.now() / 30000) * 30000; // 30 saniyelik window (artırıldı)
+      const notificationId = messageId || `${messageType}-${conversationId || payload.data?.userId || 'general'}-${timeWindow}`;
   
   // ========== LAYER 0: Handler Debouncing (EARLIEST PROTECTION) ==========
   console.log(`[firebase-messaging-sw.js] 🔒 LAYER 0: Handler debouncing check...`);
   const now = Date.now();
-  const lastHandlerTime = messageHandlerLock.get(notificationId);
+  
+  // Daha agresif: messageId veya conversationId bazlı kontrol
+  const checkId = messageId || notificationId;
+  const lastHandlerTime = messageHandlerLock.get(checkId);
   
   if (lastHandlerTime && (now - lastHandlerTime) < HANDLER_DEBOUNCE) {
     console.log(`[firebase-messaging-sw.js] 🛑 BLOCKED BY LAYER 0 - Handler called ${now - lastHandlerTime}ms ago!`);
     console.log(`[firebase-messaging-sw.js] ⚠️ onBackgroundMessage rapid fire detected - Call #${handlerCallNumber} blocked`);
     console.log(`[firebase-messaging-sw.js] This suggests FCM is calling handler multiple times!`);
+    console.log(`[firebase-messaging-sw.js] Check ID: ${checkId}`);
     return Promise.resolve();
   }
   
   // Lock this message ID in handler
-  messageHandlerLock.set(notificationId, now);
+  messageHandlerLock.set(checkId, now);
   setTimeout(() => {
-    messageHandlerLock.delete(notificationId);
+    messageHandlerLock.delete(checkId);
   }, HANDLER_DEBOUNCE);
   
   console.log(`[firebase-messaging-sw.js] ✅ LAYER 0 PASSED - First handler call for this message`);
@@ -269,36 +277,54 @@ messaging.onBackgroundMessage(async (payload) => {
   
   // CRITICAL FIX: Use stable tag for conversation grouping
   // Same conversation = Same tag = Single notification (updated on new messages)
+  // ULTRA AGGRESSIVE: messageId bazlı tag kullan - her bildirim için aynı tag
   const notificationType = payload.data?.type || 'general';
   
   let notificationTag;
-  if (payload.data?.conversationId) {
-    // SADECE conversationId - her mesaj aynı bildirimi güncelleyecek
+  if (messageId) {
+    // EN İYİ: messageId varsa direkt kullan - her bildirim için unique ama deduplication için aynı
+    notificationTag = messageId;
+  } else if (payload.data?.conversationId) {
+    // conversationId - her mesaj aynı bildirimi güncelleyecek
     notificationTag = `conv-${payload.data.conversationId}`;
   } else if (payload.data?.supportId) {
-    // SADECE supportId
+    // supportId
     notificationTag = `supp-${payload.data.supportId}`;
   } else {
-    // Diğer bildirimler için unique tag
-    notificationTag = `${notificationType}-${Date.now()}`;
+    // Diğer bildirimler için notificationId kullan
+    notificationTag = notificationId;
   }
   
   console.log('[firebase-messaging-sw.js] 🏷️ Notification Tag:', notificationTag);
   
   // ========== ULTRA AGGRESSIVE NOTIFICATION CLEANUP ==========
-  // Tüm eski bildirimleri kapat - SYNC ve ASYNC
+  // Tüm eski bildirimleri kapat - ÖNCE AYNI TAG'DEKİLERİ, SONRA HEPSİNİ
   console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing ALL old notifications (ULTRA AGGRESSIVE)...');
   
   let closedCount = 0;
   try {
-    // Tüm mevcut bildirimleri al (tag filter YOK - hepsini al!)
-    const existingNotifications = await self.registration.getNotifications();
-    console.log(`[firebase-messaging-sw.js] 📋 Found ${existingNotifications.length} existing notification(s)`);
-    
+    // ÖNCE: Aynı tag'deki tüm bildirimleri kapat (notification.replace çalışmıyorsa)
+    const existingNotifications = await self.registration.getNotifications({ tag: notificationTag });
     if (existingNotifications.length > 0) {
+      console.log(`[firebase-messaging-sw.js] 🔍 Found ${existingNotifications.length} notification(s) with same tag: ${notificationTag}`);
+      for (const notification of existingNotifications) {
+        try {
+          notification.close();
+          closedCount++;
+        } catch (closeError) {
+          console.error(`[firebase-messaging-sw.js] ❌ Failed to close same-tag notification:`, closeError);
+        }
+      }
+    }
+    
+    // SONRA: TÜM bildirimleri kapat (tag filter YOK - hepsini al!)
+    const allNotifications = await self.registration.getNotifications();
+    console.log(`[firebase-messaging-sw.js] 📋 Found ${allNotifications.length} total existing notification(s)`);
+    
+    if (allNotifications.length > 0) {
       // Her birini logla ve kapat
-      for (let i = 0; i < existingNotifications.length; i++) {
-        const notification = existingNotifications[i];
+      for (let i = 0; i < allNotifications.length; i++) {
+        const notification = allNotifications[i];
         console.log(`[firebase-messaging-sw.js] 🗑️ Closing #${i + 1}:`, {
           title: notification.title,
           body: notification.body,
@@ -315,10 +341,10 @@ messaging.onBackgroundMessage(async (payload) => {
         }
       }
       
-      // Kapanmaları tamamlanması için kısa bekle
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Kapanmaları tamamlanması için bekle (artırıldı)
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      console.log(`[firebase-messaging-sw.js] ✅ CLEANUP COMPLETE: Closed ${closedCount}/${existingNotifications.length} notification(s)`);
+      console.log(`[firebase-messaging-sw.js] ✅ CLEANUP COMPLETE: Closed ${closedCount} notification(s) total`);
     } else {
       console.log('[firebase-messaging-sw.js] ℹ️ No existing notifications to clean');
     }
@@ -338,7 +364,7 @@ messaging.onBackgroundMessage(async (payload) => {
     silent: false,
     vibrate: [200, 100, 200],
     tag: notificationTag, // STABLE TAG - aynı conversation her zaman aynı tag
-    renotify: false, // false yap - manuel cleanup yapıyoruz
+    renotify: true, // true yap - aynı tag'deki bildirimi güncelle (ama cleanup'la çift koruma)
     timestamp: Date.now(),
   };
   
@@ -423,14 +449,26 @@ self.addEventListener('notificationclick', (event) => {
   switch (notificationType) {
     case 'message':
       // Coach/Student mesajları
-      if (notificationData.conversationId) {
-        // conversationId var - direkt sohbeti aç
+      // CRITICAL: receiverRole kontrolü - coach'a gelen mesajlar için /coach/chat
+      const receiverRole = notificationData.receiverRole || notificationData.role;
+      if (receiverRole === 'coach') {
+        // Coach'a gelen mesaj - /coach/chat sayfasına git
+        if (notificationData.conversationId) {
+          targetUrl = `/coach/chat?conversationId=${notificationData.conversationId}`;
+        } else if (notificationData.userId) {
+          targetUrl = `/coach/chat?userId=${notificationData.userId}`;
+        } else {
+          targetUrl = '/coach/chat';
+        }
+        console.log('[firebase-messaging-sw.js] Message notification - coach receiver:', targetUrl);
+      } else if (notificationData.conversationId) {
+        // Student'a gelen mesaj veya receiverRole belirtilmemiş - /mesajlar sayfası
         targetUrl = `/mesajlar?conversationId=${notificationData.conversationId}`;
-        console.log('[firebase-messaging-sw.js] Message notification - conversationId:', notificationData.conversationId);
+        console.log('[firebase-messaging-sw.js] Message notification - student/conversationId:', notificationData.conversationId);
       } else if (notificationData.userId) {
-        // Sadece userId var - coach için
+        // Sadece userId var - coach için (fallback)
         targetUrl = `/coach/chat?userId=${notificationData.userId}`;
-        console.log('[firebase-messaging-sw.js] Message notification - userId:', notificationData.userId);
+        console.log('[firebase-messaging-sw.js] Message notification - userId fallback:', notificationData.userId);
       } else {
         targetUrl = '/mesajlar';
       }

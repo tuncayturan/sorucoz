@@ -790,6 +790,7 @@ function MesajlarContent() {
               type: "message",
               conversationId: selectedConversation.id,
               userId: user.uid,
+              receiverRole: "coach", // CRITICAL: Coach'a gelen mesaj - doğru URL için
             },
           }),
         })
@@ -916,6 +917,7 @@ function MesajlarContent() {
               type: "message",
               conversationId: selectedConversation.id,
               userId: user.uid,
+              receiverRole: "coach", // CRITICAL: Coach'a gelen mesaj - doğru URL için
             },
           }),
         })
