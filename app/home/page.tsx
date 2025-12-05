@@ -497,7 +497,7 @@ export default function HomePage() {
     }
     
     // 2. Trial süresi dolmuşsa ve Firestore'da hala "trial" olarak işaretliyse → Freemium'a geçir
-    if (plan === "trial" && status === "freemium" && userData.subscriptionPlan !== "freemium") {
+    if (plan === "trial" && status === "freemium" && (userData.subscriptionPlan as any) !== "freemium") {
       console.log("[Home] Trial süresi doldu, Freemium moduna geçiliyor...");
       
       const now = new Date();
