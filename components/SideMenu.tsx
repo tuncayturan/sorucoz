@@ -29,14 +29,23 @@ export default function SideMenu({ isOpen, onClose }: SideMenuProps) {
   // Plan bilgisini hesapla
   const subscriptionStatus = userData 
     ? checkSubscriptionStatus(
-        userData.trialEndDate || null,
-        userData.subscriptionEndDate || null,
-        userData.premium,
-        userData.createdAt,
-        userData.subscriptionPlan
+        userData?.trialEndDate || null,
+        userData?.subscriptionEndDate || null,
+        userData?.premium,
+        userData?.createdAt,
+        userData?.subscriptionPlan
       )
     : "trial";
-  const currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
+  
+  // Plan'ı subscription status'e göre belirle
+  let currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
+  if (subscriptionStatus === "trial") {
+    currentPlan = "trial";
+  } else if (subscriptionStatus === "active" && userData?.subscriptionPlan) {
+    currentPlan = userData.subscriptionPlan;
+  } else if (subscriptionStatus === "freemium") {
+    currentPlan = "freemium";
+  }
 
   const menuItems: MenuItem[] = [
     {

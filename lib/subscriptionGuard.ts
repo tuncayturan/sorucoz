@@ -1,4 +1,4 @@
-import { checkSubscriptionStatus } from "./subscriptionUtils";
+import { checkSubscriptionStatus, type SubscriptionPlan, type SubscriptionStatus } from "./subscriptionUtils";
 import { Timestamp } from "firebase/firestore";
 import type { UserData } from "@/hooks/useUserData";
 
@@ -9,12 +9,12 @@ import type { UserData } from "@/hooks/useUserData";
 export function isSubscriptionExpired(userData: UserData | null | undefined): boolean {
   if (!userData) return false;
 
-  const subscriptionStatus = checkSubscriptionStatus(
-    userData.trialEndDate || null,
-    userData.subscriptionEndDate || null,
-    userData.premium,
-    userData.createdAt,
-    userData.subscriptionPlan
+  const subscriptionStatus: SubscriptionStatus = checkSubscriptionStatus(
+    userData?.trialEndDate || null,
+    userData?.subscriptionEndDate || null,
+    userData?.premium,
+    userData?.createdAt,
+    userData?.subscriptionPlan
   );
 
   // Eğer subscription status "expired" ise, abonelik süresi dolmuş demektir
@@ -28,23 +28,31 @@ export function isSubscriptionExpired(userData: UserData | null | undefined): bo
 export function shouldRedirectToPremium(userData: UserData | null | undefined): boolean {
   if (!userData) return false;
   
-  const subscriptionStatus = checkSubscriptionStatus(
-    userData.trialEndDate || null,
-    userData.subscriptionEndDate || null,
-    userData.premium,
-    userData.createdAt,
-    userData.subscriptionPlan
+  const subscriptionStatus: SubscriptionStatus = checkSubscriptionStatus(
+    userData?.trialEndDate || null,
+    userData?.subscriptionEndDate || null,
+    userData?.premium,
+    userData?.createdAt,
+    userData?.subscriptionPlan
   );
   
-  const currentPlan = userData.subscriptionPlan || "trial";
+  // Plan'ı subscription status'e göre belirle
+  let currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
+  if (subscriptionStatus === "trial") {
+    currentPlan = "trial";
+  } else if (subscriptionStatus === "active" && userData?.subscriptionPlan) {
+    currentPlan = userData.subscriptionPlan;
+  } else if (subscriptionStatus === "freemium") {
+    currentPlan = "freemium";
+  }
   
   // FREEMIUM MOD: Freemium kullanıcılar yönlendirilmez (günde 1 soru sorabilirler)
-  if (currentPlan === "freemium" || subscriptionStatus === "freemium") {
+  if (currentPlan === "freemium" || (subscriptionStatus as SubscriptionStatus) === "freemium") {
     return false; // Freemium modunda kalabilir
   }
   
   // Trial expired olanları yönlendirme (freemium'a geçecek)
-  if (currentPlan === "trial" && subscriptionStatus === "freemium") {
+  if (currentPlan === "trial" && (subscriptionStatus as SubscriptionStatus) === "freemium") {
     return false;
   }
   

@@ -54,7 +54,17 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
         userData.subscriptionPlan
       )
     : "trial";
-  const currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
+  
+  // Plan'ı subscription status'e göre belirle
+  let currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
+  if (subscriptionStatus === "trial") {
+    currentPlan = "trial";
+  } else if (subscriptionStatus === "active" && userData?.subscriptionPlan) {
+    currentPlan = userData.subscriptionPlan;
+  } else if (subscriptionStatus === "freemium") {
+    currentPlan = "freemium";
+  }
+  
   const isFreemium = isFreemiumMode(currentPlan, subscriptionStatus);
 
   // Bildirimleri çek

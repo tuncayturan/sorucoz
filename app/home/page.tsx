@@ -97,15 +97,15 @@ export default function HomePage() {
   
   const subscriptionStatus = userData
     ? checkSubscriptionStatus(
-        userData.trialEndDate || null,
-        userData.subscriptionEndDate || null,
-        userData.premium,
-        userData.createdAt,
-        userData.subscriptionPlan
+        userData?.trialEndDate || null,
+        userData?.subscriptionEndDate || null,
+        userData?.premium,
+        userData?.createdAt,
+        userData?.subscriptionPlan
       )
     : null;
-  const trialDaysLeft = userData ? getTrialDaysLeft(userData.trialEndDate || null, userData.createdAt) : 0;
-  const subscriptionDaysLeft = userData ? getSubscriptionDaysLeft(userData.subscriptionEndDate || null) : 0;
+  const trialDaysLeft = userData ? getTrialDaysLeft(userData?.trialEndDate || null, userData?.createdAt) : 0;
+  const subscriptionDaysLeft = userData ? getSubscriptionDaysLeft(userData?.subscriptionEndDate || null) : 0;
   
   // Plan'ı subscription status'e göre belirle
   let currentPlan: SubscriptionPlan = userData?.subscriptionPlan || "trial";
@@ -126,8 +126,8 @@ export default function HomePage() {
   const questionInfo = userData
     ? canAskQuestion(
         currentPlan,
-        userData.dailyQuestionCount || 0,
-        userData.lastQuestionDate
+        userData?.dailyQuestionCount || 0,
+        userData?.lastQuestionDate
       )
     : { canAsk: true, remaining: Infinity };
   const dailyLimit = getDailyQuestionLimit(currentPlan, isExpired);
@@ -160,17 +160,17 @@ export default function HomePage() {
     }
 
     // Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için banner göster
-    if (userData.emailVerified === false) {
+    if (userData?.emailVerified === false) {
       setShowEmailVerificationBanner(true);
     }
   }, [user, userData]);
 
   // Role kontrolü - sadece student buraya erişebilir
   useEffect(() => {
-    if (userData && userData.role !== "student") {
-      if (userData.role === "admin") {
+    if (userData && userData?.role !== "student") {
+      if (userData?.role === "admin") {
         router.replace("/admin");
-      } else if (userData.role === "coach") {
+      } else if (userData?.role === "coach") {
         router.replace("/coach");
       }
     }
@@ -393,7 +393,7 @@ export default function HomePage() {
       // Hata durumunda userData'dan al
       const today = new Date().toISOString().split("T")[0];
       if (userData?.lastQuestionDate === today) {
-        setTodayQuestionsCount(userData.dailyQuestionCount || 0);
+        setTodayQuestionsCount(userData?.dailyQuestionCount || 0);
       } else {
         setTodayQuestionsCount(0);
       }
@@ -404,7 +404,7 @@ export default function HomePage() {
   useEffect(() => {
     if (userData?.createdAt) {
       const calculateWorkDuration = () => {
-        const createdAt = userData.createdAt?.toDate?.() || new Date(userData.createdAt?.seconds * 1000);
+        const createdAt = userData?.createdAt?.toDate?.() || new Date(userData?.createdAt?.seconds * 1000);
         const now = new Date();
         const diffMs = now.getTime() - createdAt.getTime();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -467,7 +467,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!user || !userData) return;
     
-    const plan = userData.subscriptionPlan || "trial";
+    const plan = userData?.subscriptionPlan || "trial";
     const status = subscriptionStatus;
     
     // 1. Lite veya Premium süresi dolmuşsa → 7 günlük yeni Trial ver
@@ -497,7 +497,7 @@ export default function HomePage() {
     }
     
     // 2. Trial süresi dolmuşsa ve Firestore'da hala "trial" olarak işaretliyse → Freemium'a geçir
-    if (plan === "trial" && status === "freemium" && (userData.subscriptionPlan as any) !== "freemium") {
+    if (plan === "trial" && status === "freemium" && (userData?.subscriptionPlan as any) !== "freemium") {
       console.log("[Home] Trial süresi doldu, Freemium moduna geçiliyor...");
       
       const now = new Date();
