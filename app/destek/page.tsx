@@ -10,6 +10,7 @@ import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
 import StudentFooter from "@/components/StudentFooter";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
+import Toast from "@/components/ui/Toast";
 
 interface DestekMesaji {
   id: string;
@@ -72,6 +73,23 @@ function DestekPageContent() {
   const replyFileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -1344,6 +1362,13 @@ function DestekPageContent() {
           </div>
         </div>
       )}
+      
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
       
       <StudentFooter />
     </div>
