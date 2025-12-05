@@ -147,7 +147,7 @@ export default function HomePage() {
     if (!user || !userData) return;
     
     // Google ile giriş yapanlar için banner gösterme
-    const isGoogleUser = user.providerData?.some(p => p.providerId === 'google.com');
+    const isGoogleUser = user.providerData?.some((p: any) => p.providerId === 'google.com');
     if (isGoogleUser) {
       setShowEmailVerificationBanner(false);
       return;
