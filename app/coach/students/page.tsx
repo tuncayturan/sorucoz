@@ -89,7 +89,7 @@ export default function CoachStudentsPage() {
         const sorularSnapshot = await getDocs(sorularQuery);
 
         let solvedCount = 0;
-        let lastQuestionTime: any | null = null;
+        let lastQuestionTime: any = null as any;
 
         sorularSnapshot.forEach((soruDoc) => {
           const soruData = soruDoc.data();
