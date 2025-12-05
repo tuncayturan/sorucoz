@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = userSnap.data();
-    const fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];
+    let fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];
 
     console.log(`[Send Notification] ========== START ==========`);
     console.log(`[Send Notification] User: ${userId}, FCM Tokens: ${fcmTokens.length}`);
@@ -100,8 +100,19 @@ export async function POST(request: NextRequest) {
     });
 
     // FCM push bildirimi gönder (token varsa)
-    if (fcmTokens.length > 0) {
-      console.log(`[Send Notification] Sending push notification to ${fcmTokens.length} token(s)`);
+    // CRITICAL FIX: Token deduplication - remove duplicate tokens
+    const uniqueFcmTokens = [...new Set(fcmTokens)];
+    let tokensSent = 0;
+    
+    if (uniqueFcmTokens.length !== fcmTokens.length) {
+      console.log(`[Send Notification] ⚠️ Removed ${fcmTokens.length - uniqueFcmTokens.length} duplicate token(s) for user ${userId}`);
+    }
+    
+    if (uniqueFcmTokens.length > 0) {
+      // Tüm token'lara gönder - service worker deduplication yapacak
+      const tokensToSend = uniqueFcmTokens;
+      
+      console.log(`[Send Notification] Sending push notification to ${tokensToSend.length} token(s)`);
       
       // Convert data object to string format (FCM requires string values)
       const fcmData: Record<string, string> = {};
@@ -117,29 +128,23 @@ export async function POST(request: NextRequest) {
       const notificationType = data?.type || 'general';
       const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik aralıklar
       
-      // Generate stable message ID for duplicate prevention
+      // Generate stable message ID for duplicate prevention - userId'yi de ekle
       if (data?.conversationId) {
-        fcmData.messageId = `${notificationType}-${data.conversationId}-${timestamp}`;
+        fcmData.messageId = `${userId}-${notificationType}-${data.conversationId}-${timestamp}`;
         fcmData.conversationId = data.conversationId; // Ensure conversationId is in data
       } else if (data?.supportId) {
-        fcmData.messageId = `${notificationType}-${data.supportId}-${timestamp}`;
+        fcmData.messageId = `${userId}-${notificationType}-${data.supportId}-${timestamp}`;
         fcmData.supportId = data.supportId;
       } else {
-        fcmData.messageId = `${notificationType}-${userId}-${timestamp}`;
-      }
-
-      // Token deduplication at API level
-      const uniqueFcmTokens = [...new Set(fcmTokens)];
-      
-      if (uniqueFcmTokens.length !== fcmTokens.length) {
-        console.log(`[Send Notification] ⚠️ Removed ${fcmTokens.length - uniqueFcmTokens.length} duplicate token(s) for user ${userId}`);
+        fcmData.messageId = `${userId}-${notificationType}-${timestamp}`;
       }
 
       // Send push notification using Firebase Admin SDK with logo and sound
       try {
-        console.log(`[Send Notification] Calling sendPushNotification with ${uniqueFcmTokens.length} unique token(s)`);
+        console.log(`[Send Notification] Calling sendPushNotification with ${tokensToSend.length} token(s)`);
         console.log(`[Send Notification] FCM Data:`, fcmData);
-        await sendPushNotification(uniqueFcmTokens, title, body, fcmData, logoUrl, soundUrl);
+        await sendPushNotification(tokensToSend, title, body, fcmData, logoUrl, soundUrl);
+        tokensSent = tokensToSend.length;
         console.log(`[Send Notification] ✅ Push notification sent successfully`);
         console.log(`[Send Notification] ========== END ==========`);
       } catch (pushError) {
@@ -153,7 +158,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: "Bildirim gönderildi",
-      tokensSent: fcmTokens.length,
+      tokensSent: tokensSent,
     });
   } catch (error: any) {
     console.error("========== NOTIFICATION SEND ERROR ==========");
