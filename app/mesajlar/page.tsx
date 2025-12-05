@@ -106,6 +106,23 @@ function MesajlarContent() {
   const streamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingTimeRef = useRef<number>(0);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+    isVisible: boolean;
+  }>({
+    message: "",
+    type: "info",
+    isVisible: false,
+  });
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast((prev) => ({ ...prev, isVisible: false }));
+  };
 
   // Get or create conversation ID
   const getConversationId = (studentId: string, coachId: string) => {
@@ -2086,6 +2103,13 @@ function MesajlarContent() {
           />
         </div>
       )}
+      
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
       
       <StudentFooter />
 

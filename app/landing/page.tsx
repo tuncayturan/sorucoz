@@ -230,9 +230,9 @@ export default function LandingPage() {
               `}</style>
             </h1>
 
-            {/* Subheadline */}
+            {/* Subheadline with enhanced styling */}
             <p
-              className="text-xl sm:text-2xl lg:text-3xl text-gray-700 mb-16 max-w-3xl mx-auto leading-relaxed"
+              className="text-xl sm:text-2xl lg:text-3xl text-gray-700 mb-8 max-w-3xl mx-auto leading-relaxed"
               style={{
                 transform: `translateY(${scrollY * 0.05}px)`,
               }}
@@ -244,21 +244,55 @@ export default function LandingPage() {
               <span className="text-gray-600">ile öğrenme deneyiminizi bir üst seviyeye taşıyın</span>
             </p>
 
-            {/* Premium CTA Button */}
+            {/* Badge/Trust indicators below headline */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-16 max-w-3xl mx-auto">
+              {[
+                { text: "⭐ 4.9/5 Puan", icon: "⭐" },
+                { text: "🚀 Anında Çözüm", icon: "🚀" },
+                { text: "✅ Güvenilir Platform", icon: "✅" },
+              ].map((badge, index) => (
+                <div
+                  key={index}
+                  className="group relative bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-full border border-gray-200/50 hover:border-blue-300 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md"
+                  style={{
+                    animationDelay: `${index * 0.1}s`,
+                  }}
+                >
+                  <span className="text-sm font-semibold text-gray-700 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500 group-hover:bg-clip-text transition-all duration-300">
+                    {badge.text}
+                  </span>
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 group-hover:opacity-20 blur rounded-full transition-opacity duration-300" />
+                </div>
+              ))}
+            </div>
+
+            {/* Premium CTA Button with enhanced effects */}
             <div className="mb-16">
-              <button
-                onClick={handleGetStarted}
-                className="group relative inline-flex items-center justify-center px-12 py-6 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white text-xl font-bold rounded-[2rem] overflow-hidden transform hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_20px_60px_rgba(59,130,246,0.5)] hover:shadow-[0_25px_80px_rgba(59,130,246,0.7)]"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <span className="relative z-10 flex items-center gap-3">
-                  Başlayın
-                  <svg className="w-6 h-6 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </span>
-                <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              </button>
+              <div className="relative inline-block group">
+                {/* Pulsing glow effect */}
+                <div className="absolute -inset-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-[2.5rem] opacity-30 group-hover:opacity-50 blur-xl animate-pulse" />
+                
+                <button
+                  onClick={handleGetStarted}
+                  className="relative inline-flex items-center justify-center px-12 py-6 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 text-white text-xl font-bold rounded-[2rem] overflow-hidden transform hover:scale-105 active:scale-95 transition-all duration-300 shadow-[0_20px_60px_rgba(59,130,246,0.5)] hover:shadow-[0_25px_80px_rgba(59,130,246,0.7)]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <span className="relative z-10 flex items-center gap-3">
+                    <span className="relative">
+                      Ücretsiz Başlayın
+                      <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-white transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                    </span>
+                    <svg className="w-6 h-6 transform group-hover:translate-x-1 group-hover:rotate-12 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </span>
+                  <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  
+                  {/* Sparkle effect */}
+                  <div className="absolute top-2 right-4 w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 animate-ping" />
+                  <div className="absolute bottom-2 left-4 w-1.5 h-1.5 bg-white rounded-full opacity-0 group-hover:opacity-100 animate-ping" style={{ animationDelay: "0.2s" }} />
+                </button>
+              </div>
             </div>
 
             {/* Trust Indicators - Premium Modern Design (Text Only) */}
@@ -331,7 +365,7 @@ export default function LandingPage() {
               <div
                 key={index}
                 onClick={handleGetStarted}
-                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-gray-200/50 hover:border-gray-300 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:-translate-y-2 shadow-[0_10px_40px_rgba(0,0,0,0.08)]"
+                className="group relative bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-gray-200/50 hover:border-gray-300 transition-all duration-500 cursor-pointer transform hover:scale-105 hover:-translate-y-2 shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)]"
                 style={{
                   animationDelay: `${index * 0.1}s`,
                   transform: `perspective(1000px) rotateY(${(mousePosition.x - 50) * 0.01}deg) rotateX(${(mousePosition.y - 50) * -0.01}deg)`,
@@ -343,16 +377,35 @@ export default function LandingPage() {
                 {/* Glow effect */}
                 <div className={`absolute -inset-1 bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-30 blur-xl rounded-[2.5rem] transition-opacity duration-500`} />
 
+                {/* Animated border on hover */}
+                <div className={`absolute inset-0 rounded-[2.5rem] border-2 border-transparent bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} style={{ mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMaskComposite: 'xor', padding: '2px' }} />
+
                 <div className="relative z-10">
-                  <div className={`text-6xl mb-6 transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 inline-block`}>
-                    {feature.icon}
+                  {/* Icon with enhanced animation */}
+                  <div className="relative inline-block mb-6">
+                    <div className={`text-6xl transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 relative z-10`}>
+                      {feature.icon}
+                    </div>
+                    {/* Icon glow */}
+                    <div className={`absolute inset-0 text-6xl bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-30 blur-2xl transition-opacity duration-500`}>
+                      {feature.icon}
+                    </div>
                   </div>
+                  
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-purple-500 group-hover:bg-clip-text transition-all duration-500">
                     {feature.title}
                   </h3>
                   <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors">
                     {feature.description}
                   </p>
+                  
+                  {/* Arrow indicator on hover */}
+                  <div className="mt-6 opacity-0 group-hover:opacity-100 transform translate-x-0 group-hover:translate-x-2 transition-all duration-500 flex items-center text-blue-500 font-semibold">
+                    <span className="text-sm">Daha fazla</span>
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             ))}
@@ -379,6 +432,92 @@ export default function LandingPage() {
                 <div className="text-gray-600 font-semibold text-lg group-hover:text-gray-900 transition-colors">
                   {stat.label}
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials Section - Premium Design */}
+      <div className="relative py-32 px-4 sm:px-6 lg:px-8 z-10 bg-gradient-to-b from-transparent via-purple-50/30 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-5xl sm:text-6xl font-black text-gray-900 mb-6">
+              <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 bg-clip-text text-transparent">
+                Öğrencilerimiz Ne Diyor?
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Binlerce öğrencinin güvendiği platform
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Ayşe Yılmaz",
+                role: "Lise Öğrencisi",
+                content: "AI ile soru çözme artık çok kolay! Koçlarımın desteği sayesinde sınavlarda çok başarılı oldum. Kesinlikle tavsiye ederim!",
+                rating: 5,
+                gradient: "from-blue-500 to-cyan-500",
+                avatar: "👩‍🎓",
+              },
+              {
+                name: "Mehmet Demir",
+                role: "Üniversite Hazırlık",
+                content: "Premium planı aldığım günden beri soru limitim sınırsız. Her soruma anında cevap alıyorum ve çok memnunum!",
+                rating: 5,
+                gradient: "from-purple-500 to-pink-500",
+                avatar: "👨‍🎓",
+              },
+              {
+                name: "Elif Kaya",
+                role: "Ortaokul Öğrencisi",
+                content: "Koçumla mesajlaşma özelliği harika! Takıldığım her konuda yardım alabiliyorum. Ailem de çok beğendi.",
+                rating: 5,
+                gradient: "from-pink-500 to-rose-500",
+                avatar: "👧",
+              },
+            ].map((testimonial, index) => (
+              <div
+                key={index}
+                className="group relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 border border-gray-200/50 hover:border-purple-300 transition-all duration-500 transform hover:scale-105 hover:-translate-y-2 shadow-[0_10px_40px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_60px_rgba(139,92,246,0.2)]"
+                style={{
+                  animationDelay: `${index * 0.15}s`,
+                }}
+              >
+                {/* Gradient glow on hover */}
+                <div className={`absolute -inset-1 bg-gradient-to-r ${testimonial.gradient} opacity-0 group-hover:opacity-20 blur-xl rounded-[2.5rem] transition-opacity duration-500`} />
+                
+                <div className="relative z-10">
+                  {/* Stars */}
+                  <div className="flex gap-1 mb-6">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                      </svg>
+                    ))}
+                  </div>
+
+                  {/* Content */}
+                  <p className="text-gray-700 leading-relaxed mb-6 text-lg italic">
+                    "{testimonial.content}"
+                  </p>
+
+                  {/* Author */}
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${testimonial.gradient} flex items-center justify-center text-2xl shadow-lg`}>
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">{testimonial.name}</div>
+                      <div className="text-sm text-gray-600">{testimonial.role}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Decorative corner accent */}
+                <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${testimonial.gradient} opacity-0 group-hover:opacity-10 rounded-bl-2xl rounded-tr-2xl transition-opacity duration-500`} />
               </div>
             ))}
           </div>
