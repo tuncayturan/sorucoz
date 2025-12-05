@@ -101,9 +101,10 @@ export default function CoachStudentsPage() {
           }
         });
 
+        const { id: _, ...studentDataWithoutId } = studentData;
         studentsWithStats.push({
+          ...studentDataWithoutId,
           id: studentDoc.id,
-          ...studentData,
           totalQuestions: sorularSnapshot.size,
           solvedQuestions: solvedCount,
           lastQuestionTime,
