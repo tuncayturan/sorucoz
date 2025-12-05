@@ -898,7 +898,7 @@ export default function HomePage() {
                             <p className="text-blue-100 text-sm">
                               {subscriptionDaysLeft > 0 ? (
                                 <>
-                                  Bitiş: <span className="font-bold">{formatEndDate(userData.subscriptionEndDate)}</span>
+                                  Bitiş: <span className="font-bold">{formatEndDate(userData?.subscriptionEndDate)}</span>
                                   {' '}({subscriptionDaysLeft} gün)
                                 </>
                               ) : (
@@ -933,7 +933,7 @@ export default function HomePage() {
                             <p className="text-yellow-100 text-sm">
                               {subscriptionDaysLeft > 0 ? (
                                 <>
-                                  Bitiş: <span className="font-bold">{formatEndDate(userData.subscriptionEndDate)}</span>
+                                  Bitiş: <span className="font-bold">{formatEndDate(userData?.subscriptionEndDate)}</span>
                                   {' '}({subscriptionDaysLeft} gün)
                                 </>
                               ) : (
