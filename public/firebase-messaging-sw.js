@@ -450,7 +450,9 @@ self.addEventListener('notificationclick', (event) => {
     case 'message':
       // Coach/Student mesajları
       // CRITICAL: receiverRole kontrolü - coach'a gelen mesajlar için /coach/chat
-      const receiverRole = notificationData.receiverRole || notificationData.role;
+      const receiverRole = notificationData.receiverRole || notificationData.role || '';
+      console.log('[firebase-messaging-sw.js] 🔍 Receiver Role Check:', { receiverRole, raw: notificationData.receiverRole, role: notificationData.role });
+      
       if (receiverRole === 'coach') {
         // Coach'a gelen mesaj - /coach/chat sayfasına git
         if (notificationData.conversationId) {
@@ -522,25 +524,44 @@ self.addEventListener('notificationclick', (event) => {
   }
   
   console.log('[firebase-messaging-sw.js] 🎯 Target URL:', targetUrl);
+  console.log('[firebase-messaging-sw.js] 🔍 Notification Data Debug:', {
+    receiverRole: notificationData.receiverRole,
+    role: notificationData.role,
+    type: notificationType,
+    conversationId: notificationData.conversationId,
+    userId: notificationData.userId
+  });
   
   // Mevcut pencereyi bul veya yeni pencere aç
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Eğer açık bir pencere varsa, onu kullan
+        // Eğer açık bir pencere varsa, onu kullan ve navigate et
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            console.log('[firebase-messaging-sw.js] Focusing existing window and navigating to:', targetUrl);
-            client.focus();
-            return client.navigate(targetUrl);
+          if (client.url.includes(self.location.origin)) {
+            console.log('[firebase-messaging-sw.js] Found existing window, navigating to:', targetUrl);
+            // client.navigate() modern API, fallback için window.open kullan
+            if ('navigate' in client && typeof client.navigate === 'function') {
+              client.focus();
+              return client.navigate(targetUrl).catch((err) => {
+                console.warn('[firebase-messaging-sw.js] navigate() failed, using window.open fallback:', err);
+                return clients.openWindow(targetUrl);
+              });
+            } else {
+              // Fallback: window.open kullan (daha uyumlu)
+              client.focus();
+              return clients.openWindow(targetUrl);
+            }
           }
         }
         // Açık pencere yoksa yeni pencere aç
-        console.log('[firebase-messaging-sw.js] Opening new window:', targetUrl);
-        return clients.openWindow(targetUrl);
+        console.log('[firebase-messaging-sw.js] No existing window, opening new window:', targetUrl);
+        return clients.openWindow(self.location.origin + targetUrl);
       })
       .catch((error) => {
-        console.error('[firebase-messaging-sw.js] Error handling notification click:', error);
+        console.error('[firebase-messaging-sw.js] ❌ Error handling notification click:', error);
+        // Fallback: direkt URL aç
+        return clients.openWindow(self.location.origin + targetUrl);
       })
   );
 });
