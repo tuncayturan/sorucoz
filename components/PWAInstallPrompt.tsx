@@ -62,12 +62,15 @@ export default function PWAInstallPrompt() {
       
       const hasClosedBefore = localStorage.getItem('pwa-install-closed-android');
       if (!hasClosedBefore) {
-        // 1 saniye sonra otomatik olarak native prompt'u göster
+        // 2 saniye sonra otomatik olarak native prompt'u göster (biraz daha bekleyelim)
         setTimeout(async () => {
           console.log('[PWA] Auto-showing Android install prompt');
           try {
             // Otomatik olarak native prompt'u göster
+            console.log('[PWA] Calling prompt()...');
             await promptEvent.prompt();
+            console.log('[PWA] Prompt shown, waiting for user choice...');
+            
             const { outcome } = await promptEvent.userChoice;
             console.log('[PWA] User choice:', outcome);
             
@@ -75,6 +78,16 @@ export default function PWAInstallPrompt() {
               console.log('[PWA] ✅ User accepted Android install - app will be installed');
               // Kullanıcı kabul etti, artık prompt gösterme
               localStorage.setItem('pwa-install-closed-android', 'accepted');
+              
+              // Android'de uygulama ana ekrana eklendikten sonra sayfayı yenile
+              // (PWA moduna geçiş için)
+              setTimeout(() => {
+                if (window.matchMedia('(display-mode: standalone)').matches) {
+                  console.log('[PWA] ✅ App is now in standalone mode');
+                } else {
+                  console.log('[PWA] ⚠️ App not yet in standalone mode, may need page refresh');
+                }
+              }, 1000);
             } else {
               console.log('[PWA] User dismissed Android install');
               // Kullanıcı reddetti, bir sonraki sefer tekrar göster
@@ -82,12 +95,13 @@ export default function PWAInstallPrompt() {
             
             setDeferredPrompt(null);
             setShowPrompt(false);
-          } catch (error) {
-            console.error('[PWA] Error showing prompt:', error);
+          } catch (error: any) {
+            console.error('[PWA] ❌ Error showing prompt:', error);
+            console.error('[PWA] Error details:', error.message, error.stack);
             // Hata olursa fallback olarak custom prompt göster
             setShowPrompt(true);
           }
-        }, 1000);
+        }, 2000); // 2 saniye bekle
       }
     };
 

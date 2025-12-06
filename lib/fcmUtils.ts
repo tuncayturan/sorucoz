@@ -262,6 +262,7 @@ export async function saveFCMTokenToUser(userId: string, token: string): Promise
     
     // SADECE YENİ TOKEN'I KAYDET - TÜM ESKİLERİ SİL
     // Bu duplicate notification sorununu %100 çözer
+    console.log("[FCM] 📝 Updating Firestore document...");
     await updateDoc(userRef, {
       fcmTokens: [token], // Array'e sadece yeni token'ı koy, eski tüm token'ları sil
       lastTokenUpdate: new Date(),
@@ -270,6 +271,38 @@ export async function saveFCMTokenToUser(userId: string, token: string): Promise
     console.log("[FCM] ✅ === TOKEN SAVED SUCCESSFULLY ===");
     console.log("[FCM] Old tokens removed, only new token remains");
     console.log("[FCM] Token (full):", token);
+    
+    // Token'ın gerçekten kaydedildiğini doğrula
+    try {
+      const verifySnap = await getDoc(userRef);
+      if (verifySnap.exists()) {
+        const savedTokens = (verifySnap.data().fcmTokens as string[]) || [];
+        const tokenExists = savedTokens.includes(token);
+        console.log("[FCM] 🔍 Token verification:", {
+          tokenExists,
+          savedTokensCount: savedTokens.length,
+          tokenInArray: tokenExists
+        });
+        
+        if (!tokenExists) {
+          console.error("[FCM] ⚠️ Token not found after save! Retrying...");
+          // Tekrar kaydet
+          await updateDoc(userRef, {
+            fcmTokens: [token],
+            lastTokenUpdate: new Date(),
+          });
+          console.log("[FCM] 🔄 Retried saving token");
+        } else {
+          console.log("[FCM] ✅ Token verified in Firestore");
+        }
+      } else {
+        console.error("[FCM] ❌ User document does not exist!");
+        throw new Error("User document not found");
+      }
+    } catch (verifyError) {
+      console.error("[FCM] ⚠️ Could not verify token save:", verifyError);
+      // Verification hatası token kaydetmeyi başarısız yapmaz, sadece logluyoruz
+    }
   } catch (error: any) {
     console.error("[FCM] ❌ === ERROR SAVING TOKEN ===");
     console.error("[FCM] Error:", error.message || error);

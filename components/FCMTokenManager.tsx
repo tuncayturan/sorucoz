@@ -129,20 +129,51 @@ export default function FCMTokenManager() {
       console.log("[FCMTokenManager] ✅ All APIs available, requesting permission...");
       
       // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır
+      console.log("[FCMTokenManager] 🔔 Requesting notification permission...");
       const token = await requestNotificationPermission();
       
       if (token) {
         console.log("[FCMTokenManager] ✅ Token received:", token.substring(0, 30) + "...");
-        console.log("[FCMTokenManager] 💾 Saving to Firestore...");
+        console.log("[FCMTokenManager] 💾 Saving to Firestore for user:", user.uid);
         
-        await saveFCMTokenToUser(user.uid, token);
-        
-        console.log("[FCMTokenManager] ✅ Token saved successfully!");
-        setPermission("granted");
-        setShow(false);
-        
-        // Başarı mesajı
-        alert("✅ Bildirimler aktif edildi!\n\nArtık mesaj ve soru yanıtlarını anında alacaksınız.");
+        try {
+          await saveFCMTokenToUser(user.uid, token);
+          console.log("[FCMTokenManager] ✅ Token saved successfully to Firestore!");
+          
+          // Firestore'da token'ın gerçekten kaydedildiğini doğrula
+          const { doc, getDoc } = await import("firebase/firestore");
+          const { db } = await import("@/lib/firebase");
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (userSnap.exists()) {
+            const savedTokens = userSnap.data().fcmTokens || [];
+            const tokenSaved = savedTokens.includes(token);
+            console.log("[FCMTokenManager] 🔍 Token verification:", {
+              tokenSaved,
+              savedTokensCount: savedTokens.length,
+              tokenInArray: tokenSaved
+            });
+            
+            if (!tokenSaved) {
+              console.error("[FCMTokenManager] ⚠️ Token not found in Firestore after save!");
+              // Tekrar kaydetmeyi dene
+              await saveFCMTokenToUser(user.uid, token);
+              console.log("[FCMTokenManager] 🔄 Retried saving token");
+            }
+          }
+          
+          setPermission("granted");
+          setShow(false);
+          
+          // Başarı mesajı
+          alert("✅ Bildirimler aktif edildi!\n\nArtık mesaj ve soru yanıtlarını anında alacaksınız.");
+        } catch (saveError: any) {
+          console.error("[FCMTokenManager] ❌ Error saving token to Firestore:", saveError);
+          console.error("[FCMTokenManager] Error details:", saveError.message, saveError.stack);
+          
+          alert(`❌ Token kaydedilemedi\n\nHata: ${saveError.message}\n\nLütfen sayfayı yenileyin ve tekrar deneyin.`);
+        }
       } else {
         console.error("[FCMTokenManager] ❌ Token is null");
         
