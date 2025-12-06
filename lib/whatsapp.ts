@@ -57,7 +57,7 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     throw error;
   }
 
-  // Firestore'dan bağlantı durumunu kontrol et - eğer bağlantı bilgileri yoksa, direkt QR kod göster
+  // Firestore'dan bağlantı durumunu kontrol et (mevcut bağlantıları korumak için)
   let hasConnectionInfo = false;
   try {
     await loadWhatsAppModules();
@@ -76,6 +76,33 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     }
   } catch (error) {
     console.error("Firestore bağlantı durumu kontrol hatası:", error);
+  }
+
+  // Session dosyalarını kontrol et - varsa otomatik bağlanmayı dene
+  let hasSessionFiles = false;
+  try {
+    if (typeof window === "undefined") {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const sessionPath = path.join(process.cwd(), `.wwebjs_auth/${coachId}`);
+      
+      try {
+        const stats = await fs.stat(sessionPath);
+        if (stats.isDirectory()) {
+          hasSessionFiles = true;
+          console.log(`✅ Coach ${coachId} için session dosyaları bulundu`);
+        }
+      } catch (error: any) {
+        // Session klasörü yok, normal
+        if (error.code !== "ENOENT") {
+          console.error(`❌ Session kontrol hatası:`, error);
+        } else {
+          console.log(`📱 Coach ${coachId} için session dosyaları yok`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Session kontrol hatası:", error);
   }
 
   // Eğer zaten varsa ve hazırsa, döndür
@@ -117,62 +144,21 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     }
   }
 
-  // Firestore'dan bağlantı durumunu kontrol et
-  // Eğer bağlantı bilgileri yoksa, direkt QR kod göster (otomatik bağlanma yapma)
-  let shouldAutoConnect = false;
-  if (hasConnectionInfo) {
-    shouldAutoConnect = true;
-    console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (Firestore'da bağlantı bilgileri var)`);
-  } else {
-    console.log(`📱 Coach ${coachId} için Firestore'da bağlantı bilgileri yok, QR kod gösterilecek`);
-  }
+  // Mevcut bağlantıları korumak için: Firestore'da bağlı VEYA session dosyası varsa otomatik bağlanmayı dene
+  // Bu şekilde mevcut bağlantılar etkilenmez
+  // LocalAuth otomatik olarak session'ı yükleyecek, eğer başarısız olursa auth_failure event'i tetiklenecek
+  const shouldAutoConnect = hasConnectionInfo || hasSessionFiles;
   
-  // Session dosyalarını kontrol et - eğer bozuksa temizle
-  try {
-    if (typeof window === "undefined") {
-      const fs = await import("fs/promises");
-      const path = await import("path");
-      const sessionPath = path.join(process.cwd(), `.wwebjs_auth/${coachId}`);
-      
-      try {
-        const stats = await fs.stat(sessionPath);
-        if (stats.isDirectory()) {
-          // Session var ama Firestore'da bağlı değilse, bozuk olabilir - temizle
-          if (!shouldAutoConnect) {
-            console.warn(`⚠️ Coach ${coachId} için session dosyaları var ama Firestore'da bağlı değil. Bozuk olabilir, temizleniyor...`);
-            try {
-              // Önce mevcut client'ı destroy et (varsa)
-              const existing = coachClients.get(coachId);
-              if (existing && existing.client) {
-                try {
-                  await existing.client.destroy();
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                } catch (error) {
-                  console.error("Mevcut client destroy hatası:", error);
-                }
-              }
-              
-              // Session dosyalarını temizle
-              await fs.rm(sessionPath, { recursive: true, force: true });
-              console.log(`✅ Coach ${coachId} için bozuk session dosyaları temizlendi`);
-            } catch (error: any) {
-              if (error.code !== "EBUSY" && error.code !== "ENOENT") {
-                console.error(`❌ Session temizleme hatası:`, error);
-              } else if (error.code === "EBUSY") {
-                console.warn(`⚠️ Session dosyaları kilitli, temizlenemedi. Devam ediliyor...`);
-              }
-            }
-          }
-        }
-      } catch (error: any) {
-        // Session klasörü yok, normal
-        if (error.code !== "ENOENT") {
-          console.error(`❌ Session kontrol hatası:`, error);
-        }
-      }
+  if (shouldAutoConnect) {
+    if (hasConnectionInfo && hasSessionFiles) {
+      console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (Firestore'da bağlı VE session dosyaları var)`);
+    } else if (hasConnectionInfo) {
+      console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (Firestore'da bağlı - mevcut bağlantı korunuyor)`);
+    } else {
+      console.log(`🔄 Coach ${coachId} için otomatik bağlanma deneniyor (session dosyaları var)`);
     }
-  } catch (error) {
-    console.error("Session kontrol hatası:", error);
+  } else {
+    console.log(`📱 Coach ${coachId} için otomatik bağlanma yapılmayacak (Firestore'da bağlı değil VE session dosyaları yok), QR kod gösterilecek`);
   }
 
   // Yeni client oluştur
@@ -602,9 +588,29 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       }
     });
 
-    client.on("auth_failure", (msg: any) => {
+    client.on("auth_failure", async (msg: any) => {
       console.error(`❌ Coach ${coachId} için WhatsApp kimlik doğrulama hatası:`, msg);
       clientData.isInitializing = false;
+      clientData.qrCode = null;
+      
+      // Session dosyaları bozuk olabilir, temizle
+      console.log(`🗑️ Coach ${coachId} için auth_failure nedeniyle session temizleniyor...`);
+      
+      // Client'ı önce destroy et
+      try {
+        await client.destroy();
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 saniye bekle
+      } catch (error) {
+        console.error(`❌ Client destroy hatası (auth_failure):`, error);
+      }
+      
+      // Session'ı temizle
+      try {
+        await clearWhatsAppSessionForCoach(coachId);
+      } catch (error) {
+        console.error(`❌ Session temizleme hatası (auth_failure):`, error);
+      }
+      
       coachClients.delete(coachId);
     });
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
-import { collection, query, where, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, where, onSnapshot, Timestamp, orderBy, limit, getDocs, startAfter, QueryDocumentSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Image from "next/image";
 
@@ -24,6 +24,9 @@ interface WhatsAppMessage {
   contactName: string | null; // WhatsApp contact adı
 }
 
+const MESSAGES_PER_PAGE = 50; // Sayfa başına mesaj sayısı
+const MAX_MESSAGES_TO_LOAD = 500; // Toplam yüklenecek maksimum mesaj sayısı
+
 export default function WhatsAppMessagesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,6 +36,10 @@ export default function WhatsAppMessagesPage() {
   const [messages, setMessages] = useState<WhatsAppMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [coachName, setCoachName] = useState("");
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastMessageDoc, setLastMessageDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const messagesRef = useRef<WhatsAppMessage[]>([]);
 
   useEffect(() => {
     if (!authLoading && !userDataLoading) {
@@ -63,34 +70,86 @@ export default function WhatsAppMessagesPage() {
 
     fetchCoachInfo();
 
-    // WhatsApp mesajlarını dinle
-    const messagesQuery = query(
-      collection(db, "whatsapp_messages"),
-      where("coachId", "==", coachId)
-    );
+    // İlk yükleme: Son N mesajı çek (limit ile)
+    const loadInitialMessages = async () => {
+      try {
+        const messagesQuery = query(
+          collection(db, "whatsapp_messages"),
+          where("coachId", "==", coachId),
+          orderBy("timestamp", "desc"),
+          limit(MESSAGES_PER_PAGE)
+        );
 
-    const unsubscribe = onSnapshot(
-      messagesQuery,
-      (snapshot) => {
+        const snapshot = await getDocs(messagesQuery);
         const messagesList: WhatsAppMessage[] = [];
+        let lastDoc: QueryDocumentSnapshot | null = null;
+
         snapshot.forEach((doc) => {
           messagesList.push({
             id: doc.id,
             ...doc.data(),
           } as WhatsAppMessage);
+          lastDoc = doc;
         });
-        // Client-side'da timestamp'e göre sırala (en yeni önce)
-        messagesList.sort((a, b) => {
-          const timestampA = a.timestamp || 0;
-          const timestampB = b.timestamp || 0;
-          return timestampB - timestampA; // Descending order
-        });
+
         setMessages(messagesList);
+        messagesRef.current = messagesList; // Ref'i güncelle
+        setLastMessageDoc(lastDoc);
+        setHasMore(snapshot.size === MESSAGES_PER_PAGE);
         setLoading(false);
-      },
-      (error) => {
+      } catch (error) {
         console.error("Mesajlar yüklenirken hata:", error);
         setLoading(false);
+      }
+    };
+
+    loadInitialMessages();
+
+    // Yeni mesajları gerçek zamanlı dinle (sadece yeni eklenenler için)
+    // Not: onSnapshot tüm koleksiyonu dinler, bu yüzden sadece yeni mesajları kontrol ediyoruz
+    const messagesQuery = query(
+      collection(db, "whatsapp_messages"),
+      where("coachId", "==", coachId),
+      orderBy("timestamp", "desc"),
+      limit(10) // Son 10 mesajı dinle (yeni mesajlar için)
+    );
+
+    const unsubscribe = onSnapshot(
+      messagesQuery,
+      (snapshot) => {
+        // Sadece yeni mesajları kontrol et (ilk yüklemede zaten yüklendi)
+        if (messagesRef.current.length > 0) {
+          const newMessages: WhatsAppMessage[] = [];
+          snapshot.forEach((doc) => {
+            const messageData = {
+              id: doc.id,
+              ...doc.data(),
+            } as WhatsAppMessage;
+            
+            // Eğer bu mesaj zaten listede yoksa, yeni mesajdır
+            if (!messagesRef.current.find((m) => m.id === doc.id)) {
+              newMessages.push(messageData);
+            }
+          });
+
+          // Yeni mesajları listenin başına ekle
+          if (newMessages.length > 0) {
+            setMessages((prev) => {
+              const combined = [...newMessages, ...prev];
+              // Timestamp'e göre sırala
+              combined.sort((a, b) => {
+                const timestampA = a.timestamp || 0;
+                const timestampB = b.timestamp || 0;
+                return timestampB - timestampA;
+              });
+              messagesRef.current = combined; // Ref'i güncelle
+              return combined;
+            });
+          }
+        }
+      },
+      (error) => {
+        console.error("Yeni mesajlar dinlenirken hata:", error);
       }
     );
 
@@ -129,6 +188,49 @@ export default function WhatsAppMessagesPage() {
     });
   };
 
+  const loadMoreMessages = async () => {
+    if (!lastMessageDoc || !hasMore || loadingMore || messages.length >= MAX_MESSAGES_TO_LOAD) return;
+
+    setLoadingMore(true);
+    try {
+      const messagesQuery = query(
+        collection(db, "whatsapp_messages"),
+        where("coachId", "==", coachId),
+        orderBy("timestamp", "desc"),
+        startAfter(lastMessageDoc),
+        limit(MESSAGES_PER_PAGE)
+      );
+
+      const snapshot = await getDocs(messagesQuery);
+      const newMessages: WhatsAppMessage[] = [];
+      let newLastDoc: QueryDocumentSnapshot | null = null;
+
+      snapshot.forEach((doc) => {
+        newMessages.push({
+          id: doc.id,
+          ...doc.data(),
+        } as WhatsAppMessage);
+        newLastDoc = doc;
+      });
+
+      if (newMessages.length > 0) {
+        setMessages((prev) => {
+          const updated = [...prev, ...newMessages];
+          messagesRef.current = updated; // Ref'i güncelle
+          return updated;
+        });
+        setLastMessageDoc(newLastDoc);
+        setHasMore(snapshot.size === MESSAGES_PER_PAGE && messagesRef.current.length < MAX_MESSAGES_TO_LOAD);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Daha fazla mesaj yüklenirken hata:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
@@ -145,6 +247,12 @@ export default function WhatsAppMessagesPage() {
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">WhatsApp Mesajları</h1>
           <p className="text-gray-600">Coach: {coachName}</p>
+          {messages.length > 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              {messages.length} mesaj gösteriliyor
+              {messages.length >= MAX_MESSAGES_TO_LOAD && ` (Maksimum limit: ${MAX_MESSAGES_TO_LOAD})`}
+            </p>
+          )}
         </div>
 
         {/* Messages List */}
@@ -262,6 +370,34 @@ export default function WhatsAppMessagesPage() {
                   </div>
                 </div>
               ))}
+              
+              {/* Load More Button */}
+              {hasMore && messages.length < MAX_MESSAGES_TO_LOAD && (
+                <div className="p-6 text-center">
+                  <button
+                    onClick={loadMoreMessages}
+                    disabled={loadingMore}
+                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                  >
+                    {loadingMore ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Yükleniyor...
+                      </span>
+                    ) : (
+                      "Daha Fazla Mesaj Yükle"
+                    )}
+                  </button>
+                </div>
+              )}
+              
+              {messages.length >= MAX_MESSAGES_TO_LOAD && (
+                <div className="p-6 text-center">
+                  <p className="text-sm text-gray-500">
+                    Maksimum mesaj limitine ulaşıldı ({MAX_MESSAGES_TO_LOAD}). Daha eski mesajları görmek için filtreleme ekleyebiliriz.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
