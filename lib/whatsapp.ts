@@ -209,30 +209,38 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
     // Railway'de Chromium PATH'i
     if (process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID) {
       // Railway'de Chromium nixpacks ile yüklenir
-      // PATH otomatik olarak ayarlanır, ekstra yapılandırma gerekmez
       console.log(`🚂 Railway ortamı tespit edildi, Puppeteer yapılandırması optimize ediliyor...`);
       console.log(`🚂 Railway environment variables:`, {
         RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
         RAILWAY_PROJECT_ID: process.env.RAILWAY_PROJECT_ID ? 'Set' : 'Not set',
+        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH || 'Not set',
       });
       
-      // Railway'de executablePath kontrolü
+      // Railway'de Chromium path'ini bul (nixpacks ile yüklenen)
       try {
-        const puppeteer = await import("puppeteer");
-        const browserFetcher = (puppeteer as any).default?.createBrowserFetcher?.() || (puppeteer as any).createBrowserFetcher?.();
-        if (browserFetcher) {
-          const revisionInfo = await browserFetcher.revisionInfo("latest");
-          console.log(`🚂 Puppeteer revision info:`, {
-            executablePath: revisionInfo.executablePath ? 'Var' : 'Yok',
-            revision: revisionInfo.revision,
-          });
-          if (revisionInfo.executablePath) {
-            puppeteerOptions.executablePath = revisionInfo.executablePath;
-            console.log(`✅ Puppeteer executablePath ayarlandı`);
+        const { execSync } = await import("child_process");
+        // Nix store'dan Chromium path'ini bul
+        const chromiumPath = execSync("which chromium", { encoding: "utf-8" }).trim();
+        if (chromiumPath) {
+          puppeteerOptions.executablePath = chromiumPath;
+          console.log(`✅ Railway Chromium path bulundu: ${chromiumPath}`);
+        } else {
+          // Alternatif: Nix store'dan direkt bul
+          const findChromium = execSync("find /nix/store -name chromium -type f 2>/dev/null | head -1", { encoding: "utf-8" }).trim();
+          if (findChromium) {
+            puppeteerOptions.executablePath = findChromium;
+            console.log(`✅ Railway Chromium path bulundu (find): ${findChromium}`);
+          } else {
+            console.warn(`⚠️ Railway Chromium path bulunamadı, sistem PATH'i kullanılacak`);
           }
         }
-      } catch (error) {
-        console.warn(`⚠️ Puppeteer executablePath ayarlanamadı:`, error);
+      } catch (error: any) {
+        console.warn(`⚠️ Railway Chromium path bulunamadı:`, error?.message || error);
+        // Fallback: Environment variable'dan al
+        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+          puppeteerOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+          console.log(`✅ PUPPETEER_EXECUTABLE_PATH environment variable kullanılıyor`);
+        }
       }
     }
     

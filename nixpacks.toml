@@ -12,6 +12,5 @@ cmd = "npm start"
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "/nix/store/*/chromium"
 NODE_ENV = "production"
 
