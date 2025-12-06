@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node -e \"try { require('puppeteer'); } catch(e) { console.log('Puppeteer optional'); }\""
   },
   "dependencies": {
     "cloudinary": "^2.8.0",
