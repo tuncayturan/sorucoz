@@ -52,6 +52,21 @@ export default function FCMTokenManager() {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPermission(Notification.permission);
       
+      // iOS PWA kontrolü
+      const ua = navigator.userAgent;
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                    (window.navigator as any).standalone === true;
+      
+      // iOS'ta bildirimler sadece PWA modunda çalışır
+      if (isIOS && !isPWA && isIOSSafari) {
+        console.log("[FCMTokenManager] iOS Safari detected but not in PWA mode");
+        console.log("[FCMTokenManager] Notifications require app to be added to home screen");
+        // iOS PWA uyarısı göster (AddToHomeScreenPrompt zaten gösteriyor)
+        return;
+      }
+      
       // Eğer izin verilmemişse (default), butonu göster
       if (Notification.permission === "default" && user) {
         // Mobil cihaz kontrolü
@@ -64,6 +79,12 @@ export default function FCMTokenManager() {
           // Masaüstünde 2 saniye sonra göster
           setTimeout(() => setShow(true), 2000);
         }
+      }
+      
+      // İzin verilmişse ama token yoksa da göster (token yenileme için)
+      if (Notification.permission === "granted" && user) {
+        // Token kontrolü yapılabilir ama şimdilik sadece izin kontrolü yeterli
+        console.log("[FCMTokenManager] Permission granted, token should be available");
       }
     } else if (user) {
       // Notification API yok - muhtemelen iOS non-Safari

@@ -185,7 +185,9 @@ export default function HomePage() {
     }
   }, [user, userData, authLoading, userDataLoading, router]);
 
-  // Giriş yapan öğrenci için bildirim izni yoksa iste
+  // Giriş yapan öğrenci için bildirim izni kontrolü
+  // NOT: Mobilde otomatik token alma user gesture olmadan çalışmaz
+  // Bu yüzden sadece izin durumunu kontrol ediyoruz, FCMTokenManager buton ile çalışıyor
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!user || !userData || userData.role !== "student") return;
@@ -193,24 +195,39 @@ export default function HomePage() {
     // Kullanıcı bildirimleri tamamen kapattıysa zorlamayalım
     if (userData.notificationsEnabled === false) return;
 
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window)) {
+      console.log("[Home] Notification API not available");
+      return;
+    }
 
-    // Zaten izin verdiyse tekrar sorma
-    if (Notification.permission === "granted") return;
+    // iOS PWA kontrolü
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window.navigator as any).standalone === true;
+    
+    // iOS'ta bildirimler sadece PWA modunda çalışır
+    if (isIOS && !isPWA) {
+      console.log("[Home] iOS detected but not in PWA mode - notifications require PWA");
+      return;
+    }
+
+    // Zaten izin verdiyse ve token varsa kontrol et
+    if (Notification.permission === "granted") {
+      console.log("[Home] Notification permission already granted");
+      // Token'ın kayıtlı olup olmadığını kontrol et (FCMTokenManager hallediyor)
+      return;
+    }
 
     // Kullanıcı daha önce 'block' ettiyse, tarayıcı ayarlarından açması gerekir
-    if (Notification.permission === "denied") return;
+    if (Notification.permission === "denied") {
+      console.log("[Home] Notification permission denied by user");
+      return;
+    }
 
-    // 'default' durumunda, nazikçe izin iste
-    requestNotificationPermission()
-      .then((token) => {
-        if (token) {
-          return saveFCMTokenToUser(user.uid, token);
-        }
-      })
-      .catch((err) => {
-        console.error("[Home] Bildirim izni alınırken hata:", err);
-      });
+    // 'default' durumunda - FCMTokenManager buton ile izin isteyecek
+    console.log("[Home] Notification permission is default - FCMTokenManager will show button");
   }, [user, userData]);
 
   // Scroll to top button visibility

@@ -80,19 +80,25 @@ export default function RegisterPage() {
       }
 
       // FCM token'ı al ve kaydet (async, register'i bloklamaz)
-      requestNotificationPermission()
-        .then((token) => {
-          if (token) {
-            console.log("[Google Register] FCM token received, saving to Firestore...");
-            return saveFCMTokenToUser(user.uid, token);
-          } else {
-            console.warn("[Google Register] No FCM token received");
-          }
-        })
-        .catch((error) => {
-          console.error("[Google Register] Error in FCM token process:", error);
-          // Token kaydetme hatası kayıt işlemini durdurmaz
-        });
+      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
+      // Sadece izin zaten verilmişse token almayı dene
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              console.log("[Google Register] FCM token received, saving to Firestore...");
+              return saveFCMTokenToUser(user.uid, token);
+            } else {
+              console.warn("[Google Register] No FCM token received (permission granted but token null)");
+            }
+          })
+          .catch((error) => {
+            console.error("[Google Register] Error in FCM token process:", error);
+            // Token kaydetme hatası kayıt işlemini durdurmaz
+          });
+      } else {
+        console.log("[Google Register] Notification permission not granted, FCMTokenManager will handle it");
+      }
 
       const role = snap.exists() ? snap.data().role : "student";
 
@@ -145,19 +151,25 @@ export default function RegisterPage() {
       });
 
       // FCM token'ı al ve kaydet (async, register'i bloklamaz)
-      requestNotificationPermission()
-        .then((token) => {
-          if (token) {
-            console.log("[Email Register] FCM token received, saving to Firestore...");
-            return saveFCMTokenToUser(cred.user.uid, token);
-          } else {
-            console.warn("[Email Register] No FCM token received");
-          }
-        })
-        .catch((error) => {
-          console.error("[Email Register] Error in FCM token process:", error);
-          // Token kaydetme hatası kayıt işlemini durdurmaz
-        });
+      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
+      // Sadece izin zaten verilmişse token almayı dene
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              console.log("[Email Register] FCM token received, saving to Firestore...");
+              return saveFCMTokenToUser(cred.user.uid, token);
+            } else {
+              console.warn("[Email Register] No FCM token received (permission granted but token null)");
+            }
+          })
+          .catch((error) => {
+            console.error("[Email Register] Error in FCM token process:", error);
+            // Token kaydetme hatası kayıt işlemini durdurmaz
+          });
+      } else {
+        console.log("[Email Register] Notification permission not granted, FCMTokenManager will handle it");
+      }
 
       showToast("Kayıt başarılı! Email doğrulama sayfasına yönlendiriliyorsunuz...", "success");
       

@@ -75,19 +75,25 @@ export default function LoginPage() {
       }
 
       // FCM token'ı al ve kaydet (async, login'i bloklamaz)
-      requestNotificationPermission()
-        .then((token) => {
-          if (token) {
-            console.log("[Login] FCM token received, saving to Firestore...");
-            return saveFCMTokenToUser(cred.user.uid, token);
-          } else {
-            console.warn("[Login] No FCM token received");
-          }
-        })
-        .catch((error) => {
-          console.error("[Login] Error in FCM token process:", error);
-          // Token kaydetme hatası login işlemini durdurmaz
-        });
+      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
+      // Sadece izin zaten verilmişse token almayı dene
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              console.log("[Login] FCM token received, saving to Firestore...");
+              return saveFCMTokenToUser(cred.user.uid, token);
+            } else {
+              console.warn("[Login] No FCM token received (permission granted but token null)");
+            }
+          })
+          .catch((error) => {
+            console.error("[Login] Error in FCM token process:", error);
+            // Token kaydetme hatası login işlemini durdurmaz
+          });
+      } else {
+        console.log("[Login] Notification permission not granted, FCMTokenManager will handle it");
+      }
 
       showToast("Giriş başarılı! Yönlendiriliyorsunuz...", "success");
       
@@ -152,19 +158,25 @@ export default function LoginPage() {
       }
 
       // FCM token'ı al ve kaydet (async, login'i bloklamaz)
-      requestNotificationPermission()
-        .then((token) => {
-          if (token) {
-            console.log("[Google Login] FCM token received, saving to Firestore...");
-            return saveFCMTokenToUser(user.uid, token);
-          } else {
-            console.warn("[Google Login] No FCM token received");
-          }
-        })
-        .catch((error) => {
-          console.error("[Google Login] Error in FCM token process:", error);
-          // Token kaydetme hatası login işlemini durdurmaz
-        });
+      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
+      // Sadece izin zaten verilmişse token almayı dene
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              console.log("[Google Login] FCM token received, saving to Firestore...");
+              return saveFCMTokenToUser(user.uid, token);
+            } else {
+              console.warn("[Google Login] No FCM token received (permission granted but token null)");
+            }
+          })
+          .catch((error) => {
+            console.error("[Google Login] Error in FCM token process:", error);
+            // Token kaydetme hatası login işlemini durdurmaz
+          });
+      } else {
+        console.log("[Google Login] Notification permission not granted, FCMTokenManager will handle it");
+      }
 
       const role = snap.exists() ? snap.data().role : "student";
 

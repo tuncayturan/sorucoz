@@ -87,9 +87,23 @@ export async function getFCMToken(): Promise<string | null> {
     const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
     const swScope = isIOSSafari ? "/" : "/firebase-cloud-messaging-push-scope";
     
+    // iOS PWA kontrolü - iOS'ta bildirimler sadece PWA modunda çalışır
+    const isPWA = typeof window !== "undefined" && (
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as any).standalone === true
+    );
+    
+    if (isIOS && !isPWA) {
+      console.warn("[FCM] ⚠️ iOS detected but not in PWA mode");
+      console.warn("[FCM] ⚠️ iOS notifications require app to be added to home screen");
+      console.warn("[FCM] ⚠️ Please add app to home screen first");
+      // iOS'ta PWA değilse token almayı deneyebiliriz ama bildirimler çalışmayabilir
+    }
+    
     console.log("[FCM] 📱 Device info:");
     console.log("  - iOS:", isIOS);
     console.log("  - iOS Safari:", isIOSSafari);
+    console.log("  - PWA Mode:", isPWA);
     console.log("  - Scope:", swScope);
     console.log("  - User Agent:", ua.substring(0, 80) + "...");
     
