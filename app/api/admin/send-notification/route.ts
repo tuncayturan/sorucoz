@@ -111,15 +111,16 @@ export async function POST(request: NextRequest) {
     }
     
     if (uniqueFcmTokens.length > 0) {
-      // ULTRA CRITICAL FIX: Sadece EN SON token'ı kullan - çoklu bildirim sorununu çözmek için
-      // Kullanıcının birden fazla cihazı varsa (mobil, desktop) sadece 1 bildirim gönder
-      const tokensToSend = uniqueFcmTokens.length > 1 
-        ? [uniqueFcmTokens[uniqueFcmTokens.length - 1]] // En son eklenen token
-        : uniqueFcmTokens;
+      // Tüm unique token'lara gönder - Service worker'daki duplicate prevention mekanizması
+      // çoklu bildirim sorununu çözecektir (4 katmanlı koruma: handler debouncing, 
+      // processing lock, in-memory cache, IndexedDB)
+      const tokensToSend = uniqueFcmTokens;
       
       if (uniqueFcmTokens.length > 1) {
-        console.log(`[Send Notification] ⚠️ Multiple tokens detected (${uniqueFcmTokens.length}), using only the latest token to prevent duplicate notifications`);
-        console.log(`[Send Notification] Using token: ${tokensToSend[0].substring(0, 40)}...`);
+        console.log(`[Send Notification] ✅ Multiple tokens detected: ${uniqueFcmTokens.length} token(s) found for user ${userId}`);
+        console.log(`[Send Notification] ✅ Sending to ALL tokens - Service worker will handle duplicate prevention`);
+      } else {
+        console.log(`[Send Notification] ✅ Single token found, sending to: ${tokensToSend[0].substring(0, 40)}...`);
       }
       
       console.log(`[Send Notification] Sending push notification to ${tokensToSend.length} token(s)`);

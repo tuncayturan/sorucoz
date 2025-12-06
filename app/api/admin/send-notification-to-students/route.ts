@@ -37,15 +37,22 @@ export async function POST(request: NextRequest) {
     const usersRef = adminDb.collection("users");
     const studentSnapshot = await usersRef.where("role", "==", "student").get();
 
-    const allTokens: string[] = [];
-    let notifiedUsers = 0;
+    const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik aralıklar - tüm bildirimlerde aynı
+    const notificationType = data?.type || 'general';
 
     console.log(`[Send Notification to Students] Found ${studentSnapshot.docs.length} student(s)`);
+
+    // Her öğrenciye ayrı bildirim gönder (her öğrenci için unique messageId)
+    const sendPromises: Promise<void>[] = [];
+    let totalTokensSent = 0;
+    let notifiedUsers = 0;
 
     for (const studentDoc of studentSnapshot.docs) {
       const studentData = studentDoc.data();
       const studentId = studentDoc.id;
       const fcmTokens: string[] = (studentData?.fcmTokens as string[]) || [];
+
+      if (fcmTokens.length === 0) continue;
 
       console.log(
         `[Send Notification to Students] Student: ${studentId}, FCM Tokens: ${fcmTokens.length}`
@@ -53,29 +60,16 @@ export async function POST(request: NextRequest) {
 
       // Firestore'a bildirim kaydet (Admin SDK)
       const bildirimlerRef = adminDb.collection("users").doc(studentId).collection("bildirimler");
-      await bildirimlerRef.add({
+      bildirimlerRef.add({
         title,
         body,
         data: data || {},
         read: false,
         createdAt: Timestamp.now(),
-        type: data?.type || "general",
-      });
+        type: notificationType,
+      }).catch(err => console.error(`[Send Notification to Students] Error saving notification for ${studentId}:`, err));
 
-      // FCM push bildirimi için token'ları topla
-      if (fcmTokens.length > 0) {
-        allTokens.push(...fcmTokens);
-        notifiedUsers++;
-      }
-    }
-
-    // Firebase Admin SDK ile push bildirimi gönder
-    if (allTokens.length > 0) {
-      console.log(
-        `[Send Notification to Students] Sending push notification to ${allTokens.length} token(s)`
-      );
-
-      // FCM data değerleri string olmalı
+      // Her öğrenci için unique messageId - service worker deduplication için
       const fcmData: Record<string, string> = {};
       if (data) {
         Object.keys(data).forEach((key) => {
@@ -83,19 +77,32 @@ export async function POST(request: NextRequest) {
         });
       }
       
-      // Add unique message ID to prevent duplicates (broadcast notification)
-      const notificationType = data?.type || 'general';
-      fcmData.messageId = `broadcast-${notificationType}-${Date.now()}`;
+      // CRITICAL: Her öğrenci için unique messageId (userId dahil)
+      // Bu sayede her kullanıcının cihazları arasında deduplication çalışır
+      fcmData.messageId = `broadcast-${studentId}-${notificationType}-${timestamp}`;
 
-      try {
-        await sendPushNotification(allTokens, title, body, fcmData, logoUrl, soundUrl);
-        console.log(`[Send Notification to Students] Push notification sent successfully with logo: ${logoUrl || 'default'}, sound: ${soundUrl || 'default'}`);
-      } catch (pushError) {
-        console.error(
-          `[Send Notification to Students] Error sending push notification:`,
-          pushError
-        );
-      }
+      // Token deduplication
+      const uniqueTokens = [...new Set(fcmTokens)];
+      
+      // Her öğrenciye ayrı bildirim gönder (paralel)
+      const sendPromise = sendPushNotification(uniqueTokens, title, body, fcmData, logoUrl, soundUrl)
+        .then(() => {
+          totalTokensSent += uniqueTokens.length;
+          notifiedUsers++;
+        })
+        .catch(err => {
+          console.error(`[Send Notification to Students] Error sending to ${studentId}:`, err);
+        });
+      
+      sendPromises.push(sendPromise);
+    }
+
+    // Tüm bildirimleri paralel gönder
+    if (sendPromises.length > 0) {
+      console.log(`[Send Notification to Students] Sending ${sendPromises.length} notification(s) in parallel...`);
+      await Promise.all(sendPromises);
+      console.log(`[Send Notification to Students] ✅ All notifications sent`);
+
     } else {
       console.warn(
         `[Send Notification to Students] No FCM tokens found for any student`
@@ -106,7 +113,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Bildirim gönderildi",
       notifiedUsers,
-      tokensSent: allTokens.length,
+      tokensSent: totalTokensSent,
     });
   } catch (error: any) {
     console.error("Student notification send error:", error);

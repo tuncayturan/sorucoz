@@ -11,16 +11,43 @@ self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
   // Skip waiting to activate immediately
   self.skipWaiting();
+  // Force immediate activation
+  event.waitUntil(
+    self.skipWaiting().then(() => {
+      console.log('[SW] ✅ Skip waiting completed');
+    })
+  );
 });
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
-  // Claim all clients immediately
+  // Claim all clients immediately and forcefully
   event.waitUntil(
-    self.clients.claim().then(() => {
+    Promise.all([
+      self.clients.claim(),
+      self.skipWaiting()
+    ]).then(() => {
       console.log('[SW] ✅ Service worker activated and claimed all clients');
+      // Force update all clients
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'SW_ACTIVATED' });
+        });
+        console.log(`[SW] ✅ Notified ${clients.length} client(s) about activation`);
+      });
+    }).catch(error => {
+      console.error('[SW] ❌ Activation error:', error);
     })
   );
+});
+
+// Message handler for skip waiting
+self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data);
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Skip waiting requested');
+    self.skipWaiting();
+  }
 });
 
 // ULTRA AGGRESSIVE Duplicate notification prevention
