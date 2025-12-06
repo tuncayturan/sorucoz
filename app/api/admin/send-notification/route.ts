@@ -137,17 +137,27 @@ export async function POST(request: NextRequest) {
       // Round timestamp to 5-second intervals to allow duplicate prevention to work
       // while still allowing new notifications for new messages
       const notificationType = data?.type || 'general';
+      const receiverRole = data?.receiverRole || ''; // Coach'tan student'a mesaj için role kontrolü
       const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik aralıklar
       
-      // Generate stable message ID for duplicate prevention - userId'yi de ekle
+      // Generate stable message ID for duplicate prevention - userId, receiverRole ve timestamp ekle
+      // CRITICAL: receiverRole eklenmeli ki aynı kullanıcı hem coach hem student ise duplicate önlensin
       if (data?.conversationId) {
-        fcmData.messageId = `${userId}-${notificationType}-${data.conversationId}-${timestamp}`;
+        const rolePart = receiverRole ? `-${receiverRole}` : '';
+        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${data.conversationId}-${timestamp}`;
         fcmData.conversationId = data.conversationId; // Ensure conversationId is in data
       } else if (data?.supportId) {
-        fcmData.messageId = `${userId}-${notificationType}-${data.supportId}-${timestamp}`;
+        const rolePart = receiverRole ? `-${receiverRole}` : '';
+        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${data.supportId}-${timestamp}`;
         fcmData.supportId = data.supportId;
       } else {
-        fcmData.messageId = `${userId}-${notificationType}-${timestamp}`;
+        const rolePart = receiverRole ? `-${receiverRole}` : '';
+        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${timestamp}`;
+      }
+      
+      // receiverRole'ü fcmData'ya ekle ki service worker'da kullanılabilsin
+      if (receiverRole) {
+        fcmData.receiverRole = receiverRole;
       }
 
       // Send push notification using Firebase Admin SDK with logo and sound

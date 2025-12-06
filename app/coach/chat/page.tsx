@@ -689,6 +689,7 @@ export default function CoachChatPage() {
               type: "message",
               conversationId: selectedConversation.id,
               userId: selectedConversation.studentId,
+              receiverRole: "student", // CRITICAL: Coach'tan student'a mesaj - sadece student token'larına gönder
             },
           }),
         })
@@ -805,6 +806,7 @@ export default function CoachChatPage() {
               type: "message",
               conversationId: selectedConversation.id,
               userId: selectedConversation.studentId,
+              receiverRole: "student", // CRITICAL: Coach'tan student'a mesaj - sadece student token'larına gönder
             },
           }),
         })
