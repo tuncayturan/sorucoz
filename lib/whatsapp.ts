@@ -354,11 +354,28 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       clientData.qrCode = null;
     });
     
-    // Gelen mesajları dinle ve Firestore'a kaydet
-    client.on("message", async (message: any) => {
+    // Mesaj listener'larını kurma fonksiyonu
+    const setupMessageListeners = () => {
+      // Önce mevcut listener'ları kontrol et
+      const existingMessageListeners = client.listenerCount ? client.listenerCount("message") : 0;
+      const existingMessageCreateListeners = client.listenerCount ? client.listenerCount("message_create") : 0;
+      
+      if (existingMessageListeners > 0 || existingMessageCreateListeners > 0) {
+        console.log(`📊 Coach ${coachId} için mesaj listener'ları zaten kurulu (message: ${existingMessageListeners}, message_create: ${existingMessageCreateListeners})`);
+        // Mevcut listener'ları kaldır ve yeniden kur (duplicate'leri önlemek için)
+        client.removeAllListeners("message");
+        client.removeAllListeners("message_create");
+        console.log(`🔄 Coach ${coachId} için mevcut mesaj listener'ları kaldırıldı, yeniden kuruluyor...`);
+      }
+      
+      // Gelen mesajları dinle ve Firestore'a kaydet
+      client.on("message", async (message: any) => {
       try {
         // Sadece gelen mesajları kaydet (kendi gönderdiğimiz mesajları değil)
+        if (message.fromMe === true) return; // Coach'un gönderdiği mesajları atla (message_create'te kaydediliyor)
         if (message.from === "status@broadcast") return; // Status mesajlarını atla
+        
+        console.log(`📨 WhatsApp mesajı alındı (Coach: ${coachId}, From: ${message.from}, Body: ${message.body?.substring(0, 50)}...)`);
         
         const { db } = await import("@/lib/firebase");
         const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
@@ -418,14 +435,16 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       } catch (error) {
         console.error("WhatsApp mesaj kaydetme hatası:", error);
       }
-    });
-
-    // Coach'un gönderdiği mesajları dinle ve Firestore'a kaydet
-    client.on("message_create", async (message: any) => {
+      });
+      
+      // Coach'un gönderdiği mesajları dinle ve Firestore'a kaydet
+      client.on("message_create", async (message: any) => {
       try {
         // Sadece coach'un gönderdiği mesajları kaydet
         if (message.fromMe === false) return; // Sadece gönderilen mesajlar
         if (message.from === "status@broadcast") return; // Status mesajlarını atla
+        
+        console.log(`📤 WhatsApp mesajı gönderildi (Coach: ${coachId}, To: ${message.to}, Body: ${message.body?.substring(0, 50)}...)`);
         
         const { db } = await import("@/lib/firebase");
         const { collection, addDoc, serverTimestamp } = await import("firebase/firestore");
@@ -485,7 +504,13 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       } catch (error) {
         console.error("WhatsApp mesaj kaydetme hatası:", error);
       }
-    });
+      });
+      
+      console.log(`✅ Coach ${coachId} için mesaj listener'ları kuruldu`);
+    };
+    
+    // Mesaj listener'larını kur
+    setupMessageListeners();
 
     client.on("ready", async () => {
       console.log(`✅ Coach ${coachId} için WhatsApp bağlantısı hazır!`);
@@ -503,6 +528,32 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         });
       } catch (error) {
         console.error("Client bilgisi alınamadı:", error);
+      }
+      
+      // Mesaj listener'larının aktif olduğunu doğrula ve gerekirse yeniden kur
+      try {
+        const messageListenerCount = client.listenerCount ? client.listenerCount("message") : 0;
+        const messageCreateListenerCount = client.listenerCount ? client.listenerCount("message_create") : 0;
+        console.log(`📊 Coach ${coachId} için mesaj listener durumu:`, {
+          message: messageListenerCount,
+          message_create: messageCreateListenerCount,
+        });
+        
+        // Eğer listener'lar yoksa, yeniden kur
+        if (messageListenerCount === 0 || messageCreateListenerCount === 0) {
+          console.warn(`⚠️ Coach ${coachId} için mesaj listener'ları eksik, yeniden kuruluyor...`);
+          setupMessageListeners();
+          console.log(`✅ Coach ${coachId} için mesaj listener'ları yeniden kuruldu`);
+        }
+      } catch (error) {
+        console.error(`❌ Mesaj listener kontrolü hatası (Coach ${coachId}):`, error);
+        // Hata durumunda da listener'ları yeniden kurmayı dene
+        try {
+          setupMessageListeners();
+          console.log(`✅ Coach ${coachId} için mesaj listener'ları hata sonrası yeniden kuruldu`);
+        } catch (retryError) {
+          console.error(`❌ Mesaj listener yeniden kurma hatası (Coach ${coachId}):`, retryError);
+        }
       }
       
       // Coach'un telefon numarasını ve bağlantı durumunu Firestore'a kaydet
