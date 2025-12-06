@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
-  // Turbopack config - whatsapp-web.js sadece server-side'da çalışır
-  serverExternalPackages: ["whatsapp-web.js", "qrcode-terminal"],
+  // Turbopack config - whatsapp-web.js ve puppeteer sadece server-side'da çalışır
+  serverExternalPackages: ["whatsapp-web.js", "qrcode-terminal", "puppeteer", "puppeteer-core"],
   images: {
     remotePatterns: [
       {
