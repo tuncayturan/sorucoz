@@ -149,16 +149,30 @@ export async function GET(request: NextRequest) {
     }
     
     try {
+      console.log(`🚀 initializeWhatsAppForCoach çağrılıyor (Coach: ${coachId})...`);
+      
       // initializeWhatsAppForCoach'ı await etmeden çağır (async işlem)
       const initPromise = initializeWhatsAppForCoach(coachId);
       
       initPromise
         .then((result) => {
-          console.log(`✅ WhatsApp başlatıldı (Coach: ${coachId}), QR kod: ${result.qrCode ? 'Var' : 'Yok'}`);
+          console.log(`✅ WhatsApp başlatıldı (Coach: ${coachId}), QR kod: ${result.qrCode ? 'Var (' + result.qrCode.length + ' karakter)' : 'Yok'}`);
+          if (result.qrCode) {
+            console.log(`✅ QR kod preview: ${result.qrCode.substring(0, 50)}...`);
+          }
         })
         .catch(async (error) => {
           console.error(`❌ WhatsApp başlatma hatası (Coach: ${coachId}):`, error);
           console.error(`❌ Hata detayı:`, error?.stack || error?.message || error);
+          console.error(`❌ Hata name:`, error?.name);
+          console.error(`❌ Hata code:`, error?.code);
+          
+          // Puppeteer hatası kontrolü
+          const errorMessage = error?.message || String(error);
+          if (errorMessage.includes("Puppeteer") || errorMessage.includes("browser") || errorMessage.includes("headless")) {
+            console.error(`❌ Puppeteer hatası tespit edildi - Railway ortamında Puppeteer çalışmıyor olabilir`);
+          }
+          
           // Hata durumunda durumu güncelle
           const errorStatus = await getWhatsAppStatusForCoach(coachId);
           console.log(`📊 Hata sonrası durum (Coach: ${coachId}):`, errorStatus);
@@ -166,7 +180,8 @@ export async function GET(request: NextRequest) {
       
       // Başlatma işlemi başladı, durumu tekrar kontrol et
       // Biraz bekle ki QR kod event'i gelebilsin
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1 saniye bekle
+      console.log(`⏳ 2 saniye bekleniyor ki QR kod event'i gelebilsin...`);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2 saniye bekle (daha uzun)
       status = await getWhatsAppStatusForCoach(coachId);
       console.log(`📊 Başlatma sonrası durum (Coach: ${coachId}):`, {
         isReady: status.isReady,
@@ -174,13 +189,29 @@ export async function GET(request: NextRequest) {
         hasQRCode: !!status.qrCode,
         qrCodeLength: status.qrCode ? status.qrCode.length : 0,
       });
+      
+      // Eğer hala QR kod yoksa, daha fazla bekle
+      if (!status.qrCode && status.isInitializing) {
+        console.log(`⏳ QR kod henüz gelmedi, 3 saniye daha bekleniyor...`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        status = await getWhatsAppStatusForCoach(coachId);
+        console.log(`📊 3 saniye sonra durum (Coach: ${coachId}):`, {
+          isReady: status.isReady,
+          isInitializing: status.isInitializing,
+          hasQRCode: !!status.qrCode,
+          qrCodeLength: status.qrCode ? status.qrCode.length : 0,
+        });
+      }
     } catch (error: any) {
       console.error(`❌ initializeWhatsAppForCoach çağrı hatası (Coach: ${coachId}):`, error);
       console.error(`❌ Hata detayı:`, error?.stack || error?.message || error);
+      console.error(`❌ Hata name:`, error?.name);
+      console.error(`❌ Hata code:`, error?.code);
       
       // Puppeteer veya serverless ile ilgili hata kontrolü
       const errorMessage = error?.message || String(error);
-      if (errorMessage.includes("Puppeteer") || errorMessage.includes("serverless") || errorMessage.includes("timeout")) {
+      if (errorMessage.includes("Puppeteer") || errorMessage.includes("serverless") || errorMessage.includes("timeout") || errorMessage.includes("browser")) {
+        console.error(`❌ Puppeteer/serverless hatası tespit edildi`);
         return NextResponse.json(
           {
             error: "WhatsApp bağlantısı serverless ortamda çalışmamaktadır. Bu özellik için ayrı bir sunucu gereklidir.",

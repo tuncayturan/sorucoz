@@ -201,6 +201,8 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         "--no-zygote",
         "--single-process", // Railway için önemli
         "--disable-gpu",
+        "--disable-web-security",
+        "--disable-features=IsolateOrigins,site-per-process",
       ],
     };
     
@@ -209,6 +211,29 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       // Railway'de Chromium nixpacks ile yüklenir
       // PATH otomatik olarak ayarlanır, ekstra yapılandırma gerekmez
       console.log(`🚂 Railway ortamı tespit edildi, Puppeteer yapılandırması optimize ediliyor...`);
+      console.log(`🚂 Railway environment variables:`, {
+        RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT,
+        RAILWAY_PROJECT_ID: process.env.RAILWAY_PROJECT_ID ? 'Set' : 'Not set',
+      });
+      
+      // Railway'de executablePath kontrolü
+      try {
+        const puppeteer = await import("puppeteer");
+        const browserFetcher = (puppeteer as any).default?.createBrowserFetcher?.() || (puppeteer as any).createBrowserFetcher?.();
+        if (browserFetcher) {
+          const revisionInfo = await browserFetcher.revisionInfo("latest");
+          console.log(`🚂 Puppeteer revision info:`, {
+            executablePath: revisionInfo.executablePath ? 'Var' : 'Yok',
+            revision: revisionInfo.revision,
+          });
+          if (revisionInfo.executablePath) {
+            puppeteerOptions.executablePath = revisionInfo.executablePath;
+            console.log(`✅ Puppeteer executablePath ayarlandı`);
+          }
+        }
+      } catch (error) {
+        console.warn(`⚠️ Puppeteer executablePath ayarlanamadı:`, error);
+      }
     }
     
     const client = new Client({
