@@ -112,7 +112,7 @@ export default function PWAInstallPrompt() {
             // Hata olursa fallback olarak custom prompt göster
             setShowPrompt(true);
           }
-        }, 3000); // 3 saniye bekle
+        }, 2000); // 2 saniye bekle (daha hızlı)
       } else {
         // Daha önce kapatılmışsa custom prompt göster (manuel buton ile)
         console.log('[PWA] Previously closed, showing custom prompt for manual install');
@@ -151,7 +151,7 @@ export default function PWAInstallPrompt() {
 
   const handleInstallClick = async () => {
     if (isAndroid && deferredPrompt) {
-      // Android: Native install prompt (manuel tıklama için fallback)
+      // Android: Native install prompt (manuel tıklama için)
       console.log('[PWA] Manually showing Android install prompt');
       try {
         await deferredPrompt.prompt();
@@ -161,6 +161,14 @@ export default function PWAInstallPrompt() {
         if (outcome === 'accepted') {
           console.log('[PWA] ✅ User accepted Android install - app will be installed');
           localStorage.setItem('pwa-install-closed-android', 'accepted');
+          
+          // PWA moduna geçiş kontrolü
+          setTimeout(() => {
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+              console.log('[PWA] ✅ App is now in standalone mode');
+              window.location.reload();
+            }
+          }, 1000);
         }
         
         setDeferredPrompt(null);
@@ -169,6 +177,10 @@ export default function PWAInstallPrompt() {
         console.error('[PWA] Error showing prompt:', error);
         setShowPrompt(false);
       }
+    } else if (isAndroid && !deferredPrompt) {
+      // Android: deferredPrompt yoksa tarayıcı menüsünden ekleme talimatları
+      console.log('[PWA] Android - showing manual instructions');
+      // Popup kapatılmaz, kullanıcı talimatları görsün
     } else if (isIOS) {
       // iOS: Sadece talimatları göster (otomatik install yok)
       console.log('[PWA] iOS - showing instructions');
@@ -242,14 +254,32 @@ export default function PWAInstallPrompt() {
           </div>
         )}
 
-        {/* Android Button */}
-        {isAndroid && deferredPrompt && (
-          <button
-            onClick={handleInstallClick}
-            className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 mb-3"
-          >
-            📱 Ana Ekrana Ekle
-          </button>
+        {/* Android Button - Her zaman göster (deferredPrompt yoksa manuel talimatlar) */}
+        {isAndroid && (
+          <>
+            {deferredPrompt ? (
+              <button
+                onClick={handleInstallClick}
+                className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 mb-3"
+              >
+                📱 Ana Ekrana Ekle
+              </button>
+            ) : (
+              <div className="bg-blue-50 rounded-2xl p-4 mb-4">
+                <p className="text-sm font-semibold text-gray-900 mb-3">📱 Android Talimatları:</p>
+                <ol className="text-sm text-gray-700 space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">1.</span>
+                    <span>Tarayıcı menüsünden (üç nokta) <strong>"Ana ekrana ekle"</strong> seçeneğini bulun</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-blue-600">2.</span>
+                    <span><strong>"Ekle"</strong> butonuna tıklayın</span>
+                  </li>
+                </ol>
+              </div>
+            )}
+          </>
         )}
 
         {/* Features */}

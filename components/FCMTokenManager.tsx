@@ -73,8 +73,36 @@ export default function FCMTokenManager() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         if (isMobile) {
-          // Mobilde hemen göster
+          // Mobilde hemen göster ve 1.5 saniye sonra otomatik olarak izin iste
           setShow(true);
+          // Popup gösterildikten 1.5 saniye sonra otomatik olarak izin iste
+          // NOT: User gesture gerekli ama popup gösterildikten sonra kısa bir süre bekleyip otomatik isteyebiliriz
+          setTimeout(async () => {
+            // Otomatik izin iste (sadece popup gösterildikten sonra)
+            console.log("[FCMTokenManager] Auto-requesting permission after popup shown");
+            try {
+              // Direkt olarak izin iste
+              if ('Notification' in window && Notification.permission === 'default') {
+                const permission = await Notification.requestPermission();
+                console.log("[FCMTokenManager] Auto-permission result:", permission);
+                
+                if (permission === 'granted') {
+                  // İzin verildi, token al
+                  const { requestNotificationPermission, saveFCMTokenToUser } = await import("@/lib/fcmUtils");
+                  const token = await requestNotificationPermission();
+                  if (token && user) {
+                    await saveFCMTokenToUser(user.uid, token);
+                    setPermission("granted");
+                    setShow(false);
+                    console.log("[FCMTokenManager] ✅ Auto-permission granted and token saved");
+                  }
+                }
+              }
+            } catch (autoError) {
+              console.error("[FCMTokenManager] Auto-permission error:", autoError);
+              // Hata olsa bile popup açık kalsın, kullanıcı manuel tıklayabilir
+            }
+          }, 1500);
         } else {
           // Masaüstünde 2 saniye sonra göster
           setTimeout(() => setShow(true), 2000);
@@ -204,8 +232,12 @@ export default function FCMTokenManager() {
       
       errorMsg += "\n\nLütfen:\n1. Sayfayı yenileyin\n2. Tarayıcı ayarlarından bildirimlere izin verin\n3. Tekrar deneyin";
       
+      // CRITICAL: Her durumda loading state'i temizle
       setLoading(false);
       alert(errorMsg);
+    } finally {
+      // EXTRA SAFETY: finally bloğunda da loading state'i temizle
+      setLoading(false);
     }
   };
 
@@ -307,17 +339,28 @@ export default function FCMTokenManager() {
               <button
                 onClick={handleRequestPermission}
                 disabled={loading}
-                className="flex-1 bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition disabled:opacity-50"
+                className="flex-1 bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "⏳ İşleniyor..." : "✅ İzin Ver"}
               </button>
               <button
                 onClick={handleDismiss}
-                className="px-4 py-2 rounded-lg font-semibold text-sm hover:bg-white/20 transition"
+                disabled={loading}
+                className="px-4 py-2 rounded-lg font-semibold text-sm hover:bg-white/20 transition disabled:opacity-50"
               >
                 Sonra
               </button>
             </div>
+            {loading && (
+              <p className="text-xs text-center text-white/80 mt-2">
+                Lütfen bekleyin, izin isteniyor...
+              </p>
+            )}
+            {loading && (
+              <p className="text-xs text-center text-white/80 mt-2">
+                Lütfen bekleyin, izin isteniyor...
+              </p>
+            )}
           </div>
         </div>
       </div>
