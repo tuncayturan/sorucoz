@@ -148,23 +148,19 @@ export default function CoachLayout({
               }
             });
 
-            setBildirimler(prev => {
+            // Bildirimleri güncelle ve unread count'u hesapla
+            setBildirimler(prevBildirimler => {
               // Önce bu conversation'a ait eski bildirimleri kaldır
-              const filteredPrev = prev.filter(b => b.data?.conversationId !== conversationId);
+              const filteredPrev = prevBildirimler.filter(b => b.data?.conversationId !== conversationId);
               // Yeni bildirimleri ekle ve sırala
-              return [...filteredPrev, ...newUnreadMessages].sort((a, b) => {
+              const updated = [...filteredPrev, ...newUnreadMessages].sort((a, b) => {
                 const aTime = a.createdAt?.toDate?.()?.getTime() || 0;
                 const bTime = b.createdAt?.toDate?.()?.getTime() || 0;
                 return bTime - aTime;
               }).slice(0, 50);
-            });
-
-            // Unread count'u güncelle
-            setUnreadCount(prev => {
-              const otherConversationsUnread = bildirimler.filter(
-                b => b.data?.conversationId !== conversationId && !b.read
-              ).length;
-              return otherConversationsUnread + newUnreadMessages.filter(b => !b.read).length;
+              
+              // Unread count otomatik olarak useEffect ile güncellenecek
+              return updated;
             });
 
             // Yeni mesaj geldiğinde browser bildirimi göster
@@ -189,7 +185,13 @@ export default function CoachLayout({
     return () => {
       unsubscribeFunctions.forEach(unsub => unsub());
     };
-  }, [user, userData, pathname, bildirimler]);
+  }, [user, userData, pathname]);
+  
+  // Bildirimler değiştiğinde unread count'u güncelle
+  useEffect(() => {
+    const unreadCount = bildirimler.filter(b => !b.read).length;
+    setUnreadCount(unreadCount);
+  }, [bildirimler]);
 
   // Bildirime tıklayınca yönlendir
   const handleNotificationClick = async (bildirim: CoachBildirim) => {

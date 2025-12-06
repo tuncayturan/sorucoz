@@ -147,6 +147,8 @@ export async function sendPushNotification(
         notification: {
           title,
           body,
+          // CRITICAL: Icon'u notification objesine de ekle ki web push'ta çalışsın
+          ...(icon ? { icon: icon } : {}),
         },
         data: messageData,
         tokens: batch,

@@ -22,12 +22,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Request deduplication - aynı request kısa sürede tekrar gelirse engelle
-    // CRITICAL: 30 saniyelik window içinde aynı mesaj için duplicate engelle
+    // CRITICAL: 60 saniyelik window içinde aynı mesaj için duplicate engelle (artırıldı)
     // ULTRA AGGRESSIVE: receiverRole, conversationId ve body'yi de key'e ekle
-    const timestamp = Math.floor(Date.now() / 30000) * 30000; // 30 saniyelik window
+    const timestamp = Math.floor(Date.now() / 60000) * 60000; // 60 saniyelik window (artırıldı)
     const receiverRole = data?.receiverRole || '';
     const conversationId = data?.conversationId || data?.supportId || 'none';
-    const bodyHash = body.substring(0, 50); // İlk 50 karakter (çok uzun olmasın)
+    const bodyHash = body.substring(0, 100); // İlk 100 karakter (daha fazla karakter)
     // CRITICAL: receiverRole, conversationId ve body'yi key'e ekle - aynı mesaj için aynı key
     const requestKey = `${userId}-${receiverRole}-${conversationId}-${bodyHash}-${timestamp}`;
     const lastRequestTime = recentRequests.get(requestKey);
@@ -141,25 +141,27 @@ export async function POST(request: NextRequest) {
       }
       
       // Add message ID for duplicate prevention
-      // Round timestamp to 5-second intervals to allow duplicate prevention to work
+      // Round timestamp to 10-second intervals to allow duplicate prevention to work
       // while still allowing new notifications for new messages
       const notificationType = data?.type || 'general';
       const receiverRole = data?.receiverRole || ''; // Coach'tan student'a mesaj için role kontrolü
-      const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik aralıklar
+      const timestamp = Math.floor(Date.now() / 10000) * 10000; // 10 saniyelik aralıklar (artırıldı)
       
       // Generate stable message ID for duplicate prevention - userId, receiverRole ve timestamp ekle
       // CRITICAL: receiverRole eklenmeli ki aynı kullanıcı hem coach hem student ise duplicate önlensin
+      // Body'nin hash'ini de ekle ki aynı mesaj içeriği için aynı ID olsun
+      const bodyHash = body.substring(0, 50).replace(/[^a-zA-Z0-9]/g, ''); // İlk 50 karakter, özel karakterleri temizle
       if (data?.conversationId) {
         const rolePart = receiverRole ? `-${receiverRole}` : '';
-        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${data.conversationId}-${timestamp}`;
+        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${data.conversationId}-${bodyHash}-${timestamp}`;
         fcmData.conversationId = data.conversationId; // Ensure conversationId is in data
       } else if (data?.supportId) {
         const rolePart = receiverRole ? `-${receiverRole}` : '';
-        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${data.supportId}-${timestamp}`;
+        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${data.supportId}-${bodyHash}-${timestamp}`;
         fcmData.supportId = data.supportId;
       } else {
         const rolePart = receiverRole ? `-${receiverRole}` : '';
-        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${timestamp}`;
+        fcmData.messageId = `${userId}${rolePart}-${notificationType}-${bodyHash}-${timestamp}`;
       }
       
       // receiverRole'ü fcmData'ya ekle ki service worker'da kullanılabilsin

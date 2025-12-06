@@ -55,7 +55,7 @@ self.addEventListener('message', (event) => {
 const DB_NAME = 'NotificationDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'shownNotifications';
-const NOTIFICATION_TIMEOUT = 120000; // 120 saniye (2 dakika) içinde aynı bildirim tekrar gösterilmez (ULTRA AGGRESSIVE)
+const NOTIFICATION_TIMEOUT = 300000; // 300 saniye (5 dakika) içinde aynı bildirim tekrar gösterilmez (ULTRA AGGRESSIVE - artırıldı)
 
 // TRIPLE PROTECTION:
 // 1. processingNotifications: Prevents concurrent processing (immediate)
@@ -69,7 +69,7 @@ let notificationCounter = 0;
 
 // Message handler debouncing - prevent rapid fire
 const messageHandlerLock = new Map(); // messageId -> timestamp
-const HANDLER_DEBOUNCE = 30000; // 30 saniye içinde aynı message için sadece 1 kere işle (ULTRA AGGRESSIVE)
+const HANDLER_DEBOUNCE = 60000; // 60 saniye içinde aynı message için sadece 1 kere işle (ULTRA AGGRESSIVE - artırıldı)
 
 // Initialize IndexedDB for persistent cross-tab duplicate prevention
 const initDB = () => {
@@ -213,7 +213,7 @@ messaging.onBackgroundMessage(async (payload) => {
       // Eğer messageId yoksa, daha stable bir ID oluştur
       // CRITICAL: Aynı mesaj için her zaman aynı ID olmalı
       // ULTRA AGGRESSIVE: messageId varsa direkt kullan, yoksa daha geniş time window kullan
-      const timeWindow = Math.floor(Date.now() / 30000) * 30000; // 30 saniyelik window (artırıldı)
+      const timeWindow = Math.floor(Date.now() / 60000) * 60000; // 60 saniyelik window (artırıldı)
       const notificationId = messageId || `${messageType}-${conversationId || payload.data?.userId || 'general'}-${timeWindow}`;
   
   // ========== LAYER 0: Handler Debouncing (EARLIEST PROTECTION) ==========
@@ -296,8 +296,10 @@ messaging.onBackgroundMessage(async (payload) => {
   console.log('[firebase-messaging-sw.js] Notification body:', notificationBody);
   console.log('[firebase-messaging-sw.js] Notification ID:', notificationId);
   
-  // Logo URL'sini payload'dan veya varsayılan olarak kullan
-  const iconUrl = payload.notification?.icon || payload.data?.icon || '/img/logo.png';
+  // Logo URL'sini payload'dan al - API her zaman siteSettings'ten gönderiyor
+  // Eğer payload'da yoksa varsayılan logo kullan
+  const iconUrl = payload.data?.icon || payload.notification?.icon || '/img/logo.png';
+  console.log('[firebase-messaging-sw.js] Icon URL:', iconUrl);
   
   // Ses URL'sini payload'dan al (varsa özel ses, yoksa varsayılan)
   const soundUrl = payload.data?.sound || payload.notification?.sound;
@@ -464,6 +466,7 @@ self.addEventListener('push', (event) => {
 
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
+  console.log('[firebase-messaging-sw.js] ========== NOTIFICATION CLICK ==========');
   console.log('[firebase-messaging-sw.js] Notification click received.');
   console.log('[firebase-messaging-sw.js] Notification data:', event.notification.data);
   
@@ -480,6 +483,7 @@ self.addEventListener('notificationclick', (event) => {
     conversationId: notificationData.conversationId,
     supportId: notificationData.supportId,
     userId: notificationData.userId,
+    receiverRole: notificationData.receiverRole,
   });
   
   // Her bildirim tipine göre URL belirleme
@@ -493,21 +497,21 @@ self.addEventListener('notificationclick', (event) => {
       if (receiverRole === 'coach') {
         // Coach'a gelen mesaj - /coach/chat sayfasına git
         if (notificationData.conversationId) {
-          targetUrl = `/coach/chat?conversationId=${notificationData.conversationId}`;
+          targetUrl = `/coach/chat?conversationId=${encodeURIComponent(notificationData.conversationId)}`;
         } else if (notificationData.userId) {
-          targetUrl = `/coach/chat?userId=${notificationData.userId}`;
+          targetUrl = `/coach/chat?userId=${encodeURIComponent(notificationData.userId)}`;
         } else {
           targetUrl = '/coach/chat';
         }
-        console.log('[firebase-messaging-sw.js] Message notification - coach receiver:', targetUrl);
+        console.log('[firebase-messaging-sw.js] ✅ Message notification - coach receiver:', targetUrl);
       } else if (notificationData.conversationId) {
         // Student'a gelen mesaj veya receiverRole belirtilmemiş - /mesajlar sayfası
-        targetUrl = `/mesajlar?conversationId=${notificationData.conversationId}`;
-        console.log('[firebase-messaging-sw.js] Message notification - student/conversationId:', notificationData.conversationId);
+        targetUrl = `/mesajlar?conversationId=${encodeURIComponent(notificationData.conversationId)}`;
+        console.log('[firebase-messaging-sw.js] ✅ Message notification - student/conversationId:', notificationData.conversationId);
       } else if (notificationData.userId) {
-        // Sadece userId var - coach için (fallback)
-        targetUrl = `/coach/chat?userId=${notificationData.userId}`;
-        console.log('[firebase-messaging-sw.js] Message notification - userId fallback:', notificationData.userId);
+        // Sadece userId var - student için (fallback)
+        targetUrl = `/mesajlar?userId=${encodeURIComponent(notificationData.userId)}`;
+        console.log('[firebase-messaging-sw.js] ✅ Message notification - userId fallback:', notificationData.userId);
       } else {
         targetUrl = '/mesajlar';
       }
@@ -573,33 +577,51 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        const fullUrl = self.location.origin + targetUrl;
+        console.log('[firebase-messaging-sw.js] Full URL:', fullUrl);
+        
         // Eğer açık bir pencere varsa, onu kullan ve navigate et
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin)) {
-            console.log('[firebase-messaging-sw.js] Found existing window, navigating to:', targetUrl);
+          if (client.url && client.url.includes(self.location.origin)) {
+            console.log('[firebase-messaging-sw.js] ✅ Found existing window:', client.url);
+            console.log('[firebase-messaging-sw.js] Navigating to:', fullUrl);
+            
+            // Önce focus et
+            client.focus();
+            
             // client.navigate() modern API, fallback için window.open kullan
             if ('navigate' in client && typeof client.navigate === 'function') {
-              client.focus();
-              return client.navigate(targetUrl).catch((err) => {
+              return client.navigate(fullUrl).catch((err) => {
                 console.warn('[firebase-messaging-sw.js] navigate() failed, using window.open fallback:', err);
-                return clients.openWindow(targetUrl);
+                return clients.openWindow(fullUrl);
               });
             } else {
               // Fallback: window.open kullan (daha uyumlu)
-              client.focus();
-              return clients.openWindow(targetUrl);
+              return clients.openWindow(fullUrl);
             }
           }
         }
+        
         // Açık pencere yoksa yeni pencere aç
-        console.log('[firebase-messaging-sw.js] No existing window, opening new window:', targetUrl);
-        return clients.openWindow(self.location.origin + targetUrl);
+        console.log('[firebase-messaging-sw.js] ⚠️ No existing window found, opening new window:', fullUrl);
+        return clients.openWindow(fullUrl);
       })
       .catch((error) => {
         console.error('[firebase-messaging-sw.js] ❌ Error handling notification click:', error);
         // Fallback: direkt URL aç
-        return clients.openWindow(self.location.origin + targetUrl);
+        const fullUrl = self.location.origin + targetUrl;
+        console.log('[firebase-messaging-sw.js] Fallback: opening window:', fullUrl);
+        return clients.openWindow(fullUrl);
+      })
+      .then((client) => {
+        if (client) {
+          console.log('[firebase-messaging-sw.js] ✅ Window opened/navigated successfully');
+        } else {
+          console.warn('[firebase-messaging-sw.js] ⚠️ No client returned');
+        }
       })
   );
+  
+  console.log('[firebase-messaging-sw.js] ========== END NOTIFICATION CLICK ==========');
 });
 
