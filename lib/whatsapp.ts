@@ -586,17 +586,44 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
       console.log(`   - ${eventName}: ${count} listener`);
     });
     
+    // Initialize'den önce event listener'ların kurulduğunu doğrula
+    const qrListenerCountBefore = client.listenerCount ? client.listenerCount("qr") : 0;
+    console.log(`🔍 Initialize öncesi QR listener sayısı: ${qrListenerCountBefore}`);
+    
+    if (qrListenerCountBefore === 0) {
+      console.error(`❌ QR listener kurulmamış! Yeniden kuruluyor...`);
+      client.on("qr", qrListener);
+      console.log(`✅ QR listener yeniden kuruldu`);
+    }
+    
     // Initialize'i await etmeden başlat (async işlem)
     // QR kod event'i geldiğinde clientData.qrCode güncellenecek
     console.log(`🚀 Coach ${coachId} için client.initialize() çağrılıyor...`);
     const initStartTime = Date.now();
     
-    // Initialize'den önce event listener'ların kurulduğunu doğrula
-    const qrListenerCountBefore = client.listenerCount ? client.listenerCount("qr") : 0;
-    console.log(`🔍 Initialize öncesi QR listener sayısı: ${qrListenerCountBefore}`);
+    // QR event'inin gelmesi için timeout ekle
+    const qrTimeout = setTimeout(() => {
+      if (!clientData.qrCode && !clientData.isReady) {
+        console.warn(`⚠️ Coach ${coachId} için 30 saniye sonra hala QR kod gelmedi`);
+        console.warn(`⚠️ Client durumu:`, {
+          isReady: clientData.isReady,
+          isInitializing: clientData.isInitializing,
+          hasQRCode: !!clientData.qrCode,
+        });
+        
+        // Client durumunu kontrol et
+        try {
+          const clientState = (client as any).pupPage ? 'Puppeteer page var' : 'Puppeteer page yok';
+          console.warn(`⚠️ Puppeteer durumu: ${clientState}`);
+        } catch (error) {
+          console.error(`❌ Client durumu kontrol hatası:`, error);
+        }
+      }
+    }, 30000); // 30 saniye
     
     client.initialize()
       .then(() => {
+        clearTimeout(qrTimeout);
         const initDuration = Date.now() - initStartTime;
         console.log(`✅ Coach ${coachId} için WhatsApp client initialize tamamlandı (${initDuration}ms)`);
         console.log(`📊 Initialize sonrası durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
@@ -609,10 +636,10 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
         if (!clientData.isReady) {
           console.log(`⏳ Coach ${coachId} için QR kod veya ready event bekleniyor...`);
           
-          // Initialize tamamlandıktan sonra 3 saniye bekle ve QR kod kontrolü yap
+          // Initialize tamamlandıktan sonra 5 saniye bekle ve QR kod kontrolü yap
           setTimeout(() => {
             if (!clientData.isReady && !clientData.qrCode) {
-              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi (3 saniye sonra)`);
+              console.warn(`⚠️ Coach ${coachId} için initialize tamamlandı ama QR kod henüz gelmedi (5 saniye sonra)`);
               console.warn(`⚠️ Mevcut durum: isReady=${clientData.isReady}, hasQRCode=${!!clientData.qrCode}, isInitializing=${clientData.isInitializing}`);
               
               // Client durumunu kontrol et
@@ -636,17 +663,43 @@ export async function initializeWhatsAppForCoach(coachId: string): Promise<{
               if (currentQrListenerCount === 0) {
                 console.error(`❌ QR event listener kaybolmuş! Yeniden kuruluyor...`);
                 client.on("qr", qrListener);
+                console.log(`✅ QR listener yeniden kuruldu`);
+              }
+              
+              // Puppeteer durumunu kontrol et
+              try {
+                const pupPage = (client as any).pupPage;
+                if (pupPage) {
+                  console.log(`📊 Puppeteer page durumu: Var`);
+                  pupPage.url().then((url: string) => {
+                    console.log(`📊 Puppeteer page URL: ${url || 'Alınamadı'}`);
+                  }).catch(() => {
+                    console.warn(`⚠️ Puppeteer page URL alınamadı`);
+                  });
+                } else {
+                  console.warn(`⚠️ Puppeteer page yok - bu QR kod gelmemesinin nedeni olabilir`);
+                }
+              } catch (error) {
+                console.error(`❌ Puppeteer durumu kontrol hatası:`, error);
               }
             }
-          }, 3000); // 3 saniye sonra kontrol et
+          }, 5000); // 5 saniye sonra kontrol et
         }
       })
       .catch((error: any) => {
+        clearTimeout(qrTimeout);
         console.error(`❌ WhatsApp client initialize hatası (Coach ${coachId}):`, error);
         console.error(`❌ Hata detayı:`, error?.message || error);
         console.error(`❌ Hata stack:`, error?.stack);
         console.error(`❌ Hata name:`, error?.name);
         console.error(`❌ Hata code:`, error?.code);
+        
+        // Puppeteer hatası kontrolü
+        if (error?.message?.includes("Puppeteer") || error?.message?.includes("browser") || error?.message?.includes("headless")) {
+          console.error(`❌ Puppeteer hatası tespit edildi - Railway ortamında Puppeteer çalışmıyor olabilir`);
+          console.error(`❌ Railway ortamında Puppeteer için gerekli bağımlılıklar yüklü mü kontrol edin`);
+        }
+        
         clientData.isInitializing = false;
         clientData.qrCode = null;
         sessionLoadingCoaches.delete(coachId);
