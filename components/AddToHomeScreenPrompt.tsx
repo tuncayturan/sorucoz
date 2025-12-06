@@ -27,10 +27,10 @@ export default function AddToHomeScreenPrompt() {
       const hasSeenPrompt = localStorage.getItem('hasSeenA2HSPrompt');
       
       if (isIOSSafari && !hasSeenPrompt) {
-        // 5 saniye sonra göster
+        // 2 saniye sonra otomatik göster (daha hızlı)
         setTimeout(() => {
           setShow(true);
-        }, 5000);
+        }, 2000);
       }
     }
   }, []);

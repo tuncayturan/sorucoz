@@ -39,10 +39,10 @@ export default function PWAInstallPrompt() {
     if (isIOSDevice && !isInStandaloneMode) {
       const hasClosedBefore = localStorage.getItem('pwa-install-closed-ios');
       if (!hasClosedBefore) {
-        // 2 saniye sonra göster
+        // 1 saniye sonra otomatik göster (daha hızlı)
         setTimeout(() => {
           setShowPrompt(true);
-        }, 2000);
+        }, 1000);
       }
     }
 
@@ -57,14 +57,37 @@ export default function PWAInstallPrompt() {
       }
       
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
       
       const hasClosedBefore = localStorage.getItem('pwa-install-closed-android');
       if (!hasClosedBefore) {
-        // 2 saniye sonra göster
-        setTimeout(() => {
-          setShowPrompt(true);
-        }, 2000);
+        // 1 saniye sonra otomatik olarak native prompt'u göster
+        setTimeout(async () => {
+          console.log('[PWA] Auto-showing Android install prompt');
+          try {
+            // Otomatik olarak native prompt'u göster
+            await promptEvent.prompt();
+            const { outcome } = await promptEvent.userChoice;
+            console.log('[PWA] User choice:', outcome);
+            
+            if (outcome === 'accepted') {
+              console.log('[PWA] ✅ User accepted Android install - app will be installed');
+              // Kullanıcı kabul etti, artık prompt gösterme
+              localStorage.setItem('pwa-install-closed-android', 'accepted');
+            } else {
+              console.log('[PWA] User dismissed Android install');
+              // Kullanıcı reddetti, bir sonraki sefer tekrar göster
+            }
+            
+            setDeferredPrompt(null);
+            setShowPrompt(false);
+          } catch (error) {
+            console.error('[PWA] Error showing prompt:', error);
+            // Hata olursa fallback olarak custom prompt göster
+            setShowPrompt(true);
+          }
+        }, 1000);
       }
     };
 
@@ -78,19 +101,24 @@ export default function PWAInstallPrompt() {
 
   const handleInstallClick = async () => {
     if (isAndroid && deferredPrompt) {
-      // Android: Native install prompt
-      console.log('[PWA] Showing Android install prompt');
-      deferredPrompt.prompt();
-      
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log('[PWA] User choice:', outcome);
-      
-      if (outcome === 'accepted') {
-        console.log('[PWA] User accepted Android install');
+      // Android: Native install prompt (manuel tıklama için fallback)
+      console.log('[PWA] Manually showing Android install prompt');
+      try {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log('[PWA] User choice:', outcome);
+        
+        if (outcome === 'accepted') {
+          console.log('[PWA] ✅ User accepted Android install - app will be installed');
+          localStorage.setItem('pwa-install-closed-android', 'accepted');
+        }
+        
+        setDeferredPrompt(null);
+        setShowPrompt(false);
+      } catch (error) {
+        console.error('[PWA] Error showing prompt:', error);
+        setShowPrompt(false);
       }
-      
-      setDeferredPrompt(null);
-      setShowPrompt(false);
     } else if (isIOS) {
       // iOS: Sadece talimatları göster (otomatik install yok)
       console.log('[PWA] iOS - showing instructions');

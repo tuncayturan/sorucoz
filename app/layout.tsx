@@ -3,6 +3,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import FCMTokenManager from "@/components/FCMTokenManager";
 import AddToHomeScreenPrompt from "@/components/AddToHomeScreenPrompt";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <FCMTokenManager />
           <AddToHomeScreenPrompt />
+          <PWAInstallPrompt />
         </AuthProvider>
       </body>
     </html>
