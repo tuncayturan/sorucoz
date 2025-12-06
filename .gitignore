@@ -46,6 +46,3 @@ next-env.d.ts
 
 # sensitive files
 update-env.js
-
-# assets (build outputs, temporary files)
-assets/
