@@ -55,7 +55,7 @@ self.addEventListener('message', (event) => {
 const DB_NAME = 'NotificationDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'shownNotifications';
-const NOTIFICATION_TIMEOUT = 60000; // 60 saniye içinde aynı bildirim tekrar gösterilmez (ULTRA AGGRESSIVE)
+const NOTIFICATION_TIMEOUT = 120000; // 120 saniye (2 dakika) içinde aynı bildirim tekrar gösterilmez (ULTRA AGGRESSIVE)
 
 // TRIPLE PROTECTION:
 // 1. processingNotifications: Prevents concurrent processing (immediate)
@@ -69,7 +69,7 @@ let notificationCounter = 0;
 
 // Message handler debouncing - prevent rapid fire
 const messageHandlerLock = new Map(); // messageId -> timestamp
-const HANDLER_DEBOUNCE = 10000; // 10 saniye içinde aynı message için sadece 1 kere işle (ULTRA AGGRESSIVE)
+const HANDLER_DEBOUNCE = 30000; // 30 saniye içinde aynı message için sadece 1 kere işle (ULTRA AGGRESSIVE)
 
 // Initialize IndexedDB for persistent cross-tab duplicate prevention
 const initDB = () => {
@@ -302,33 +302,38 @@ messaging.onBackgroundMessage(async (payload) => {
   // Ses URL'sini payload'dan al (varsa özel ses, yoksa varsayılan)
   const soundUrl = payload.data?.sound || payload.notification?.sound;
   
-  // CRITICAL FIX: Use stable tag for conversation grouping
-  // Same conversation = Same tag = Single notification (updated on new messages)
-  // ULTRA AGGRESSIVE: messageId bazlı tag kullan - her bildirim için aynı tag
+  // CRITICAL FIX: Use unique tag for each notification to prevent duplicates
+  // Her yeni mesaj için yeni bir tag - duplicate prevention messageId ile çalışıyor
+  // ULTRA AGGRESSIVE: messageId bazlı unique tag kullan
   const notificationType = payload.data?.type || 'general';
   
   let notificationTag;
   if (messageId) {
-    // EN İYİ: messageId varsa direkt kullan - her bildirim için unique ama deduplication için aynı
-    notificationTag = messageId;
+    // EN İYİ: messageId varsa direkt kullan - her bildirim için unique tag
+    // Duplicate prevention zaten messageId ile çalışıyor, tag sadece görsel güncelleme için
+    notificationTag = `msg-${messageId}`;
   } else if (payload.data?.conversationId) {
-    // conversationId - her mesaj aynı bildirimi güncelleyecek
-    notificationTag = `conv-${payload.data.conversationId}`;
+    // conversationId + timestamp - her mesaj için unique tag
+    const timeWindow = Math.floor(Date.now() / 1000); // 1 saniyelik window
+    notificationTag = `conv-${payload.data.conversationId}-${timeWindow}`;
   } else if (payload.data?.supportId) {
-    // supportId
-    notificationTag = `supp-${payload.data.supportId}`;
+    // supportId + timestamp
+    const timeWindow = Math.floor(Date.now() / 1000);
+    notificationTag = `supp-${payload.data.supportId}-${timeWindow}`;
   } else {
     // Diğer bildirimler için notificationId kullan
-    notificationTag = notificationId;
+    notificationTag = `notif-${notificationId}`;
   }
   
   console.log('[firebase-messaging-sw.js] 🏷️ Notification Tag:', notificationTag);
   
-  // ========== ULTRA AGGRESSIVE NOTIFICATION CLEANUP ==========
-  // Tüm eski bildirimleri kapat - ÖNCE AYNI TAG'DEKİLERİ, SONRA HEPSİNİ
-  console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing ALL old notifications (ULTRA AGGRESSIVE)...');
+  // ========== SMART NOTIFICATION CLEANUP ==========
+  // Sadece aynı conversation'daki eski bildirimleri kapat - diğer conversation'ları koru
+  console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing old notifications from same conversation...');
   
   let closedCount = 0;
+  const conversationId = payload.data?.conversationId || payload.data?.supportId;
+  
   try {
     // ÖNCE: Aynı tag'deki tüm bildirimleri kapat (notification.replace çalışmıyorsa)
     const existingNotifications = await self.registration.getNotifications({ tag: notificationTag });
@@ -344,36 +349,41 @@ messaging.onBackgroundMessage(async (payload) => {
       }
     }
     
-    // SONRA: TÜM bildirimleri kapat (tag filter YOK - hepsini al!)
-    const allNotifications = await self.registration.getNotifications();
-    console.log(`[firebase-messaging-sw.js] 📋 Found ${allNotifications.length} total existing notification(s)`);
-    
-    if (allNotifications.length > 0) {
-      // Her birini logla ve kapat
-      for (let i = 0; i < allNotifications.length; i++) {
-        const notification = allNotifications[i];
-        console.log(`[firebase-messaging-sw.js] 🗑️ Closing #${i + 1}:`, {
-          title: notification.title,
-          body: notification.body,
-          tag: notification.tag,
-          timestamp: notification.timestamp
-        });
+    // SONRA: Aynı conversation'daki eski bildirimleri kapat (eğer conversationId varsa)
+    if (conversationId) {
+      const allNotifications = await self.registration.getNotifications();
+      console.log(`[firebase-messaging-sw.js] 📋 Found ${allNotifications.length} total existing notification(s)`);
+      
+      // Aynı conversation'daki eski bildirimleri bul ve kapat
+      for (const notification of allNotifications) {
+        const notifData = notification.data || {};
+        const notifConversationId = notifData.conversationId || notifData.supportId;
         
-        try {
-          notification.close();
-          closedCount++;
-          console.log(`[firebase-messaging-sw.js] ✅ Closed #${i + 1} successfully`);
-        } catch (closeError) {
-          console.error(`[firebase-messaging-sw.js] ❌ Failed to close #${i + 1}:`, closeError);
+        // Aynı conversation ve farklı tag (eski mesaj)
+        if (notifConversationId === conversationId && notification.tag !== notificationTag) {
+          console.log(`[firebase-messaging-sw.js] 🗑️ Closing old notification from same conversation:`, {
+            title: notification.title,
+            tag: notification.tag,
+            timestamp: notification.timestamp
+          });
+          
+          try {
+            notification.close();
+            closedCount++;
+          } catch (closeError) {
+            console.error(`[firebase-messaging-sw.js] ❌ Failed to close old notification:`, closeError);
+          }
         }
       }
       
-      // Kapanmaları tamamlanması için bekle (artırıldı)
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Kapanmaları tamamlanması için bekle
+      if (closedCount > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       
-      console.log(`[firebase-messaging-sw.js] ✅ CLEANUP COMPLETE: Closed ${closedCount} notification(s) total`);
+      console.log(`[firebase-messaging-sw.js] ✅ CLEANUP COMPLETE: Closed ${closedCount} notification(s) from same conversation`);
     } else {
-      console.log('[firebase-messaging-sw.js] ℹ️ No existing notifications to clean');
+      console.log('[firebase-messaging-sw.js] ℹ️ No conversationId, skipping conversation-specific cleanup');
     }
   } catch (error) {
     console.error('[firebase-messaging-sw.js] ❌ Error in cleanup process:', error);

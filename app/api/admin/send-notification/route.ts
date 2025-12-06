@@ -5,7 +5,7 @@ import { getAdminApp } from "@/lib/firebase/admin";
 
 // Request deduplication - prevent duplicate API calls within short time
 const recentRequests = new Map<string, number>();
-const REQUEST_TIMEOUT = 5000; // 5 saniye içinde aynı request'i tekrar işleme (artırıldı)
+const REQUEST_TIMEOUT = 30000; // 30 saniye içinde aynı request'i tekrar işleme (ULTRA AGGRESSIVE)
 
 // FCM Admin SDK kullanarak bildirim gönderme
 export async function POST(request: NextRequest) {
@@ -22,17 +22,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Request deduplication - aynı request kısa sürede tekrar gelirse engelle
-    // CRITICAL: 5 saniyelik window içinde aynı mesaj için duplicate engelle
-    const timestamp = Math.floor(Date.now() / 5000) * 5000; // 5 saniyelik window
-    const requestKey = `${userId}-${timestamp}-${title}-${JSON.stringify(data?.conversationId || data?.supportId || 'none')}`;
+    // CRITICAL: 30 saniyelik window içinde aynı mesaj için duplicate engelle
+    // ULTRA AGGRESSIVE: receiverRole, conversationId ve body'yi de key'e ekle
+    const timestamp = Math.floor(Date.now() / 30000) * 30000; // 30 saniyelik window
+    const receiverRole = data?.receiverRole || '';
+    const conversationId = data?.conversationId || data?.supportId || 'none';
+    const bodyHash = body.substring(0, 50); // İlk 50 karakter (çok uzun olmasın)
+    // CRITICAL: receiverRole, conversationId ve body'yi key'e ekle - aynı mesaj için aynı key
+    const requestKey = `${userId}-${receiverRole}-${conversationId}-${bodyHash}-${timestamp}`;
     const lastRequestTime = recentRequests.get(requestKey);
     const now = Date.now();
     
     console.log(`[Send Notification] Request key: ${requestKey}`);
     console.log(`[Send Notification] Last request: ${lastRequestTime ? `${now - lastRequestTime}ms ago` : 'never'}`);
+    console.log(`[Send Notification] Receiver role: ${receiverRole || 'none'}`);
     
     if (lastRequestTime && (now - lastRequestTime) < REQUEST_TIMEOUT) {
       console.log(`[Send Notification] 🛑 DUPLICATE REQUEST PREVENTED (${now - lastRequestTime}ms ago)`);
+      console.log(`[Send Notification] ⚠️ Same request detected within ${REQUEST_TIMEOUT}ms window`);
       return NextResponse.json({
         success: false,
         message: "Duplicate request prevented",
