@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "build": "cross-env NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "node -e \"try { require('puppeteer'); } catch(e) { console.log('Puppeteer optional'); }\""
@@ -30,6 +30,7 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.22",
     "babel-plugin-react-compiler": "1.0.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.4",
     "postcss": "^8.5.6",
