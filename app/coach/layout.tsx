@@ -195,8 +195,18 @@ export default function CoachLayout({
   const handleNotificationClick = async (bildirim: CoachBildirim) => {
     setShowNotifications(false);
     
-    // Mark notification as read
-    if (!bildirim.read) {
+    // Mark notification as read in Firestore AND local state
+    if (!bildirim.read && user) {
+      try {
+        // CRITICAL: Update Firestore notification document
+        const bildirimRef = doc(db, "users", user.uid, "bildirimler", bildirim.id);
+        await updateDoc(bildirimRef, { read: true });
+        console.log("[Coach Layout] ✅ Notification marked as read in Firestore:", bildirim.id);
+      } catch (error) {
+        console.error("[Coach Layout] ❌ Error marking notification as read:", error);
+      }
+      
+      // Update local state
       readNotificationsRef.current.add(bildirim.id);
       setBildirimler(prev => 
         prev.map(b => b.id === bildirim.id ? { ...b, read: true } : b)

@@ -312,6 +312,32 @@ export default function CoachChatPage() {
   useEffect(() => {
     if (!selectedConversation || !user) return;
 
+    // CRITICAL: Mark all notifications for this conversation as read when conversation is opened
+    const markConversationNotificationsAsRead = async () => {
+      try {
+        const bildirimlerRef = collection(db, "users", user.uid, "bildirimler");
+        const bildirimlerQuery = query(
+          bildirimlerRef,
+          where("data.conversationId", "==", selectedConversation.id),
+          where("read", "==", false)
+        );
+        const bildirimlerSnapshot = await getDocs(bildirimlerQuery);
+        
+        if (!bildirimlerSnapshot.empty) {
+          console.log(`[Coach Chat] 📬 Marking ${bildirimlerSnapshot.docs.length} notification(s) as read for conversation ${selectedConversation.id}`);
+          const updatePromises = bildirimlerSnapshot.docs.map((notifDoc) =>
+            updateDoc(doc(db, "users", user.uid, "bildirimler", notifDoc.id), { read: true })
+          );
+          await Promise.all(updatePromises);
+          console.log(`[Coach Chat] ✅ All notifications marked as read`);
+        }
+      } catch (error) {
+        console.error("[Coach Chat] ❌ Error marking notifications as read:", error);
+      }
+    };
+
+    markConversationNotificationsAsRead();
+
     const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"));
 
