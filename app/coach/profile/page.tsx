@@ -537,8 +537,15 @@ export default function CoachProfilePage() {
                   // İlk QR kod kontrolü - eğer varsa hemen göster
                   if (data.qrCode) {
                     console.log("✅ İlk QR kod alındı! (uzunluk:", data.qrCode.length, ")");
+                    console.log("✅ QR kod preview:", data.qrCode.substring(0, 50) + "...");
+                    console.log("✅ QR kod base64 başlangıcı:", data.qrCode.startsWith("data:image") ? "Evet" : "Hayır");
                     if (isMountedRef.current) {
-                      setWhatsappQRCode(data.qrCode);
+                      // QR kodun base64 formatında olduğundan emin ol
+                      const qrCodeToSet = data.qrCode.startsWith("data:image") 
+                        ? data.qrCode 
+                        : `data:image/png;base64,${data.qrCode}`;
+                      setWhatsappQRCode(qrCodeToSet);
+                      console.log("✅ QR kod state'e set edildi");
                     }
                   } else {
                     console.log("⏳ QR kod henüz hazır değil, polling başlatılıyor... (isInitializing:", data.isInitializing, ")");
@@ -657,8 +664,15 @@ export default function CoachProfilePage() {
                       if (statusData.qrCode) {
                         // QR kod geldiğinde güncelle (yeni veya güncellenmiş)
                         console.log(`✅ [${attempts}] QR kod alındı! (uzunluk: ${statusData.qrCode.length})`);
+                        console.log(`✅ [${attempts}] QR kod preview: ${statusData.qrCode.substring(0, 50)}...`);
+                        console.log(`✅ [${attempts}] QR kod base64 başlangıcı: ${statusData.qrCode.startsWith("data:image") ? "Evet" : "Hayır"}`);
                         if (isMountedRef.current) {
-                          setWhatsappQRCode(statusData.qrCode);
+                          // QR kodun base64 formatında olduğundan emin ol
+                          const qrCodeToSet = statusData.qrCode.startsWith("data:image") 
+                            ? statusData.qrCode 
+                            : `data:image/png;base64,${statusData.qrCode}`;
+                          setWhatsappQRCode(qrCodeToSet);
+                          console.log(`✅ [${attempts}] QR kod state'e set edildi`);
                         }
                         // QR kod geldiğinde connecting durumunu koru ama modal açık kalsın
                       } else if (attempts > 10 && attempts % 5 === 0) {
@@ -871,19 +885,26 @@ export default function CoachProfilePage() {
             <div className="flex flex-col items-center gap-4">
               {whatsappQRCode ? (
                 <>
-                  <div className="p-4 bg-white rounded-xl border-2 border-gray-200">
+                  <div className="p-4 bg-white rounded-xl border-2 border-gray-200 flex items-center justify-center">
                     <img
                       src={whatsappQRCode}
                       alt="QR Code"
                       className="w-64 h-64 object-contain"
                       onError={(e) => {
-                        console.error("QR kod yüklenemedi");
+                        console.error("QR kod yüklenemedi, QR kod:", whatsappQRCode?.substring(0, 100));
+                        console.error("QR kod uzunluğu:", whatsappQRCode?.length);
                         e.currentTarget.style.display = "none";
+                      }}
+                      onLoad={() => {
+                        console.log("✅ QR kod başarıyla yüklendi");
                       }}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 text-center">
-                    QR kodu taradıktan sonra bağlantı otomatik olarak kurulacaktır
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    QR kodu WhatsApp uygulamanızla tarayın
+                  </p>
+                  <p className="text-xs text-gray-400 text-center mt-1">
+                    WhatsApp → Ayarlar → Bağlı Cihazlar → Cihaz Bağla
                   </p>
                 </>
               ) : (
