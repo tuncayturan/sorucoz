@@ -206,7 +206,7 @@ messaging.onBackgroundMessage(async (payload) => {
   
   // Extract messageId FIRST for debouncing
   const messageId = payload.data?.messageId || '';
-  const conversationId = payload.data?.conversationId || '';
+  const conversationId = payload.data?.conversationId || payload.data?.supportId || '';
   const messageType = payload.data?.type || 'general';
   
       // STABLE ID: Use messageId from API (unique per user+conversation+time window)
@@ -332,7 +332,7 @@ messaging.onBackgroundMessage(async (payload) => {
   console.log('[firebase-messaging-sw.js] 🧹 CLEANUP: Closing old notifications from same conversation...');
   
   let closedCount = 0;
-  const conversationId = payload.data?.conversationId || payload.data?.supportId;
+  // conversationId zaten yukarıda tanımlanmış (satır 209)
   
   try {
     // ÖNCE: Aynı tag'deki tüm bildirimleri kapat (notification.replace çalışmıyorsa)
