@@ -165,6 +165,7 @@ export default function FCMTokenManager() {
           
           setPermission("granted");
           setShow(false);
+          setLoading(false);
           
           // Başarı mesajı
           alert("✅ Bildirimler aktif edildi!\n\nArtık mesaj ve soru yanıtlarını anında alacaksınız.");
@@ -172,6 +173,7 @@ export default function FCMTokenManager() {
           console.error("[FCMTokenManager] ❌ Error saving token to Firestore:", saveError);
           console.error("[FCMTokenManager] Error details:", saveError.message, saveError.stack);
           
+          setLoading(false);
           alert(`❌ Token kaydedilemedi\n\nHata: ${saveError.message}\n\nLütfen sayfayı yenileyin ve tekrar deneyin.`);
         }
       } else {
@@ -185,6 +187,7 @@ export default function FCMTokenManager() {
         
         console.error("[FCMTokenManager] Debug info:", debugInfo);
         
+        setLoading(false);
         alert(`❌ Token alınamadı\n\nHata detayları:\n- İzin durumu: ${debugInfo.notificationPermission}\n- Service Worker: ${debugInfo.swReady ? 'Hazır' : 'Hazır değil'}\n\nLütfen sayfayı yenileyin ve tekrar deneyin.`);
       }
     } catch (error: any) {
@@ -201,9 +204,8 @@ export default function FCMTokenManager() {
       
       errorMsg += "\n\nLütfen:\n1. Sayfayı yenileyin\n2. Tarayıcı ayarlarından bildirimlere izin verin\n3. Tekrar deneyin";
       
-      alert(errorMsg);
-    } finally {
       setLoading(false);
+      alert(errorMsg);
     }
   };
 
