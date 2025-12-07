@@ -27,10 +27,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // iyzico client oluştur (runtime'da yükle)
-    // @ts-ignore - CommonJS modülü, build time'da analiz edilmesin
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Iyzipay = require("iyzipay");
+    // iyzico client oluştur (runtime'da yükle - build time'da analiz edilmesin)
+    // Use Function constructor to avoid build-time analysis
+    const loadIyzipay = new Function('return require("iyzipay")');
+    // @ts-ignore
+    const Iyzipay = loadIyzipay();
     const iyzico = new Iyzipay({
       apiKey: iyzicoSettings.apiKey,
       secretKey: iyzicoSettings.secretKey,
