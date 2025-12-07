@@ -575,6 +575,13 @@ export default function AdminDashboard() {
               <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📢</div>
               <p className="font-bold text-gray-900 text-sm">Popup Mesaj</p>
             </a>
+            <a
+              href="/admin/referans-kodlar"
+              className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-6 border border-cyan-100 hover:shadow-lg hover:scale-105 transition-all text-center group"
+            >
+              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🎟️</div>
+              <p className="font-bold text-gray-900 text-sm">Referans Kodları</p>
+            </a>
           </div>
         </div>
       </div>

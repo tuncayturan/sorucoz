@@ -14,6 +14,7 @@ interface SiteSettings {
   footerCopyright?: string;
   footerDescription?: string;
   notificationSound?: string; // Bildirim sesi URL'si
+  landingVideoUrl?: string; // Landing sayfası video background URL'si
   litePlanPrice?: number; // Lite plan fiyatı (₺/ay)
   premiumPlanPrice?: number; // Premium plan fiyatı (₺/ay)
   yearlyDiscountPercent?: number; // Yıllık plan indirim oranı (%)
@@ -618,6 +619,87 @@ export default function AdminAyarlarPage() {
                 <li>Premium sayfasında öğrencilere bu fiyatlar gösterilir</li>
                 <li>Fiyat değişiklikleri tüm kullanıcılar için geçerlidir</li>
               </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Landing Video Background */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-cyan-200/20 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">🎬</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Landing Video Background</h2>
+                <p className="text-sm text-gray-600">Ana sayfa arka plan videosu</p>
+                <p className="text-xs text-gray-500 mt-1">Landing sayfasında arka planda oynatılacak video URL'si. MP4, WebM formatları desteklenir. Boş bırakılırsa gradient background kullanılır.</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Video URL
+                </label>
+                <input
+                  type="url"
+                  value={settings.landingVideoUrl || ""}
+                  onChange={(e) => setSettings((prev) => ({ ...prev, landingVideoUrl: e.target.value }))}
+                  onBlur={async () => {
+                    try {
+                      const settingsRef = doc(db, "siteSettings", "main");
+                      await setDoc(
+                        settingsRef,
+                        {
+                          landingVideoUrl: settings.landingVideoUrl || null,
+                          updatedAt: new Date(),
+                        },
+                        { merge: true }
+                      );
+                      showToast("Video URL güncellendi!", "success");
+                    } catch (error: any) {
+                      showToast(error.message || "Güncelleme başarısız", "error");
+                    }
+                  }}
+                  placeholder="https://example.com/video.mp4"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Video URL'si (MP4, WebM). Örnek: Cloudinary, Vimeo, veya başka bir CDN linki
+                </p>
+              </div>
+              {settings.landingVideoUrl && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Video Önizleme:</p>
+                  <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+                    <video
+                      src={settings.landingVideoUrl}
+                      controls
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        console.error("Video yüklenemedi:", e);
+                      }}
+                    >
+                      Tarayıcınız video oynatmayı desteklemiyor.
+                    </video>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 Video otomatik oynatma, döngü ve sessiz modda çalışacaktır.
+                  </p>
+                </div>
+              )}
+              <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-sm text-blue-800 font-semibold mb-2">💡 Video Önerileri:</p>
+                <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                  <li>Önerilen format: MP4 (H.264 codec)</li>
+                  <li>Dosya boyutu: 5-10 MB (daha küçük = daha hızlı yükleme)</li>
+                  <li>Çözünürlük: 1080p veya 720p</li>
+                  <li>Süre: 10-30 saniye (döngüye uygun)</li>
+                  <li>İçerik: Minimal, yavaş hareket eden, eğitim temalı</li>
+                  <li>CDN önerileri: Cloudinary, Vimeo, YouTube (embed), veya kendi sunucunuz</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

@@ -259,6 +259,7 @@ export default function AdminLayout({
     { href: "/admin/istatistikler", label: "İstatistikler", icon: "📈", badge: null },
     { href: "/admin/ayarlar", label: "Site Ayarları", icon: "⚙️", badge: null },
     { href: "/admin/popup-mesaj", label: "Popup Mesaj", icon: "📢", badge: null },
+    { href: "/admin/referans-kodlar", label: "Referans Kodları", icon: "🎟️", badge: null },
   ];
 
   return (

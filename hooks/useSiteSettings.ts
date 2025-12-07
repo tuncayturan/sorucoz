@@ -20,6 +20,8 @@ interface SiteSettings {
   siteName?: string;
   footerCopyright?: string;
   footerDescription?: string;
+  notificationSound?: string;
+  landingVideoUrl?: string;
   aiSettings?: AISettings;
   litePlanPrice?: number;
   premiumPlanPrice?: number;

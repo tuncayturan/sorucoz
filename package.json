@@ -14,6 +14,7 @@
     "clsx": "^2.1.1",
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
+    "iyzipay": "^2.0.51",
     "next": "16.0.4",
     "puppeteer": "^21.11.0",
     "qrcode": "^1.5.4",

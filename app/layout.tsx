@@ -1,7 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import FCMTokenManager from "@/components/FCMTokenManager";
 import AddToHomeScreenPrompt from "@/components/AddToHomeScreenPrompt";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import type { Metadata } from "next";
@@ -28,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistration />
         <AuthProvider>
           {children}
-          <FCMTokenManager />
+          {/* <FCMTokenManager /> Mobil bildirim popup'ı kaldırıldı */}
           <AddToHomeScreenPrompt />
           <PWAInstallPrompt />
         </AuthProvider>

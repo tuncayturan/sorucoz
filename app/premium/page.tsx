@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { checkSubscriptionStatus, getTrialDaysLeft, getSubscriptionDaysLeft, getPlanPrice, isFreemiumMode, type SubscriptionPlan } from "@/lib/subscriptionUtils";
-import { doc, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, updateDoc, Timestamp, collection, query, where, getDocs, increment, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import HomeHeader from "@/components/HomeHeader";
 import SideMenu from "@/components/SideMenu";
@@ -21,6 +21,15 @@ export default function PremiumPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [validatedReferralCode, setValidatedReferralCode] = useState<{
+    code: string;
+    discountPercent: number;
+    id: string;
+  } | null>(null);
+  const [validatingCode, setValidatingCode] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"manual" | "iyzico" | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "info";
@@ -65,6 +74,56 @@ export default function PremiumPage() {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
 
+  const validateReferralCode = async (code: string) => {
+    if (!code.trim()) {
+      setValidatedReferralCode(null);
+      return;
+    }
+
+    try {
+      setValidatingCode(true);
+      const codesRef = collection(db, "referralCodes");
+      const q = query(codesRef, where("code", "==", code.trim().toUpperCase()));
+      const snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        showToast("Geçersiz referans kodu.", "error");
+        setValidatedReferralCode(null);
+        return;
+      }
+
+      const codeData = snapshot.docs[0].data();
+      const codeId = snapshot.docs[0].id;
+
+      // Kod aktif mi?
+      if (!codeData.isActive) {
+        showToast("Bu referans kodu aktif değil.", "error");
+        setValidatedReferralCode(null);
+        return;
+      }
+
+      // Maksimum kullanım limiti kontrolü
+      if (codeData.maxUsage && codeData.usageCount >= codeData.maxUsage) {
+        showToast("Bu referans kodu kullanım limitine ulaşmış.", "error");
+        setValidatedReferralCode(null);
+        return;
+      }
+
+      setValidatedReferralCode({
+        code: codeData.code,
+        discountPercent: codeData.discountPercent,
+        id: codeId,
+      });
+      showToast(`%${codeData.discountPercent} indirim kodu uygulandı!`, "success");
+    } catch (error) {
+      console.error("Referans kodu doğrulanırken hata:", error);
+      showToast("Kod doğrulanırken bir hata oluştu.", "error");
+      setValidatedReferralCode(null);
+    } finally {
+      setValidatingCode(false);
+    }
+  };
+
   const handlePurchase = async (plan: SubscriptionPlan, isYearly: boolean = false) => {
     if (!user) return;
 
@@ -74,7 +133,7 @@ export default function PremiumPage() {
       return;
     }
     
-    const subscriptionDays = isYearly ? 365 : 30; // Yıllık: 365 gün, Aylık: 30 gün
+    const subscriptionDays = isYearly ? 365 : 30;
 
     // Premium'dan Lite'a geçiş kontrolü
     if (currentPlan === "premium" && plan === "lite" && subscriptionStatus === "active") {
@@ -88,19 +147,116 @@ export default function PremiumPage() {
       }
     }
 
+    // Ödeme yöntemini kontrol et
+    try {
+      const settingsRef = doc(db, "adminSettings", "paymentMethods");
+      const settingsSnap = await getDoc(settingsRef);
+      const paymentMethods = settingsSnap.exists() ? settingsSnap.data().methods : [];
+      const iyzicoSettings = paymentMethods.find((m: any) => m.id === "iyzico");
+
+      // iyzico aktifse ödeme başlat
+      if (iyzicoSettings && iyzicoSettings.enabled && iyzicoSettings.apiKey && iyzicoSettings.secretKey) {
+        await initializeIyzicoPayment(plan, isYearly);
+        return;
+      }
+    } catch (error) {
+      console.error("Ödeme yöntemi kontrolü hatası:", error);
+    }
+
+    // Manuel ödeme (fallback)
+    await handleManualPayment(plan, isYearly);
+  };
+
+  const initializeIyzicoPayment = async (plan: SubscriptionPlan, isYearly: boolean) => {
     try {
       setProcessing(plan);
 
-      // TODO: Burada ödeme entegrasyonu yapılacak (Stripe, iyzico, vb.)
-      // Şimdilik manuel olarak plan'ı aktif ediyoruz
-      
+      // Fiyat hesaplama (admin'den gelen fiyatlar veya varsayılan)
+      const litePriceMonthly = settings.litePlanPrice || 99;
+      const premiumPriceMonthly = settings.premiumPlanPrice || 399;
+      const yearlyDiscountPercent = settings.yearlyDiscountPercent || 15;
+      const discountMultiplier = 1 - (yearlyDiscountPercent / 100);
+      const litePriceYearly = Math.round(litePriceMonthly * 12 * discountMultiplier);
+      const premiumPriceYearly = Math.round(premiumPriceMonthly * 12 * discountMultiplier);
+
+      const basePrice = isYearly
+        ? (plan === "premium" ? premiumPriceYearly : litePriceYearly)
+        : (plan === "premium" ? premiumPriceMonthly : litePriceMonthly);
+
+      let finalPrice = basePrice;
+      if (validatedReferralCode) {
+        const discountAmount = Math.round((basePrice * validatedReferralCode.discountPercent) / 100);
+        finalPrice = basePrice - discountAmount;
+      }
+
+      // iyzico ödeme başlat
+      const response = await fetch("/api/payment/iyzico/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user?.uid,
+          plan,
+          billingPeriod: isYearly ? "yearly" : "monthly",
+          referralCode: validatedReferralCode?.code || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Ödeme başlatılamadı");
+      }
+
+      // iyzico ödeme formunu göster
+      if (data.htmlContent) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "https://sandbox-api.iyzipay.com/payment/3dsecure/initialize";
+        form.innerHTML = data.htmlContent;
+        document.body.appendChild(form);
+        form.submit();
+      } else {
+        throw new Error("Ödeme formu alınamadı");
+      }
+    } catch (error: any) {
+      console.error("iyzico ödeme hatası:", error);
+      showToast(error.message || "Ödeme başlatılamadı. Manuel ödeme ile devam ediliyor...", "error");
+      // Hata durumunda manuel ödemeye geç
+      await handleManualPayment(plan, isYearly);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleManualPayment = async (plan: SubscriptionPlan, isYearly: boolean) => {
+    if (!user) return;
+
+    const subscriptionDays = isYearly ? 365 : 30;
+
+    try {
+      setProcessing(plan);
+
       const now = new Date();
       const userRef = doc(db, "users", user.uid);
-      
-      // Lite'dan Premium'a geçiş: Hemen geçiş, yeni 30 günlük abonelik
+
+      // Referans kodunu kullanım sayısını artır (sadece manuel ödemede)
+      if (validatedReferralCode) {
+        try {
+          const codeRef = doc(db, "referralCodes", validatedReferralCode.id);
+          await updateDoc(codeRef, {
+            usageCount: increment(1),
+          });
+        } catch (error) {
+          console.error("Referans kodu kullanım sayısı güncellenirken hata:", error);
+        }
+      }
+
+      // Lite'dan Premium'a geçiş
       if (currentPlan === "lite" && plan === "premium" && subscriptionStatus === "active") {
         const subscriptionEndDate = new Date(now);
-        subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30); // 30 gün sonra
+        subscriptionEndDate.setDate(subscriptionEndDate.getDate() + 30);
 
         await updateDoc(userRef, {
           premium: true,
@@ -113,16 +269,11 @@ export default function PremiumPage() {
         });
 
         refreshUserData();
-        showToast("Premium plan başarıyla aktif edildi! (Test modu)", "success");
-      } 
-      // Premium'dan Lite'a geçiş: Mevcut abonelik bitene kadar bekle (yukarıda kontrol edildi)
-      // Bu durumda buraya gelmemeli, ama yine de kontrol edelim
-      else if (currentPlan === "premium" && plan === "lite") {
-        // Bu durum zaten yukarıda kontrol edildi ve engellendi
+        showToast("Premium plan başarıyla aktif edildi! (Manuel ödeme)", "success");
+      } else if (currentPlan === "premium" && plan === "lite") {
         showToast("Premium plan'dan Lite plan'a geçiş için aboneliğinizin bitmesini bekleyin.", "info");
-      }
-      // Yeni abonelik (Trial'dan veya expired'dan)
-      else {
+      } else {
+        // Yeni abonelik
         const subscriptionEndDate = new Date(now);
         subscriptionEndDate.setDate(subscriptionEndDate.getDate() + subscriptionDays);
 
@@ -132,16 +283,16 @@ export default function PremiumPage() {
           subscriptionStatus: "active",
           subscriptionStartDate: Timestamp.fromDate(now),
           subscriptionEndDate: Timestamp.fromDate(subscriptionEndDate),
-          billingPeriod: isYearly ? "yearly" : "monthly", // Faturalama periyodu
+          billingPeriod: isYearly ? "yearly" : "monthly",
           dailyQuestionCount: 0,
           lastQuestionDate: now.toISOString().split("T")[0],
         });
 
         refreshUserData();
         const periodText = isYearly ? "yıllık" : "aylık";
-        showToast(`${plan === "lite" ? "Lite" : "Premium"} plan (${periodText}) başarıyla aktif edildi! (Test modu)`, "success");
+        showToast(`${plan === "lite" ? "Lite" : "Premium"} plan (${periodText}) başarıyla aktif edildi! (Manuel ödeme)`, "success");
       }
-      
+
       setTimeout(() => {
         router.push("/home");
       }, 1500);
@@ -284,6 +435,62 @@ export default function PremiumPage() {
             </div>
           )}
 
+          {/* Referral Code Input */}
+          <div className="mb-6 animate-slideFade">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-white/70">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
+                  🎟️
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Referans Kodu</h3>
+                  <p className="text-sm text-gray-600">İndirim kodu varsa girin</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => {
+                    setReferralCode(e.target.value.toUpperCase());
+                    if (validatedReferralCode) {
+                      setValidatedReferralCode(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (referralCode.trim()) {
+                      validateReferralCode(referralCode);
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-500/20 transition-all font-mono text-lg font-bold"
+                  placeholder="KOD GİRİN (örn: TOPLULUK10)"
+                  disabled={validatingCode}
+                />
+                {validatedReferralCode && (
+                  <button
+                    onClick={() => {
+                      setReferralCode("");
+                      setValidatedReferralCode(null);
+                    }}
+                    className="px-4 py-3 bg-red-100 text-red-700 rounded-xl font-bold hover:bg-red-200 transition-all"
+                  >
+                    Kaldır
+                  </button>
+                )}
+              </div>
+              {validatingCode && (
+                <p className="text-sm text-gray-500 mt-2">Kod doğrulanıyor...</p>
+              )}
+              {validatedReferralCode && (
+                <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200">
+                  <p className="text-sm font-bold text-green-700">
+                    ✓ %{validatedReferralCode.discountPercent} indirim uygulandı!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Billing Period Toggle */}
           <div className="flex justify-center mb-6 animate-slideFade">
             <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-2 shadow-lg border border-white/60 inline-flex gap-2">
@@ -322,8 +529,17 @@ export default function PremiumPage() {
               // Premium'dan Lite'a geçiş engellendi mi?
               const isDowngradeBlocked = currentPlan === "premium" && plan.id === "lite" && subscriptionStatus === "active" && subscriptionDaysLeft > 0;
               
-              // Fiyatları belirle
-              const displayPrice = billingPeriod === "yearly" ? plan.priceYearly : plan.priceMonthly;
+              // Fiyatları belirle (referans kodu indirimi ile)
+              let basePrice = billingPeriod === "yearly" ? plan.priceYearly : plan.priceMonthly;
+              let finalPrice = basePrice;
+              let discountAmount = 0;
+
+              if (validatedReferralCode) {
+                discountAmount = Math.round((basePrice * validatedReferralCode.discountPercent) / 100);
+                finalPrice = basePrice - discountAmount;
+              }
+
+              const displayPrice = finalPrice;
               const monthlyEquivalent = billingPeriod === "yearly" ? Math.round(plan.priceYearly / 12) : plan.priceMonthly;
               const savingsAmount = billingPeriod === "yearly" ? (plan.priceMonthly * 12 - plan.priceYearly) : 0;
 
@@ -374,19 +590,34 @@ export default function PremiumPage() {
 
                     {/* Price */}
                     <div className="mb-6">
+                      {validatedReferralCode && discountAmount > 0 && (
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="text-sm text-gray-500 line-through">{basePrice}₺</span>
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                            %{validatedReferralCode.discountPercent} İndirim
+                          </span>
+                        </div>
+                      )}
                       {billingPeriod === "yearly" ? (
                         <>
                           <div className="flex items-baseline gap-2 mb-2">
                             <span className="text-4xl font-bold text-gray-900">{displayPrice}₺</span>
                             <span className="text-gray-500">/yıl</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm text-gray-600">
                               ({monthlyEquivalent}₺/ay)
                             </span>
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
-                              {savingsAmount}₺ tasarruf
-                            </span>
+                            {savingsAmount > 0 && (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                                {savingsAmount}₺ tasarruf
+                              </span>
+                            )}
+                            {validatedReferralCode && discountAmount > 0 && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">
+                                {discountAmount}₺ ek indirim
+                              </span>
+                            )}
                           </div>
                         </>
                       ) : (
