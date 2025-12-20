@@ -29,6 +29,7 @@ export default function SoruSorPage() {
   const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const [toast, setToast] = useState<{
     message: string;
@@ -138,12 +139,12 @@ export default function SoruSorPage() {
   // Kamerayı aç
   const handleOpenCamera = async () => {
     try {
-      // Mobil için front-facing kamera tercih et
-      const constraints = {
+      setCameraReady(false);
+      
+      // Mobil tarayıcılar için daha basit constraints
+      const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: "environment", // Arka kamera (mobil için daha iyi)
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          facingMode: "environment", // Arka kamera
         },
       };
 
@@ -151,19 +152,38 @@ export default function SoruSorPage() {
       streamRef.current = stream;
       setShowCamera(true);
       
-      // Video element'ine stream'i bağla
+      // Video element'ine stream'i bağla ve hazır olmasını bekle
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Video yüklenene kadar bekle
+        
+        // Video metadata yüklendiğinde
         videoRef.current.onloadedmetadata = () => {
           console.log("Kamera hazır:", {
             width: videoRef.current?.videoWidth,
             height: videoRef.current?.videoHeight,
           });
+          setCameraReady(true);
+        };
+
+        // Video playing başladığında da kontrol et
+        videoRef.current.onplaying = () => {
+          if (videoRef.current && videoRef.current.videoWidth > 0) {
+            setCameraReady(true);
+          }
+        };
+
+        // Hata durumu
+        videoRef.current.onerror = (error) => {
+          console.error("Video hatası:", error);
+          setCameraReady(false);
+          showToast("Video yüklenirken bir hata oluştu.", "error");
         };
       }
     } catch (error: any) {
       console.error("Kamera hatası:", error);
+      setCameraReady(false);
+      setShowCamera(false);
+      
       let errorMessage = "Kameraya erişim izni verilmedi.";
       
       if (error.name === "NotAllowedError") {
@@ -172,6 +192,25 @@ export default function SoruSorPage() {
         errorMessage = "Kamera bulunamadı.";
       } else if (error.name === "NotReadableError") {
         errorMessage = "Kamera başka bir uygulama tarafından kullanılıyor.";
+      } else if (error.name === "OverconstrainedError") {
+        // Constraints çok sıkı, daha basit dene
+        try {
+          const simpleStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          streamRef.current = simpleStream;
+          setShowCamera(true);
+          if (videoRef.current) {
+            videoRef.current.srcObject = simpleStream;
+            videoRef.current.onloadedmetadata = () => setCameraReady(true);
+            videoRef.current.onplaying = () => {
+              if (videoRef.current && videoRef.current.videoWidth > 0) {
+                setCameraReady(true);
+              }
+            };
+          }
+          return;
+        } catch (retryError) {
+          errorMessage = "Kamera açılamadı. Lütfen tekrar deneyin.";
+        }
       }
       
       showToast(errorMessage, "error");
@@ -186,12 +225,13 @@ export default function SoruSorPage() {
     }
     setShowCamera(false);
     setCapturedImage(null);
+    setCameraReady(false);
   };
 
   // Fotoğraf çek
   const handleCapture = async () => {
-    if (!videoRef.current) {
-      showToast("Kamera hazır değil.", "error");
+    if (!videoRef.current || !cameraReady) {
+      showToast("Kamera henüz hazır değil. Lütfen bekleyin...", "info");
       return;
     }
 
@@ -200,7 +240,7 @@ export default function SoruSorPage() {
       
       // Video boyutlarını kontrol et
       if (video.videoWidth === 0 || video.videoHeight === 0) {
-        showToast("Kamera henüz hazır değil. Lütfen bekleyin.", "error");
+        showToast("Kamera henüz hazır değil. Lütfen bekleyin...", "info");
         return;
       }
 
@@ -620,6 +660,14 @@ export default function SoruSorPage() {
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-3xl p-6 max-w-md w-full">
                 <div className="relative mb-4">
+                  {!cameraReady && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-2xl z-10">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                        <p className="text-gray-600 text-sm">Kamera hazırlanıyor...</p>
+                      </div>
+                    </div>
+                  )}
                   <video
                     ref={videoRef}
                     autoPlay
@@ -638,9 +686,14 @@ export default function SoruSorPage() {
                   </button>
                   <button
                     onClick={handleCapture}
-                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold hover:shadow-lg transition"
+                    disabled={!cameraReady}
+                    className={`flex-1 py-3 rounded-xl font-semibold transition ${
+                      cameraReady
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:shadow-lg"
+                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
                   >
-                    Fotoğraf Çek
+                    {cameraReady ? "Fotoğraf Çek" : "Hazırlanıyor..."}
                   </button>
                 </div>
               </div>
