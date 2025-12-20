@@ -138,15 +138,43 @@ export default function SoruSorPage() {
   // Kamerayı aç
   const handleOpenCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Mobil için front-facing kamera tercih et
+      const constraints = {
+        video: {
+          facingMode: "environment", // Arka kamera (mobil için daha iyi)
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       setShowCamera(true);
+      
+      // Video element'ine stream'i bağla
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Video yüklenene kadar bekle
+        videoRef.current.onloadedmetadata = () => {
+          console.log("Kamera hazır:", {
+            width: videoRef.current?.videoWidth,
+            height: videoRef.current?.videoHeight,
+          });
+        };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Kamera hatası:", error);
-      showToast("Kameraya erişim izni verilmedi.", "error");
+      let errorMessage = "Kameraya erişim izni verilmedi.";
+      
+      if (error.name === "NotAllowedError") {
+        errorMessage = "Kamera izni reddedildi. Lütfen tarayıcı ayarlarından izin verin.";
+      } else if (error.name === "NotFoundError") {
+        errorMessage = "Kamera bulunamadı.";
+      } else if (error.name === "NotReadableError") {
+        errorMessage = "Kamera başka bir uygulama tarafından kullanılıyor.";
+      }
+      
+      showToast(errorMessage, "error");
     }
   };
 
@@ -161,24 +189,57 @@ export default function SoruSorPage() {
   };
 
   // Fotoğraf çek
-  const handleCapture = () => {
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], "captured-image.jpg", { type: "image/jpeg" });
-            setSelectedImage(file);
-            setPreviewUrl(URL.createObjectURL(blob));
-            setCapturedImage(URL.createObjectURL(blob));
-            handleCloseCamera();
-          }
-        }, "image/jpeg");
+  const handleCapture = async () => {
+    if (!videoRef.current) {
+      showToast("Kamera hazır değil.", "error");
+      return;
+    }
+
+    try {
+      const video = videoRef.current;
+      
+      // Video boyutlarını kontrol et
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        showToast("Kamera henüz hazır değil. Lütfen bekleyin.", "error");
+        return;
       }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      
+      if (!ctx) {
+        showToast("Canvas bağlamı oluşturulamadı.", "error");
+        return;
+      }
+
+      // Video frame'ini canvas'a çiz
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Mobil uyumlu: toBlob yerine toDataURL kullan, sonra blob'a çevir
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      
+      // Base64'ten blob'a çevir (mobil uyumlu)
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      // File oluştur
+      const file = new File([blob], "captured-image.jpg", { type: "image/jpeg" });
+      
+      // State'i güncelle
+      setSelectedImage(file);
+      const objectUrl = URL.createObjectURL(blob);
+      setPreviewUrl(objectUrl);
+      setCapturedImage(objectUrl);
+      
+      // Kamerayı kapat
+      handleCloseCamera();
+      
+      showToast("Fotoğraf çekildi!", "success");
+    } catch (error: any) {
+      console.error("Fotoğraf çekme hatası:", error);
+      showToast("Fotoğraf çekilirken bir hata oluştu: " + (error.message || "Bilinmeyen hata"), "error");
     }
   };
 
@@ -563,7 +624,9 @@ export default function SoruSorPage() {
                     ref={videoRef}
                     autoPlay
                     playsInline
+                    muted
                     className="w-full rounded-2xl"
+                    style={{ maxHeight: "400px", objectFit: "contain" }}
                   />
                 </div>
                 <div className="flex gap-3">

@@ -82,38 +82,92 @@ export default function SoruSorScreen() {
   // Kameradan fotoğraf çek
   const handleOpenCamera = async () => {
     try {
+      // Önce izin kontrolü yap
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Kamera İzni Gerekli",
+          "Kameradan fotoğraf çekmek için kamera izni gerekiyor. Lütfen ayarlardan izin verin.",
+          [{ text: "Tamam" }]
+        );
+        return;
+      }
+
+      // Kamera aç
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false, // Editing bazen sorun çıkarabilir
         quality: 0.8,
+        base64: false,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
+      console.log("Kamera result:", result);
+
+      // Result kontrolü
+      if (result && !result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        console.log("Seçilen resim URI:", imageUri);
+        setSelectedImage(imageUri);
+        showToast("Fotoğraf seçildi!", "success");
+      } else if (result && result.canceled) {
+        console.log("Kullanıcı iptal etti");
+        // İptal edildi, sessizce devam et
+      } else {
+        console.warn("Beklenmeyen result formatı:", result);
+        showToast("Fotoğraf seçilemedi. Lütfen tekrar deneyin.", "error");
       }
     } catch (error: any) {
       console.error("Kamera hatası:", error);
-      showToast("Kameraya erişim izni verilmedi veya bir hata oluştu.", "error");
+      showToast(
+        error.message || "Kameraya erişim izni verilmedi veya bir hata oluştu.",
+        "error"
+      );
     }
   };
 
   // Galeriden fotoğraf seç
   const handlePickImage = async () => {
     try {
+      // Önce izin kontrolü yap
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Galeri İzni Gerekli",
+          "Galeriden fotoğraf seçmek için galeri izni gerekiyor. Lütfen ayarlardan izin verin.",
+          [{ text: "Tamam" }]
+        );
+        return;
+      }
+
+      // Galeri aç
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false, // Editing bazen sorun çıkarabilir
         quality: 0.8,
+        base64: false,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
+      console.log("Galeri result:", result);
+
+      // Result kontrolü
+      if (result && !result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        console.log("Seçilen resim URI:", imageUri);
+        setSelectedImage(imageUri);
+        showToast("Fotoğraf seçildi!", "success");
+      } else if (result && result.canceled) {
+        console.log("Kullanıcı iptal etti");
+        // İptal edildi, sessizce devam et
+      } else {
+        console.warn("Beklenmeyen result formatı:", result);
+        showToast("Fotoğraf seçilemedi. Lütfen tekrar deneyin.", "error");
       }
     } catch (error: any) {
       console.error("Galeri hatası:", error);
-      showToast("Galeriye erişim izni verilmedi veya bir hata oluştu.", "error");
+      showToast(
+        error.message || "Galeriye erişim izni verilmedi veya bir hata oluştu.",
+        "error"
+      );
     }
   };
 
