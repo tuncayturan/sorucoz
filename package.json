@@ -15,7 +15,7 @@
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
     "iyzipay": "^2.0.51",
-    "next": "^16.0.10",
+    "next": "latest",
     "puppeteer": "^21.11.0",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
