@@ -1,9 +1,9 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "chromium"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
 cmds = [
-  "npm ci --prefer-offline --no-audit --legacy-peer-deps || npm install --prefer-offline --no-audit --legacy-peer-deps"
+  "npm ci --prefer-offline --no-audit --legacy-peer-deps --ignore-scripts"
 ]
 
 [phases.build]
