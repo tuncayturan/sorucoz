@@ -2,10 +2,16 @@
 nixPkgs = ["nodejs_20", "chromium"]
 
 [phases.install]
-cmds = ["npm install --prefer-offline --no-audit --legacy-peer-deps --ignore-scripts"]
+cmds = [
+  "npm ci --prefer-offline --no-audit --legacy-peer-deps || npm install --prefer-offline --no-audit --legacy-peer-deps"
+]
 
 [phases.build]
-cmds = ["NODE_OPTIONS='--max-old-space-size=4096' NEXT_TELEMETRY_DISABLED=1 npm run build"]
+cmds = [
+  "export NODE_OPTIONS='--max-old-space-size=4096'",
+  "export NEXT_TELEMETRY_DISABLED=1",
+  "npm run build"
+]
 
 [start]
 cmd = "npm start"
@@ -13,4 +19,5 @@ cmd = "npm start"
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
 NODE_ENV = "production"
+NEXT_TELEMETRY_DISABLED = "1"
 
