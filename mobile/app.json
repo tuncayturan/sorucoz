@@ -55,7 +55,7 @@
       "eas": {
         "projectId": ""
       },
-      "apiBaseUrl": "http://localhost:3000"
+      "apiBaseUrl": "https://sorucoz-production-8e36.up.railway.app"
     },
     "scheme": "sorucoz"
   }
