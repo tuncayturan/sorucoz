@@ -24,6 +24,7 @@ export default function SoruSorPage() {
   const [detectingSubject, setDetectingSubject] = useState(false);
   const [detectedSubject, setDetectedSubject] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -136,15 +137,30 @@ export default function SoruSorPage() {
     }
   };
 
-  // Kamerayı aç
-  const handleOpenCamera = async () => {
+  // Kamerayı aç - Mobil için native kamera uygulamasını aç
+  const handleOpenCamera = () => {
+    // Mobil cihaz kontrolü
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
+    if (isMobile && cameraInputRef.current) {
+      // Mobil cihazlarda native kamera uygulamasını aç
+      cameraInputRef.current.click();
+    } else {
+      // Desktop'ta tarayıcı içi kamera kullan
+      handleOpenCameraInBrowser();
+    }
+  };
+
+  // Desktop için tarayıcı içi kamera
+  const handleOpenCameraInBrowser = async () => {
     try {
       setCameraReady(false);
       
-      // Mobil tarayıcılar için daha basit constraints
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode: "environment", // Arka kamera
+          facingMode: "environment",
         },
       };
 
@@ -152,11 +168,9 @@ export default function SoruSorPage() {
       streamRef.current = stream;
       setShowCamera(true);
       
-      // Video element'ine stream'i bağla ve hazır olmasını bekle
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        // Video metadata yüklendiğinde
         videoRef.current.onloadedmetadata = () => {
           console.log("Kamera hazır:", {
             width: videoRef.current?.videoWidth,
@@ -165,14 +179,12 @@ export default function SoruSorPage() {
           setCameraReady(true);
         };
 
-        // Video playing başladığında da kontrol et
         videoRef.current.onplaying = () => {
           if (videoRef.current && videoRef.current.videoWidth > 0) {
             setCameraReady(true);
           }
         };
 
-        // Hata durumu
         videoRef.current.onerror = (error) => {
           console.error("Video hatası:", error);
           setCameraReady(false);
@@ -192,28 +204,27 @@ export default function SoruSorPage() {
         errorMessage = "Kamera bulunamadı.";
       } else if (error.name === "NotReadableError") {
         errorMessage = "Kamera başka bir uygulama tarafından kullanılıyor.";
-      } else if (error.name === "OverconstrainedError") {
-        // Constraints çok sıkı, daha basit dene
-        try {
-          const simpleStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          streamRef.current = simpleStream;
-          setShowCamera(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = simpleStream;
-            videoRef.current.onloadedmetadata = () => setCameraReady(true);
-            videoRef.current.onplaying = () => {
-              if (videoRef.current && videoRef.current.videoWidth > 0) {
-                setCameraReady(true);
-              }
-            };
-          }
-          return;
-        } catch (retryError) {
-          errorMessage = "Kamera açılamadı. Lütfen tekrar deneyin.";
-        }
       }
       
       showToast(errorMessage, "error");
+    }
+  };
+
+  // Mobil kamera input handler
+  const handleCameraInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        showToast("Lütfen bir resim dosyası seçin.", "error");
+        return;
+      }
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setCapturedImage(null);
+    }
+    // Input'u temizle ki aynı dosya tekrar seçilebilsin
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
     }
   };
 
@@ -553,6 +564,15 @@ export default function SoruSorPage() {
                       type="file"
                       accept="image/*"
                       onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    {/* Mobil için native kamera input */}
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleCameraInputChange}
                       className="hidden"
                     />
                     <button

@@ -166,6 +166,19 @@ export default function LandingPage() {
                         width={112}
                         height={112}
                         className="w-full h-full object-cover rounded-[1.8rem] sm:rounded-[2.2rem]"
+                        unoptimized
+                        onError={(e) => {
+                          console.error("Logo yüklenemedi:", siteLogo);
+                          // Fallback to initial
+                          const target = e.target as HTMLImageElement;
+                          if (target) {
+                            target.style.display = "none";
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span class="text-4xl sm:text-5xl font-black text-white drop-shadow-lg">${siteName.charAt(0).toUpperCase()}</span>`;
+                            }
+                          }
+                        }}
                       />
                     ) : (
                       <span className="text-4xl sm:text-5xl font-black text-white drop-shadow-lg">{siteName.charAt(0).toUpperCase()}</span>

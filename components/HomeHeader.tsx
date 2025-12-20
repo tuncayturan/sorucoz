@@ -219,6 +219,19 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
                         alt={siteName}
                         fill
                         className="object-cover rounded-2xl"
+                        unoptimized
+                        onError={(e) => {
+                          console.error("Logo yüklenemedi:", logoUrl);
+                          // Fallback to initial
+                          const target = e.target as HTMLImageElement;
+                          if (target) {
+                            target.style.display = "none";
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<div class="relative w-full h-full flex items-center justify-center z-10"><span class="text-white font-black text-base drop-shadow-md">${siteName.charAt(0).toUpperCase()}</span></div>`;
+                            }
+                          }
+                        }}
                       />
                     </div>
                   ) : (
