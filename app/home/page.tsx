@@ -142,11 +142,11 @@ export default function HomePage() {
     }
   }, [user, authLoading, router]);
 
-  // Email doğrulama kontrolü - sadece email ile kayıt olanlar için
+  // Email doğrulama kontrolü - Email doğrulanmamışsa verify-email sayfasına yönlendir
   useEffect(() => {
-    if (!user || !userData) return;
+    if (authLoading || userDataLoading || !user || !userData) return;
     
-    // Google ile giriş yapanlar için banner gösterme
+    // Google ile giriş yapanlar için kontrol gerekmez (otomatik doğrulanmış)
     const isGoogleUser = user.providerData?.some((p: any) => p.providerId === 'google.com');
     if (isGoogleUser) {
       setShowEmailVerificationBanner(false);
@@ -172,11 +172,13 @@ export default function HomePage() {
       return;
     }
 
-    // Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için banner göster
+    // Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için verify-email sayfasına yönlendir
     if (userData?.emailVerified === false || userData?.emailVerified === undefined) {
-      setShowEmailVerificationBanner(true);
+      // Ana sayfaya erişimi engelle, verify-email sayfasına yönlendir
+      router.replace("/auth/verify-email");
+      return;
     }
-  }, [user, userData]);
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   // Role kontrolü - sadece student buraya erişebilir
   useEffect(() => {

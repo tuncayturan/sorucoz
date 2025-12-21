@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useUserData } from "@/hooks/useUserData";
 import { useRouter } from "next/navigation";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import Toast from "@/components/ui/Toast";
 
 export default function VerifyEmailPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { userData, loading: userDataLoading } = useUserData();
   const router = useRouter();
   const [toast, setToast] = useState<{
     message: string;
@@ -27,6 +29,29 @@ export default function VerifyEmailPage() {
   const hideToast = () => {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
+
+  // Email doğrulandıysa ana sayfaya yönlendir
+  useEffect(() => {
+    if (authLoading || userDataLoading) return;
+    
+    if (!user) {
+      router.replace("/landing");
+      return;
+    }
+
+    // Google ile giriş yapanlar otomatik doğrulanmış
+    const isGoogleUser = user.providerData?.some((p: any) => p.providerId === 'google.com');
+    if (isGoogleUser) {
+      router.replace("/home");
+      return;
+    }
+
+    // Email doğrulanmışsa ana sayfaya yönlendir
+    if (user.emailVerified || userData?.emailVerified === true) {
+      router.replace("/home");
+      return;
+    }
+  }, [user, userData, authLoading, userDataLoading, router]);
 
   const resend = async () => {
     if (!user) return;

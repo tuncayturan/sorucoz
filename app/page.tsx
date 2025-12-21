@@ -14,6 +14,13 @@ export default function AppEntry() {
   useEffect(() => {
     if (!loading && !userDataLoading) {
       if (user) {
+        // Email doğrulama kontrolü - Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için
+        const isGoogleUser = user.providerData?.some((p: any) => p.providerId === 'google.com');
+        if (!isGoogleUser && !user.emailVerified && userData?.emailVerified !== true) {
+          router.replace("/auth/verify-email");
+          return;
+        }
+
         // Role'e göre yönlendir
         if (userData?.role === "admin") {
           router.replace("/admin");
