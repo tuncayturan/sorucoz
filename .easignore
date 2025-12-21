@@ -1,0 +1,27 @@
+# EAS Build - Ana proje seviyesinde ignore
+# EAS build sadece mobile/ klasörünü build etmeli
+
+# Tüm ana proje dosyaları (sadece mobile/ build edilecek)
+/*
+!mobile/
+
+# Mobile klasörü hariç her şey
+app/
+components/
+lib/
+public/
+.next/
+node_modules/
+package.json
+package-lock.json
+next.config.ts
+tsconfig.json
+railway.json
+nixpacks.toml
+docs/
+assets/
+context/
+hooks/
+types/
+*.md
+!mobile/

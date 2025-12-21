@@ -46,3 +46,6 @@ next-env.d.ts
 
 # sensitive files
 update-env.js
+
+# Mobile klasörü ayrı git repository (EAS build için)
+mobile/.git/

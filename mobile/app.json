@@ -29,13 +29,28 @@
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "NOTIFICATIONS",
-        "INTERNET"
-      ]
+        "INTERNET",
+        "RECORD_AUDIO"
+      ],
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "minSdkVersion": 24
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "2.0.21",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "minSdkVersion": 24
+          }
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -53,7 +68,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "949d2310-ed92-4a67-9a8f-e64ac2eccf76"
       },
       "apiBaseUrl": "https://sorucoz-production-8e36.up.railway.app"
     },
