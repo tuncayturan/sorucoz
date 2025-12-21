@@ -41,6 +41,14 @@
     },
     "plugins": [
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Fotoğraflara erişim için izin gerekiyor.",
