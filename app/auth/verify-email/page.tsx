@@ -5,7 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useUserData } from "@/hooks/useUserData";
 import { useRouter } from "next/navigation";
 import { sendEmailVerification } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 import Toast from "@/components/ui/Toast";
 
 export default function VerifyEmailPage() {
@@ -46,8 +47,20 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    // Email doğrulanmışsa ana sayfaya yönlendir
-    if (user.emailVerified || userData?.emailVerified === true) {
+    // Email doğrulanmışsa Firestore'u güncelle ve ana sayfaya yönlendir
+    if (user.emailVerified) {
+      // Firestore'da emailVerified true değilse güncelle
+      if (userData?.emailVerified !== true) {
+        updateDoc(doc(db, "users", user.uid), {
+          emailVerified: true,
+        }).catch(console.error);
+      }
+      router.replace("/home");
+      return;
+    }
+
+    // Firestore'da emailVerified true ise de ana sayfaya yönlendir
+    if (userData?.emailVerified === true) {
       router.replace("/home");
       return;
     }
@@ -78,8 +91,21 @@ export default function VerifyEmailPage() {
     if (!user) return;
     
     try {
+      // Firebase Auth'taki user bilgilerini yenile
       await user.reload();
+      
       if (user.emailVerified) {
+        // Firestore'da emailVerified'ı true yap
+        try {
+          await updateDoc(doc(db, "users", user.uid), {
+            emailVerified: true,
+          });
+          console.log("[Verify Email] ✅ Firestore emailVerified updated to true");
+        } catch (firestoreError) {
+          console.error("[Verify Email] ⚠️ Firestore update error (non-critical):", firestoreError);
+          // Firestore hatası kritik değil, yine de devam et
+        }
+        
         showToast("Email doğrulandı! Ana sayfaya yönlendiriliyorsunuz...", "success");
         setTimeout(() => {
           router.replace("/home");
@@ -88,6 +114,7 @@ export default function VerifyEmailPage() {
         showToast("Email henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin.", "info");
       }
     } catch (error) {
+      console.error("[Verify Email] ❌ Check verified error:", error);
       showToast("Doğrulama kontrolü yapılamadı. Lütfen tekrar deneyin.", "error");
     }
   };
