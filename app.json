@@ -31,7 +31,10 @@
         "NOTIFICATIONS",
         "INTERNET",
         "RECORD_AUDIO"
-      ]
+      ],
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "minSdkVersion": 24
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -50,8 +53,7 @@
           "icon": "./assets/icon.png",
           "color": "#ffffff"
         }
-      ],
-      "expo-asset"
+      ]
     ],
     "extra": {
       "eas": {
