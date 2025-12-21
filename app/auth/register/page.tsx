@@ -135,7 +135,24 @@ export default function RegisterPage() {
       await updateProfile(cred.user, { displayName: name });
 
       // EMAIL DOĞRULAMA GÖNDER
-      await sendEmailVerification(cred.user);
+      try {
+        const actionCodeSettings = {
+          url: `${window.location.origin}/auth/verify-email?email=${encodeURIComponent(email)}`,
+          handleCodeInApp: false,
+        };
+        
+        await sendEmailVerification(cred.user, actionCodeSettings);
+        console.log("[Register] ✅ Email verification sent successfully to:", email);
+      } catch (emailError: any) {
+        console.error("[Register] ❌ Email verification error:", emailError);
+        // Email gönderim hatası kayıt işlemini durdurmaz, sadece log'lar
+        if (emailError.code === "auth/too-many-requests") {
+          console.warn("[Register] ⚠️ Too many email verification requests");
+        } else {
+          // Diğer hatalar için de log
+          console.warn("[Register] ⚠️ Email verification failed, but registration continues");
+        }
+      }
 
       // Firestore kaydı
       const trialData = createTrialData();

@@ -450,14 +450,20 @@ export default function HomePage() {
 
     try {
       setSendingVerificationEmail(true);
-      await sendEmailVerification(user);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth/verify-email?email=${encodeURIComponent(user.email || "")}`,
+        handleCodeInApp: false,
+      };
+      
+      await sendEmailVerification(user, actionCodeSettings);
+      console.log("[Home] ✅ Email verification sent successfully");
       showToast("✅ Doğrulama emaili gönderildi! Lütfen email kutunuzu kontrol edin.", "success");
     } catch (error: any) {
-      console.error("Email gönderme hatası:", error);
+      console.error("[Home] ❌ Email gönderme hatası:", error);
       if (error.code === "auth/too-many-requests") {
         showToast("⚠️ Çok fazla istek gönderdiniz. Lütfen biraz bekleyin.", "error");
       } else {
-        showToast("❌ Email gönderilemedi. Lütfen tekrar deneyin.", "error");
+        showToast(`❌ Email gönderilemedi: ${error.message || "Bilinmeyen hata"}. Lütfen tekrar deneyin.`, "error");
       }
     } finally {
       setSendingVerificationEmail(false);

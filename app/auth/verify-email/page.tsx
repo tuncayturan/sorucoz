@@ -32,13 +32,20 @@ export default function VerifyEmailPage() {
   const resend = async () => {
     if (!user) return;
     try {
-      await sendEmailVerification(user);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/auth/verify-email?email=${encodeURIComponent(user.email || "")}`,
+        handleCodeInApp: false,
+      };
+      
+      await sendEmailVerification(user, actionCodeSettings);
+      console.log("[Verify Email] ✅ Email verification resent successfully");
       showToast("Doğrulama emaili tekrar gönderildi. Email kutunuzu kontrol edin.", "success");
     } catch (error: any) {
+      console.error("[Verify Email] ❌ Email verification resend error:", error);
       if (error.code === "auth/too-many-requests") {
         showToast("Çok fazla istek gönderdiniz. Lütfen birkaç dakika bekleyin.", "error");
       } else {
-        showToast("Email gönderilemedi. Lütfen tekrar deneyin.", "error");
+        showToast(`Email gönderilemedi: ${error.message || "Bilinmeyen hata"}. Lütfen tekrar deneyin.`, "error");
       }
     }
   };
