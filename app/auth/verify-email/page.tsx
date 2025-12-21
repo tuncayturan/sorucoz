@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import Image from "next/image";
 import Toast from "@/components/ui/Toast";
 
 export default function VerifyEmailPage() {
@@ -72,13 +71,24 @@ export default function VerifyEmailPage() {
     <div className="h-screen flex flex-col justify-center items-center bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] px-8">
       <div className="w-full max-w-sm text-center animate-slideFade">
 
-        <Image
-          src="/img/email.png"
-          alt="Email Verify"
-          width={120}
-          height={120}
-          className="mb-8 opacity-90"
-        />
+        {/* Email Icon */}
+        <div className="mb-8 flex justify-center">
+          <div className="w-32 h-32 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-3xl flex items-center justify-center shadow-[0_20px_60px_rgba(59,130,246,0.3)]">
+            <svg
+              className="w-16 h-16 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+        </div>
 
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
           Emailini Onayla
