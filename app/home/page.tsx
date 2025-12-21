@@ -153,6 +153,19 @@ export default function HomePage() {
       return;
     }
 
+    // Firebase Auth'taki emailVerified durumunu kontrol et (en güncel)
+    // Eğer Firebase Auth'ta doğrulanmışsa, Firestore'u da güncelle
+    if (user.emailVerified) {
+      // Firestore'da emailVerified true değilse güncelle
+      if (userData.emailVerified !== true) {
+        updateDoc(doc(db, "users", user.uid), {
+          emailVerified: true,
+        }).catch(console.error);
+      }
+      setShowEmailVerificationBanner(false);
+      return;
+    }
+
     // Admin tarafından eklenmiş veya emailVerified:true olanlar için banner gösterme
     if (userData.emailVerified === true) {
       setShowEmailVerificationBanner(false);
@@ -160,7 +173,7 @@ export default function HomePage() {
     }
 
     // Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için banner göster
-    if (userData?.emailVerified === false) {
+    if (userData?.emailVerified === false || userData?.emailVerified === undefined) {
       setShowEmailVerificationBanner(true);
     }
   }, [user, userData]);
