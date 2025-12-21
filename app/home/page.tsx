@@ -245,6 +245,8 @@ export default function HomePage() {
   useEffect(() => {
     const handleFocus = () => {
       if (user) {
+        // Firebase Auth'taki user bilgilerini yenile (emailVerified durumu için)
+        user.reload().catch(console.error);
         refreshUserData();
         fetchTodayQuestions();
       }
