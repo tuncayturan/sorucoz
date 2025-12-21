@@ -31,7 +31,7 @@ export default function LoginPage() {
     isVisible: false,
   });
   
-  const siteLogo = settings.logo || "/img/logo.png";
+  const siteLogo = settings.logo && settings.logo.trim() !== "" ? settings.logo : null;
   const siteName = settings.siteName || "SoruÇöz";
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
@@ -210,13 +210,14 @@ export default function LoginPage() {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-indigo-400/30 rounded-3xl blur-xl transform scale-110"></div>
             <div className="relative w-20 h-20 rounded-3xl overflow-hidden bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
-              {siteLogo && siteLogo !== "/img/logo.png" ? (
+              {siteLogo ? (
                 <Image
                   src={siteLogo}
                   alt={siteName}
                   width={80}
                   height={80}
                   className="w-full h-full object-cover rounded-3xl"
+                  unoptimized={siteLogo.startsWith("http")}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
