@@ -31,7 +31,7 @@ export default function VerifyEmailPage() {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
 
-  // Email doğrulandıysa ana sayfaya yönlendir
+  // Email doğrulandıysa veya email doğrulaması gerektirmeyen kullanıcılar için ana sayfaya yönlendir
   useEffect(() => {
     if (authLoading || userDataLoading) return;
     
@@ -40,14 +40,14 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    // Google ile giriş yapanlar otomatik doğrulanmış
+    // Google ile giriş/kayıt olanlar otomatik doğrulanmış - email doğrulaması gerektirme
     const isGoogleUser = user.providerData?.some((p: any) => p.providerId === 'google.com');
     if (isGoogleUser) {
       router.replace("/home");
       return;
     }
 
-    // Email doğrulanmışsa Firestore'u güncelle ve ana sayfaya yönlendir
+    // Firebase Auth'ta emailVerified: true olanlar (admin tarafından eklenen kullanıcılar dahil) için email doğrulaması gerektirme
     if (user.emailVerified) {
       // Firestore'da emailVerified true değilse güncelle
       if (userData?.emailVerified !== true) {
@@ -59,7 +59,7 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    // Firestore'da emailVerified true ise de ana sayfaya yönlendir
+    // Firestore'da emailVerified: true olanlar (admin tarafından eklenen kullanıcılar) için email doğrulaması gerektirme
     if (userData?.emailVerified === true) {
       router.replace("/home");
       return;
