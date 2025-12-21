@@ -146,7 +146,7 @@ export default function HomePage() {
   useEffect(() => {
     if (authLoading || userDataLoading || !user || !userData) return;
     
-    // Google ile giriş yapanlar için kontrol gerekmez (otomatik doğrulanmış)
+    // Google ile giriş/kayıt olanlar otomatik doğrulanmış - email doğrulaması gerektirme
     const isGoogleUser = user.providerData?.some((p: any) => p.providerId === 'google.com');
     if (isGoogleUser) {
       setShowEmailVerificationBanner(false);
@@ -154,7 +154,7 @@ export default function HomePage() {
     }
 
     // Firebase Auth'taki emailVerified durumunu kontrol et (en güncel)
-    // Eğer Firebase Auth'ta doğrulanmışsa, Firestore'u da güncelle
+    // Admin tarafından eklenen kullanıcılar veya zaten doğrulanmış kullanıcılar için email doğrulaması gerektirme
     if (user.emailVerified) {
       // Firestore'da emailVerified true değilse güncelle
       if (userData.emailVerified !== true) {
@@ -166,13 +166,13 @@ export default function HomePage() {
       return;
     }
 
-    // Admin tarafından eklenmiş veya emailVerified:true olanlar için banner gösterme
+    // Firestore'da emailVerified: true olanlar (admin tarafından eklenen kullanıcılar) için email doğrulaması gerektirme
     if (userData.emailVerified === true) {
       setShowEmailVerificationBanner(false);
       return;
     }
 
-    // Email ile kayıt olmuş ve doğrulanmamış kullanıcılar için verify-email sayfasına yönlendir
+    // Sadece normal email/password ile kayıt olmuş ve doğrulanmamış kullanıcılar için verify-email sayfasına yönlendir
     if (userData?.emailVerified === false || userData?.emailVerified === undefined) {
       // Ana sayfaya erişimi engelle, verify-email sayfasına yönlendir
       router.replace("/auth/verify-email");
