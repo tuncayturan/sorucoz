@@ -41,7 +41,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
   const displayName = userData?.name || user?.displayName || "Öğrenci";
   const isPremium = userData?.premium || false;
   const displayPhoto = userData?.photoURL || user?.photoURL || null;
-  const logoUrl = settings.logo || null;
+  const logoUrl = settings.logo && settings.logo.trim() !== "" ? settings.logo : null;
   const siteName = settings.siteName || "SoruÇöz"; // Site adı, yoksa varsayılan "SoruÇöz"
   
   // Freemium kontrolü
@@ -219,7 +219,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
                         alt={siteName}
                         fill
                         className="object-cover rounded-2xl"
-                        unoptimized
+                        unoptimized={logoUrl.startsWith("http")}
                         onError={(e) => {
                           console.error("Logo yüklenemedi:", logoUrl);
                           // Fallback to initial
