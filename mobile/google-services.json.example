@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1026488924758",
+    "project_id": "sorucoz-6deb3",
+    "storage_bucket": "sorucoz-6deb3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1026488924758:android:YOUR_ANDROID_APP_ID",
+        "android_client_info": {
+          "package_name": "com.sorucoz.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sorucoz.app",
+            "certificate_hash": "YOUR_SHA1_HASH"
+          }
+        },
+        {
+          "client_id": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "YOUR_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

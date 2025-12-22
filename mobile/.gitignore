@@ -23,3 +23,6 @@ yarn-error.log
 *.apk
 *.aab
 *.ipa
+
+# Firebase
+google-services.json

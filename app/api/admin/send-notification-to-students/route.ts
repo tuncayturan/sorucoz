@@ -85,10 +85,14 @@ export async function POST(request: NextRequest) {
       const uniqueTokens = [...new Set(fcmTokens)];
       
       // Her öğrenciye ayrı bildirim gönder (paralel)
+      // Now supports both FCM and Expo Push tokens
       const sendPromise = sendPushNotification(uniqueTokens, title, body, fcmData, logoUrl, soundUrl)
-        .then(() => {
-          totalTokensSent += uniqueTokens.length;
-          notifiedUsers++;
+        .then((results) => {
+          const totalSent = results.fcmSent + results.expoSent;
+          totalTokensSent += totalSent;
+          if (totalSent > 0) {
+            notifiedUsers++;
+          }
         })
         .catch(err => {
           console.error(`[Send Notification to Students] Error sending to ${studentId}:`, err);

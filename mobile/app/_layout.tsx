@@ -11,9 +11,14 @@ export default function RootLayout() {
           headerShown: false,
         }}
       >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="landing" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/register" />
+        <Stack.Screen name="auth/verify-email" />
+        <Stack.Screen name="coach" />
+        <Stack.Screen name="admin" />
       </Stack>
     </AuthProvider>
   );

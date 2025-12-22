@@ -1,11 +1,19 @@
 {
   "cli": {
-    "version": ">= 13.2.0"
+    "version": ">= 13.2.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "NODE_ENV": "development"
+      }
     },
     "preview": {
       "distribution": "internal",
@@ -16,7 +24,8 @@
     "production": {
       "android": {
         "buildType": "apk"
-      }
+      },
+      "autoIncrement": true
     }
   },
   "submit": {

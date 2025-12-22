@@ -170,12 +170,14 @@ export async function POST(request: NextRequest) {
       }
 
       // Send push notification using Firebase Admin SDK with logo and sound
+      // Now supports both FCM (web) and Expo Push (mobile) tokens
       try {
         console.log(`[Send Notification] Calling sendPushNotification with ${tokensToSend.length} token(s)`);
-        console.log(`[Send Notification] FCM Data:`, fcmData);
-        await sendPushNotification(tokensToSend, title, body, fcmData, logoUrl, soundUrl);
-        tokensSent = tokensToSend.length;
-        console.log(`[Send Notification] ✅ Push notification sent successfully`);
+        console.log(`[Send Notification] Data:`, fcmData);
+        const pushResults = await sendPushNotification(tokensToSend, title, body, fcmData, logoUrl, soundUrl);
+        tokensSent = pushResults.fcmSent + pushResults.expoSent;
+        console.log(`[Send Notification] ✅ Push notification sent: FCM ${pushResults.fcmSent}, Expo ${pushResults.expoSent}`);
+        console.log(`[Send Notification] ⚠️ Failed: FCM ${pushResults.fcmFailed}, Expo ${pushResults.expoFailed}`);
         console.log(`[Send Notification] ========== END ==========`);
       } catch (pushError) {
         console.error(`[Send Notification] ❌ Error sending push notification:`, pushError);

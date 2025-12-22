@@ -174,9 +174,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Send push notification to all admin tokens with logo and sound
+      // Now supports both FCM (web) and Expo Push (mobile) tokens
       try {
-        await sendPushNotification(allTokens, title, body, fcmData, logoUrl, soundUrl);
-        console.log(`[Send Notification to Admin] Push notification sent successfully with sound: ${soundUrl || 'default'}`);
+        const pushResults = await sendPushNotification(allTokens, title, body, fcmData, logoUrl, soundUrl);
+        console.log(`[Send Notification to Admin] ✅ Push notification sent: FCM ${pushResults.fcmSent}, Expo ${pushResults.expoSent}`);
+        console.log(`[Send Notification to Admin] ⚠️ Failed: FCM ${pushResults.fcmFailed}, Expo ${pushResults.expoFailed}`);
       } catch (pushError) {
         console.error(`[Send Notification to Admin] Error sending push notification:`, pushError);
       }

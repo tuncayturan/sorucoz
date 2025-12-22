@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "949d2310-ed92-4a67-9a8f-e64ac2eccf76"
+      }
+    },
+    "android": {
+      "package": "com.tuncayturan.sorucozapp"
+    }
+  }
+}
