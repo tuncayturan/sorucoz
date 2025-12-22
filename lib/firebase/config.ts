@@ -15,7 +15,8 @@ const defaultFirebaseConfig = {
 // VAPID Key - FCM Push Notifications için gerekli
 // Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
 // NOT: Bu public bir key'dir, güvenlik riski yaratmaz
-const defaultVapidKey = "BPZp-eOLhT6q8kK9K7zqP8sNZJZQGxO5fL0yH3nH5xJ6nH2aL3nK9qP7mN8oL4iK6jH8gF9eE8dD7cC6bB5aA4";
+// Firebase Console'dan alınan güncel key: BClsWzlz2p0RuV7dC-2b4j1UjSZsGnocmWoSnyOdlC-lvJZFc9otWdgU1Bf7B4cox1l_6KqbY7i1yGGovVqpjkA
+const defaultVapidKey = "BClsWzlz2p0RuV7dC-2b4j1UjSZsGnocmWoSnyOdlC-lvJZFc9otWdgU1Bf7B4cox1l_6KqbY7i1yGGovVqpjkA";
 
 export { defaultVapidKey };
 

@@ -24,6 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.sorucoz.app",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -31,10 +32,7 @@
         "NOTIFICATIONS",
         "INTERNET",
         "RECORD_AUDIO"
-      ],
-      "compileSdkVersion": 35,
-      "targetSdkVersion": 35,
-      "minSdkVersion": 24
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,7 +42,7 @@
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.0.21",
+            "kotlinVersion": "1.9.25",
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "minSdkVersion": 24
@@ -70,7 +68,22 @@
       "eas": {
         "projectId": "949d2310-ed92-4a67-9a8f-e64ac2eccf76"
       },
-      "apiBaseUrl": "https://sorucoz-production-8e36.up.railway.app"
+      "apiBaseUrl": "https://sorucoz-production-8e36.up.railway.app",
+      "firebase": {
+        "apiKey": "AIzaSyDmvEdQicJmsPhFjDcXXgj5rK0LO9Er2KU",
+        "authDomain": "sorucoz-6deb3.firebaseapp.com",
+        "projectId": "sorucoz-6deb3",
+        "storageBucket": "sorucoz-6deb3.firebasestorage.app",
+        "messagingSenderId": "1026488924758",
+        "appId": "1:1026488924758:web:d4c081b5f87a62f10ed9f7",
+        "measurementId": "G-DMQSVC0ZSQ",
+        "vapidKey": "BClsWzlz2p0RuV7dC-2b4j1UjSZsGnocmWoSnyOdlC-lvJZFc9otWdgU1Bf7B4cox1l_6KqbY7i1yGGovVqpjkA"
+      },
+      "cloudinary": {
+        "cloudName": "drdbrenqb",
+        "apiKey": "651966388827575"
+      },
+      "geminiApiKey": "AIzaSyAgMI4bSg16QarBZFU3BEvXrhPJJkflpYw"
     },
     "scheme": "sorucoz"
   }
