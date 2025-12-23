@@ -558,6 +558,14 @@ function normalizeSubjectName(subject: string): string {
     return "Biyoloji";
   }
   if (lowerSubject.includes("turkish") || lowerSubject.includes("türkçe") || lowerSubject.includes("turkce")) {
+    // Edebiyat içeriyorsa Edebiyat, yoksa Türkçe
+    if (lowerSubject.includes("edebiyat") || lowerSubject.includes("şiir") || 
+        lowerSubject.includes("roman") || lowerSubject.includes("hikaye") ||
+        lowerSubject.includes("öykü") || lowerSubject.includes("deneme") ||
+        lowerSubject.includes("tiyatro") || lowerSubject.includes("şair") ||
+        lowerSubject.includes("yazar")) {
+      return "Edebiyat";
+    }
     return "Türkçe";
   }
   // Tarih için daha kapsamlı kontrol
