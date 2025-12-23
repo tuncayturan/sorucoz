@@ -86,15 +86,75 @@ const SUBJECT_KEYWORDS: { [key: string]: string[] } = {
     "türkçe",
     "dil",
     "anlatım",
-    "edebiyat",
-    "şiir",
-    "roman",
-    "hikaye",
     "dilbilgisi",
     "noktalama",
     "yazım",
     "kompozisyon",
     "paragraf",
+    "sözcük",
+    "kelime",
+    "cümle",
+    "anlam",
+    "anlatım bozukluğu",
+  ],
+  "Edebiyat": [
+    "edebiyat",
+    "şiir",
+    "roman",
+    "hikaye",
+    "öykü",
+    "deneme",
+    "makale",
+    "tiyatro",
+    "dram",
+    "komedi",
+    "trajedi",
+    "şair",
+    "yazar",
+    "edebi",
+    "edebiyat tarihi",
+    "divan edebiyatı",
+    "halk edebiyatı",
+    "tanzimat",
+    "servet-i fünun",
+    "milli edebiyat",
+    "cumhuriyet dönemi",
+    "şiir türleri",
+    "nazım",
+    "nesir",
+  ],
+  "Beden Eğitimi": [
+    "beden eğitimi",
+    "beden",
+    "spor",
+    "atletizm",
+    "koşu",
+    "yürüyüş",
+    "jimnastik",
+    "futbol",
+    "basketbol",
+    "voleybol",
+    "tenis",
+    "yüzme",
+    "fiziksel aktivite",
+    "egzersiz",
+    "antrenman",
+    "fitness",
+    "sağlık",
+    "beslenme",
+    "kas",
+    "iskelet",
+    "kalp",
+    "dolaşım",
+    "solunum",
+    "motor",
+    "koordinasyon",
+    "denge",
+    "esneklik",
+    "dayanıklılık",
+    "kuvvet",
+    "hız",
+    "çeviklik",
   ],
   "Tarih": [
     "tarih",
@@ -160,14 +220,69 @@ const SUBJECT_KEYWORDS: { [key: string]: string[] } = {
     "yönetim",
     "siyaset",
     "seçim",
+    "cumhurbaşkanı",
+    "başbakan",
+    "bakanlar kurulu",
+    "mahkeme",
+    "yargı",
+    "yasama",
+    "yürütme",
+    "idare",
+    "kamu",
+    "özel",
+    "sivil toplum",
+    "dernek",
+    "vakıf",
+    "sendika",
+    "parti",
+    "milletvekili",
+    "belediye",
+    "vali",
+    "kaymakam",
+    "muhtar",
+    "temel haklar",
+    "insan hakları",
+    "çocuk hakları",
+    "kadın hakları",
+    "eşitlik",
+    "adalet",
+    "laiklik",
+    "milliyetçilik",
+    "atatürk ilkeleri",
   ],
-  "Güncel": [
+  "Güncel Olaylar": [
     "güncel",
     "güncel olaylar",
     "aktüel",
     "haber",
     "güncel bilgiler",
     "son gelişmeler",
+    "güncel konular",
+    "aktüel konular",
+    "güncel sorunlar",
+    "güncel tartışmalar",
+    "güncel ekonomi",
+    "güncel siyaset",
+    "güncel teknoloji",
+    "güncel kültür",
+    "güncel sanat",
+    "güncel spor",
+    "güncel sağlık",
+    "güncel eğitim",
+    "güncel çevre",
+    "güncel enerji",
+    "güncel tarım",
+    "güncel turizm",
+    "güncel ulaşım",
+    "güncel iletişim",
+    "güncel medya",
+    "güncel sosyal medya",
+    "güncel dijital",
+    "güncel inovasyon",
+    "güncel trend",
+    "güncel gelişme",
+    "güncel değişim",
+    "güncel dönüşüm",
   ],
   "Fen Bilgisi": [
     "fen bilgisi",
@@ -220,19 +335,21 @@ async function detectSubjectWithGemini(imageUrl: string): Promise<string | null>
 
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-Dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel, Fen Bilgisi, Sosyal Bilgiler
+Dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler
 
-Kurallar:
+Kurallar (KPSS için genişletilmiş):
 - Sayılar, denklemler, formüller, geometri varsa → Matematik
 - Kuvvet, hareket, enerji, elektrik, optik varsa → Fizik
 - Molekül, atom, element, reaksiyon, periyodik tablo varsa → Kimya
 - Hücre, DNA, organ, bitki, hayvan varsa → Biyoloji
-- Dilbilgisi, edebiyat, yazım, paragraf varsa → Türkçe
+- Dilbilgisi, yazım, noktalama, paragraf, anlatım bozukluğu varsa → Türkçe
+- Şiir, roman, hikaye, edebiyat tarihi, şair, yazar varsa → Edebiyat
 - Devletler, savaşlar, osmanlı, göktürk, cumhuriyet varsa → Tarih
 - Harita, iklim, nüfus, ülke, şehir varsa → Coğrafya
 - Mantık, etik, filozof, felsefi düşünce varsa → Felsefe
-- Anayasa, hukuk, yasa, hak, demokrasi varsa → Vatandaşlık
-- Güncel olaylar, haber, son gelişmeler varsa → Güncel
+- Anayasa, hukuk, yasa, hak, demokrasi, meclis, devlet yönetimi varsa → Vatandaşlık
+- Güncel olaylar, haber, son gelişmeler, aktüel konular varsa → Güncel Olaylar
+- Spor, beden, jimnastik, atletizm, fiziksel aktivite, sağlık, egzersiz varsa → Beden Eğitimi
 - Fizik, kimya, biyoloji konuları birlikte varsa veya fen bilgisi sorusuysa → Fen Bilgisi
 - Tarih, coğrafya, vatandaşlık konuları birlikte varsa veya sosyal bilgiler sorusuysa → Sosyal Bilgiler
 
@@ -460,22 +577,87 @@ function normalizeSubjectName(subject: string): string {
   if (lowerSubject.includes("philosophy") || lowerSubject.includes("felsefe")) {
     return "Felsefe";
   }
-  // Vatandaşlık için kontrol
+  // Vatandaşlık için kontrol (genişletilmiş)
   if (lowerSubject.includes("vatandaşlık") || lowerSubject.includes("vatandaslik") ||
       lowerSubject.includes("vatandaş") || lowerSubject.includes("vatandas") ||
       lowerSubject.includes("anayasa") || lowerSubject.includes("hukuk") ||
       lowerSubject.includes("yasa") || lowerSubject.includes("kanun") ||
       lowerSubject.includes("demokrasi") || lowerSubject.includes("meclis") ||
       lowerSubject.includes("bakan") || lowerSubject.includes("siyaset") ||
-      lowerSubject.includes("seçim") || lowerSubject.includes("secim")) {
+      lowerSubject.includes("seçim") || lowerSubject.includes("secim") ||
+      lowerSubject.includes("cumhurbaşkanı") || lowerSubject.includes("cumhurbaskani") ||
+      lowerSubject.includes("başbakan") || lowerSubject.includes("basbakan") ||
+      lowerSubject.includes("bakanlar kurulu") || lowerSubject.includes("mahkeme") ||
+      lowerSubject.includes("yargı") || lowerSubject.includes("yargi") ||
+      lowerSubject.includes("yasama") || lowerSubject.includes("yürütme") ||
+      lowerSubject.includes("yurutme") || lowerSubject.includes("idare") ||
+      lowerSubject.includes("kamu") || lowerSubject.includes("sivil toplum") ||
+      lowerSubject.includes("dernek") || lowerSubject.includes("vakıf") ||
+      lowerSubject.includes("vakif") || lowerSubject.includes("sendika") ||
+      lowerSubject.includes("parti") || lowerSubject.includes("milletvekili") ||
+      lowerSubject.includes("belediye") || lowerSubject.includes("vali") ||
+      lowerSubject.includes("kaymakam") || lowerSubject.includes("muhtar") ||
+      lowerSubject.includes("temel haklar") || lowerSubject.includes("insan hakları") ||
+      lowerSubject.includes("insan haklari") || lowerSubject.includes("çocuk hakları") ||
+      lowerSubject.includes("cocuk haklari") || lowerSubject.includes("kadın hakları") ||
+      lowerSubject.includes("kadin haklari") || lowerSubject.includes("eşitlik") ||
+      lowerSubject.includes("esitlik") || lowerSubject.includes("adalet") ||
+      lowerSubject.includes("laiklik") || lowerSubject.includes("milliyetçilik") ||
+      lowerSubject.includes("milliyetcilik") || lowerSubject.includes("atatürk ilkeleri") ||
+      lowerSubject.includes("ataturk ilkeleri")) {
     return "Vatandaşlık";
   }
-  // Güncel için kontrol
+  // Edebiyat için kontrol (Türkçe'den ayrı)
+  if (lowerSubject.includes("edebiyat") || lowerSubject.includes("şiir") ||
+      lowerSubject.includes("roman") || lowerSubject.includes("hikaye") ||
+      lowerSubject.includes("öykü") || lowerSubject.includes("deneme") ||
+      lowerSubject.includes("makale") || lowerSubject.includes("tiyatro") ||
+      lowerSubject.includes("dram") || lowerSubject.includes("komedi") ||
+      lowerSubject.includes("trajedi") || lowerSubject.includes("şair") ||
+      lowerSubject.includes("yazar") || lowerSubject.includes("edebi") ||
+      lowerSubject.includes("nazım") || lowerSubject.includes("nesir") ||
+      lowerSubject.includes("divan edebiyatı") || lowerSubject.includes("halk edebiyatı") ||
+      lowerSubject.includes("tanzimat") || lowerSubject.includes("servet-i fünun") ||
+      lowerSubject.includes("milli edebiyat") || lowerSubject.includes("cumhuriyet dönemi")) {
+    return "Edebiyat";
+  }
+  // Beden Eğitimi için kontrol
+  if (lowerSubject.includes("beden eğitimi") || lowerSubject.includes("beden egitimi") ||
+      lowerSubject.includes("beden") || lowerSubject.includes("spor") ||
+      lowerSubject.includes("atletizm") || lowerSubject.includes("koşu") ||
+      lowerSubject.includes("yürüyüş") || lowerSubject.includes("jimnastik") ||
+      lowerSubject.includes("futbol") || lowerSubject.includes("basketbol") ||
+      lowerSubject.includes("voleybol") || lowerSubject.includes("tenis") ||
+      lowerSubject.includes("yüzme") || lowerSubject.includes("fiziksel aktivite") ||
+      lowerSubject.includes("egzersiz") || lowerSubject.includes("antrenman") ||
+      lowerSubject.includes("fitness") || lowerSubject.includes("sağlık") ||
+      lowerSubject.includes("beslenme") || lowerSubject.includes("kas") ||
+      lowerSubject.includes("iskelet") || lowerSubject.includes("kalp") ||
+      lowerSubject.includes("dolaşım") || lowerSubject.includes("solunum") ||
+      lowerSubject.includes("motor") || lowerSubject.includes("koordinasyon") ||
+      lowerSubject.includes("denge") || lowerSubject.includes("esneklik") ||
+      lowerSubject.includes("dayanıklılık") || lowerSubject.includes("kuvvet") ||
+      lowerSubject.includes("hız") || lowerSubject.includes("çeviklik")) {
+    return "Beden Eğitimi";
+  }
+  // Güncel Olaylar için kontrol (genişletilmiş)
   if (lowerSubject.includes("güncel") || lowerSubject.includes("guncel") ||
       lowerSubject.includes("aktüel") || lowerSubject.includes("aktuel") ||
       lowerSubject.includes("haber") || lowerSubject.includes("güncel olaylar") ||
-      lowerSubject.includes("guncel olaylar")) {
-    return "Güncel";
+      lowerSubject.includes("guncel olaylar") || lowerSubject.includes("güncel konular") ||
+      lowerSubject.includes("güncel sorunlar") || lowerSubject.includes("güncel tartışmalar") ||
+      lowerSubject.includes("güncel ekonomi") || lowerSubject.includes("güncel siyaset") ||
+      lowerSubject.includes("güncel teknoloji") || lowerSubject.includes("güncel kültür") ||
+      lowerSubject.includes("güncel sanat") || lowerSubject.includes("güncel spor") ||
+      lowerSubject.includes("güncel sağlık") || lowerSubject.includes("güncel eğitim") ||
+      lowerSubject.includes("güncel çevre") || lowerSubject.includes("güncel enerji") ||
+      lowerSubject.includes("güncel tarım") || lowerSubject.includes("güncel turizm") ||
+      lowerSubject.includes("güncel ulaşım") || lowerSubject.includes("güncel iletişim") ||
+      lowerSubject.includes("güncel medya") || lowerSubject.includes("güncel sosyal medya") ||
+      lowerSubject.includes("güncel dijital") || lowerSubject.includes("güncel inovasyon") ||
+      lowerSubject.includes("güncel trend") || lowerSubject.includes("güncel gelişme") ||
+      lowerSubject.includes("güncel değişim") || lowerSubject.includes("güncel dönüşüm")) {
+    return "Güncel Olaylar";
   }
   // Fen Bilgisi için kontrol
   if (lowerSubject.includes("fen bilgisi") || lowerSubject.includes("fenbilgisi") ||

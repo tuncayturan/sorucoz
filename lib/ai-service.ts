@@ -423,7 +423,7 @@ async function detectSubjectWithGroq(
     // Bu çalışmayabilir, kullanıcıya bilgi veriyoruz
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-Dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel, Fen Bilgisi, Sosyal Bilgiler
+KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler
 
 Sadece ders adını yaz, başka bir şey yazma.
 

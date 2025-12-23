@@ -26,9 +26,13 @@ async function detectSubjectWithGemini(imageUrl: string): Promise<string> {
               parts: [
                 {
                   text: `Bu soru görüntüsünü analiz et ve hangi derse ait olduğunu tespit et. 
-                  Türkçe dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Tarih, Coğrafya, Felsefe.
-                  Sadece ders adını döndür, başka bir şey yazma. Örnek: "Matematik", "Fizik", "Kimya" vb.
-                  Eğer matematik sorusu görüyorsan (sayılar, denklemler, formüller, geometrik şekiller varsa) mutlaka "Matematik" döndür.`,
+                  KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler.
+                  Sadece ders adını döndür, başka bir şey yazma. Örnek: "Matematik", "Fizik", "Kimya", "Edebiyat", "Beden Eğitimi" vb.
+                  Eğer matematik sorusu görüyorsan (sayılar, denklemler, formüller, geometrik şekiller varsa) mutlaka "Matematik" döndür.
+                  Eğer şiir, roman, hikaye, edebiyat tarihi görüyorsan → "Edebiyat"
+                  Eğer spor, beden, jimnastik, atletizm görüyorsan → "Beden Eğitimi"
+                  Eğer güncel olaylar, haber, son gelişmeler görüyorsan → "Güncel Olaylar"
+                  Eğer anayasa, hukuk, yasa, demokrasi, meclis görüyorsan → "Vatandaşlık"`,
                 },
                 {
                   inline_data: {
@@ -86,10 +90,14 @@ function normalizeSubjectName(subject: string): string {
     "Fizik": ["fizik", "kuvvet", "hareket", "enerji", "elektrik", "manyetizma"],
     "Kimya": ["kimya", "molekül", "atom", "element", "reaksiyon"],
     "Biyoloji": ["biyoloji", "hücre", "dna", "protein", "genetik"],
-    "Türkçe": ["türkçe", "dil", "edebiyat", "şiir"],
+    "Türkçe": ["türkçe", "dil", "dilbilgisi", "yazım", "noktalama", "paragraf"],
+    "Edebiyat": ["edebiyat", "şiir", "roman", "hikaye", "öykü", "deneme", "makale", "tiyatro", "şair", "yazar", "edebi"],
     "Tarih": ["tarih", "osmanlı", "savaş", "devlet"],
     "Coğrafya": ["coğrafya", "harita", "iklim", "nüfus"],
     "Felsefe": ["felsefe", "düşünce", "mantık", "etik"],
+    "Vatandaşlık": ["vatandaşlık", "vatandaş", "anayasa", "hukuk", "yasa", "kanun", "demokrasi", "meclis", "bakan", "siyaset", "seçim"],
+    "Güncel Olaylar": ["güncel", "güncel olaylar", "aktüel", "haber", "güncel konular", "son gelişmeler"],
+    "Beden Eğitimi": ["beden eğitimi", "beden", "spor", "atletizm", "koşu", "jimnastik", "futbol", "basketbol", "voleybol", "fiziksel aktivite", "egzersiz", "sağlık"],
   };
   
   for (const [subjectName, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
