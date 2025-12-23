@@ -61,20 +61,24 @@ export default function FCMTokenManager() {
           // Popup gösterildikten 1.5 saniye sonra otomatik olarak izin iste
           // NOT: User gesture gerekli ama popup gösterildikten sonra kısa bir süre bekleyip otomatik isteyebiliriz
           setTimeout(async () => {
-            // Otomatik izin iste (sadece popup gösterildikten sonra)            try {
+            // Otomatik izin iste (sadece popup gösterildikten sonra)
+            try {
               // Direkt olarak izin iste
               if ('Notification' in window && Notification.permission === 'default') {
-                const permission = await Notification.requestPermission();                if (permission === 'granted') {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
                   // İzin verildi, token al
                   const { requestNotificationPermission, saveFCMTokenToUser } = await import("@/lib/fcmUtils");
                   const token = await requestNotificationPermission();
                   if (token && user) {
                     await saveFCMTokenToUser(user.uid, token);
                     setPermission("granted");
-                    setShow(false);                  }
+                    setShow(false);
+                  }
                 }
               }
-            } catch (autoError) {              // Hata olsa bile popup açık kalsın, kullanıcı manuel tıklayabilir
+            } catch (autoError) {
+              // Hata olsa bile popup açık kalsın, kullanıcı manuel tıklayabilir
             }
           }, 1500);
         } else {
@@ -85,9 +89,11 @@ export default function FCMTokenManager() {
       
       // İzin verilmişse ama token yoksa da göster (token yenileme için)
       if (Notification.permission === "granted" && user) {
-        // Token kontrolü yapılabilir ama şimdilik sadece izin kontrolü yeterli      }
+        // Token kontrolü yapılabilir ama şimdilik sadece izin kontrolü yeterli
+      }
     } else if (user) {
-      // Notification API yok - muhtemelen iOS non-Safari      setShow(true);
+      // Notification API yok - muhtemelen iOS non-Safari
+      setShow(true);
     }
   }, [user]);
 
@@ -101,16 +107,21 @@ export default function FCMTokenManager() {
       setLoading(true);
       
       // İlk kontrol: Notification API var mı?
-      if (!('Notification' in window)) {        alert("❌ Bu tarayıcıda bildirimler desteklenmiyor.\n\niOS kullanıyorsanız Safari tarayıcısını kullanın.");
+      if (!('Notification' in window)) {
+        alert("❌ Bu tarayıcıda bildirimler desteklenmiyor.\n\niOS kullanıyorsanız Safari tarayıcısını kullanın.");
         setLoading(false);
         return;
       }
       
       // İkinci kontrol: Service Worker var mı?
-      if (!('serviceWorker' in navigator)) {        alert("❌ Service Worker desteklenmiyor.\n\nLütfen tarayıcınızı güncelleyin.");
+      if (!('serviceWorker' in navigator)) {
+        alert("❌ Service Worker desteklenmiyor.\n\nLütfen tarayıcınızı güncelleyin.");
         setLoading(false);
         return;
-      }      // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır      const token = await requestNotificationPermission();
+      }
+      
+      // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır
+      const token = await requestNotificationPermission();
       
       if (token) {
         try {
