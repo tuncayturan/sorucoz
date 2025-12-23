@@ -128,12 +128,8 @@ export default function CoachCalendarPage() {
               url: "/etkinlikler",
             },
           }),
-        }).catch((err) => {
-          console.error("Öğrencilere bildirim gönderilirken hata:", err);
-        });
-      } catch (notifError) {
-        console.error("Öğrencilere bildirim gönderilirken hata:", notifError);
-      }
+        }).catch((err) => {        });
+      } catch (notifError) {      }
 
       setEventForm({
         title: "",
@@ -145,9 +141,7 @@ export default function CoachCalendarPage() {
       });
       setShowAddModal(false);
       showToast("Etkinlik başarıyla eklendi!", "success");
-    } catch (error) {
-      console.error("Error adding event:", error);
-      showToast("Etkinlik eklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Etkinlik eklenirken bir hata oluştu.", "error");
     } finally {
       setSaving(false);
     }
@@ -202,12 +196,8 @@ export default function CoachCalendarPage() {
               url: "/etkinlikler",
             },
           }),
-        }).catch((err) => {
-          console.error("Öğrencilere güncelleme bildirimi gönderilirken hata:", err);
-        });
-      } catch (notifError) {
-        console.error("Öğrencilere güncelleme bildirimi gönderilirken hata:", notifError);
-      }
+        }).catch((err) => {        });
+      } catch (notifError) {      }
 
       setEventForm({
         title: "",
@@ -220,9 +210,7 @@ export default function CoachCalendarPage() {
       setShowEditModal(false);
       setEditingEventId(null);
       showToast("Etkinlik başarıyla güncellendi!", "success");
-    } catch (error) {
-      console.error("Error updating event:", error);
-      showToast("Etkinlik güncellenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Etkinlik güncellenirken bir hata oluştu.", "error");
     } finally {
       setSaving(false);
     }
@@ -234,9 +222,7 @@ export default function CoachCalendarPage() {
     try {
       await deleteDoc(doc(db, "users", user.uid, "events", eventId));
       showToast("Etkinlik silindi!", "success");
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      showToast("Etkinlik silinirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Etkinlik silinirken bir hata oluştu.", "error");
     }
   };
 

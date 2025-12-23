@@ -74,9 +74,7 @@ export default function VoiceRecorder({ onRecordingComplete, onCancel, buttonEle
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 100);
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      alert("Mikrofon erişimi reddedildi. Lütfen izin verin.");
+    } catch (error) {      alert("Mikrofon erişimi reddedildi. Lütfen izin verin.");
       setIsRecording(false);
     }
   };

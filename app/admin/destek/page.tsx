@@ -153,7 +153,7 @@ export default function AdminDestekPage() {
           unsubscribeFunctions.push(unsubscribe);
         });
       } catch (error) {
-        console.error("Real-time listener kurulum hatası:", error);
+        // Error handling
       }
     };
     
@@ -188,9 +188,7 @@ export default function AdminDestekPage() {
                 await updateDoc(destekRef, { 
                   viewedByAdmin: true, 
                   viewedByAdminAt: Timestamp.now() 
-                });
-                console.log("✅ [ADMIN] Marked message as viewed - notification should disappear");
-              }
+                });              }
               
               // Mark initial user message as read by admin
               if (!data.readByAdmin) {
@@ -207,7 +205,7 @@ export default function AdminDestekPage() {
               }
             }
           } catch (error) {
-            console.error("Mesaj görüntüleme hatası:", error);
+            // Error handling
           }
         };
         
@@ -301,9 +299,7 @@ export default function AdminDestekPage() {
       }
       
       showToast("Destek mesajı başarıyla silindi.", "success");
-    } catch (error) {
-      console.error("Destek mesajı silme hatası:", error);
-      showToast("Destek mesajı silinirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Destek mesajı silinirken bir hata oluştu.", "error");
     }
   };
 
@@ -319,7 +315,7 @@ export default function AdminDestekPage() {
         };
       }
     } catch (error) {
-      console.error("Kullanıcı profili yüklenirken hata:", error);
+      // Error handling
     }
     return { photoURL: null, name: null };
   };
@@ -358,9 +354,7 @@ export default function AdminDestekPage() {
 
       setDestekMesajlari(allMessages);
       setUserProfiles(profiles);
-    } catch (error) {
-      console.error("Destek mesajları yüklenirken hata:", error);
-      showToast("Destek mesajları yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Destek mesajları yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -414,12 +408,7 @@ export default function AdminDestekPage() {
             ? updatedMessage
             : msg
         )
-      );
-      
-      console.log(`✅ Status updated to: ${newStatus}`);
-    } catch (error) {
-      console.error("Status güncelleme hatası:", error);
-      showToast("Durum güncellenirken bir hata oluştu.", "error");
+      );    } catch (error) {      showToast("Durum güncellenirken bir hata oluştu.", "error");
     }
   };
 
@@ -450,14 +439,7 @@ export default function AdminDestekPage() {
 
       const destekRef = doc(db, "users", selectedMessage.userId, "destek", selectedMessage.id);
       
-      // LOG: Before update - selectedMessage state
-      console.log("🔵 [ADMIN REPLY] BEFORE UPDATE - selectedMessage state:");
-      console.log("  - selectedMessage.ogrenciYanitlar:", selectedMessage.ogrenciYanitlar);
-      console.log("  - selectedMessage.ogrenciYanit:", selectedMessage.ogrenciYanit);
-      console.log("  - selectedMessage.yanitlar:", selectedMessage.yanitlar);
-      console.log("  - selectedMessage.yanit:", selectedMessage.yanit);
-      
-      // First, get the current document to preserve all existing data
+      // LOG: Before update - selectedMessage state      // First, get the current document to preserve all existing data
       const destekSnap = await getDoc(destekRef);
       if (!destekSnap.exists()) {
         throw new Error("Destek mesajı bulunamadı");
@@ -465,16 +447,7 @@ export default function AdminDestekPage() {
       
       const currentData = destekSnap.data();
       
-      // LOG: Current data from Firestore
-      console.log("🟢 [ADMIN REPLY] CURRENT FIRESTORE DATA:");
-      console.log("  - currentData.ogrenciYanitlar:", currentData.ogrenciYanitlar);
-      console.log("  - currentData.ogrenciYanit:", currentData.ogrenciYanit);
-      console.log("  - currentData.ogrenciYanitTarihi:", currentData.ogrenciYanitTarihi);
-      console.log("  - currentData.ogrenciYanitAttachments:", currentData.ogrenciYanitAttachments);
-      console.log("  - currentData.yanitlar:", currentData.yanitlar);
-      console.log("  - currentData.yanit:", currentData.yanit);
-      
-      // Create new reply object for Firestore
+      // LOG: Current data from Firestore      // Create new reply object for Firestore
       const newReplyObj = {
         content: replyText.trim() || "",
         timestamp: Timestamp.now(),
@@ -486,14 +459,7 @@ export default function AdminDestekPage() {
       const existingYanitlar = currentData.yanitlar || [];
       const updatedYanitlar = [...existingYanitlar, newReplyObj];
       
-      // LOG: What we're preserving
-      console.log("🟡 [ADMIN REPLY] PRESERVING DATA:");
-      console.log("  - existingYanitlar count:", existingYanitlar.length);
-      console.log("  - updatedYanitlar count:", updatedYanitlar.length);
-      console.log("  - preserving ogrenciYanitlar:", currentData.ogrenciYanitlar || []);
-      console.log("  - preserving ogrenciYanit:", currentData.ogrenciYanit || "");
-      
-      // Preserve all existing data, especially ogrenciYanitlar
+      // LOG: What we're preserving      // Preserve all existing data, especially ogrenciYanitlar
       const updateData: any = {
         yanitlar: updatedYanitlar, // Use full array instead of arrayUnion to ensure we preserve everything
         status: selectedStatus,
@@ -520,25 +486,12 @@ export default function AdminDestekPage() {
         updateData.yanitAttachments = uploadedUrls;
       }
       
-      // LOG: What we're sending to Firestore
-      console.log("🟠 [ADMIN REPLY] SENDING TO FIRESTORE:");
-      console.log("  - updateData.ogrenciYanitlar:", updateData.ogrenciYanitlar);
-      console.log("  - updateData.ogrenciYanit:", updateData.ogrenciYanit);
-      console.log("  - updateData.yanitlar count:", updateData.yanitlar.length);
-      console.log("  - updateData.yanit:", updateData.yanit);
-      
       await updateDoc(destekRef, updateData);
       
-      // LOG: After update - verify what was saved
+      // After update - verify what was saved
       const verifySnap = await getDoc(destekRef);
       const verifyData = verifySnap.data();
-      console.log("🔴 [ADMIN REPLY] AFTER UPDATE - VERIFIED FIRESTORE DATA:");
-      console.log("  - verifyData.ogrenciYanitlar:", verifyData?.ogrenciYanitlar);
-      console.log("  - verifyData.ogrenciYanit:", verifyData?.ogrenciYanit);
-      console.log("  - verifyData.ogrenciYanitTarihi:", verifyData?.ogrenciYanitTarihi);
-      console.log("  - verifyData.ogrenciYanitAttachments:", verifyData?.ogrenciYanitAttachments);
-      console.log("  - verifyData.yanitlar count:", verifyData?.yanitlar?.length || 0);
-
+      
       // Bildirim gönder
       try {
         await fetch("/api/admin/send-notification", {
@@ -555,7 +508,7 @@ export default function AdminDestekPage() {
           }),
         });
       } catch (notifError) {
-        console.error("Bildirim gönderme hatası:", notifError);
+        // Error handling
       }
 
       // WhatsApp style: Update immediately without toast
@@ -565,12 +518,7 @@ export default function AdminDestekPage() {
       setSelectedFiles([]);
       setFilePreviews([]);
       
-      // LOG: Before local state update
-      console.log("🟣 [ADMIN REPLY] BEFORE LOCAL STATE UPDATE:");
-      console.log("  - selectedMessage.ogrenciYanitlar:", selectedMessage.ogrenciYanitlar);
-      console.log("  - selectedMessage.ogrenciYanit:", selectedMessage.ogrenciYanit);
-      
-      // Update selected message immediately
+      // LOG: Before local state update      // Update selected message immediately
       const updatedMessage: DestekMesaji = { 
         ...selectedMessage, 
         status: selectedStatus,
@@ -598,13 +546,9 @@ export default function AdminDestekPage() {
       
       if (verifyDataForState?.ogrenciYanitlar && Array.isArray(verifyDataForState.ogrenciYanitlar) && verifyDataForState.ogrenciYanitlar.length > 0) {
         // Use the verified data from Firestore
-        updatedMessage.ogrenciYanitlar = [...verifyDataForState.ogrenciYanitlar];
-        console.log("✅ [ADMIN REPLY] Using ogrenciYanitlar from Firestore:", updatedMessage.ogrenciYanitlar.length, "messages");
-      } else if (selectedMessage.ogrenciYanitlar && Array.isArray(selectedMessage.ogrenciYanitlar)) {
+        updatedMessage.ogrenciYanitlar = [...verifyDataForState.ogrenciYanitlar];      } else if (selectedMessage.ogrenciYanitlar && Array.isArray(selectedMessage.ogrenciYanitlar)) {
         // Fallback to selectedMessage state
-        updatedMessage.ogrenciYanitlar = [...selectedMessage.ogrenciYanitlar];
-        console.log("⚠️ [ADMIN REPLY] Using ogrenciYanitlar from selectedMessage state:", updatedMessage.ogrenciYanitlar.length, "messages");
-      } else if (selectedMessage.ogrenciYanit || verifyDataForState?.ogrenciYanit) {
+        updatedMessage.ogrenciYanitlar = [...selectedMessage.ogrenciYanitlar];      } else if (selectedMessage.ogrenciYanit || verifyDataForState?.ogrenciYanit) {
         // Convert legacy single field to array
         const ogrenciYanitContent = selectedMessage.ogrenciYanit || verifyDataForState?.ogrenciYanit || "";
         const ogrenciYanitTarihi = selectedMessage.ogrenciYanitTarihi || verifyDataForState?.ogrenciYanitTarihi || selectedMessage.createdAt;
@@ -615,12 +559,8 @@ export default function AdminDestekPage() {
           timestamp: ogrenciYanitTarihi,
           attachments: ogrenciYanitAttachments,
           readByAdmin: false,
-        }];
-        console.log("🔄 [ADMIN REPLY] Converted legacy ogrenciYanit to array:", updatedMessage.ogrenciYanitlar.length, "message");
-      } else {
-        updatedMessage.ogrenciYanitlar = [];
-        console.log("❌ [ADMIN REPLY] No ogrenciYanit found, setting empty array");
-      }
+        }];      } else {
+        updatedMessage.ogrenciYanitlar = [];      }
       
       // Also update legacy fields for backward compatibility
       updatedMessage.yanit = replyTextCopy;
@@ -634,13 +574,7 @@ export default function AdminDestekPage() {
       updatedMessage.ogrenciYanitTarihi = verifyDataForState?.ogrenciYanitTarihi || selectedMessage.ogrenciYanitTarihi || undefined;
       updatedMessage.ogrenciYanitAttachments = verifyDataForState?.ogrenciYanitAttachments || selectedMessage.ogrenciYanitAttachments || [];
       
-      // LOG: After local state update
-      console.log("🟪 [ADMIN REPLY] AFTER LOCAL STATE UPDATE:");
-      console.log("  - updatedMessage.ogrenciYanitlar:", updatedMessage.ogrenciYanitlar);
-      console.log("  - updatedMessage.ogrenciYanit:", updatedMessage.ogrenciYanit);
-      console.log("  - updatedMessage.yanitlar count:", updatedMessage.yanitlar?.length || 0);
-      
-      // Update messages list first
+      // LOG: After local state update      // Update messages list first
       const updatedDestekMesajlari = destekMesajlari.map(msg => 
         msg.id === selectedMessage.id && msg.userId === selectedMessage.userId
           ? updatedMessage
@@ -654,9 +588,7 @@ export default function AdminDestekPage() {
       // Scroll to bottom to show new message
       setTimeout(() => scrollToBottom(), 300);
       setTimeout(() => scrollToBottom(), 600);
-    } catch (error) {
-      console.error("Yanıt gönderme hatası:", error);
-      // Only show error toast, not success
+    } catch (error) {      // Only show error toast, not success
       showToast("Yanıt gönderilirken bir hata oluştu.", "error");
     } finally {
       setReplying(false);
@@ -811,7 +743,7 @@ export default function AdminDestekPage() {
                             }
                           }
                         } catch (error) {
-                          console.error("Destek mesajı görüntüleme hatası:", error);
+                          // Error handling
                         }
                       }
                     }}
@@ -952,7 +884,6 @@ export default function AdminDestekPage() {
                           setReplyText("");
                           showToast("Destek mesajı başarıyla silindi.", "success");
                         } catch (error) {
-                          console.error("Destek mesajı silme hatası:", error);
                           showToast("Destek mesajı silinirken bir hata oluştu.", "error");
                         }
                       }}
@@ -989,9 +920,6 @@ export default function AdminDestekPage() {
                     readByAdmin?: boolean; // Admin tarafından okundu mu (öğrenci mesajları için)
                     readByStudent?: boolean; // Öğrenci tarafından okundu mu (admin mesajları için)
                   }> = [];
-
-                  // Debug: Log all messages
-                  console.log("Selected conversation messages:", selectedConversation.messages.length, selectedConversation.messages);
 
                   selectedConversation.messages.forEach((mesaj) => {
                     // Add user's initial message only if it has content or attachments
@@ -1431,9 +1359,7 @@ export default function AdminDestekPage() {
                   setSelectedMessage(null);
                   setReplyText("");
                   showToast("Destek mesajı başarıyla silindi.", "success");
-                } catch (error) {
-                  console.error("Destek mesajı silme hatası:", error);
-                  showToast("Destek mesajı silinirken bir hata oluştu.", "error");
+                } catch (error) {                  showToast("Destek mesajı silinirken bir hata oluştu.", "error");
                 }
               }}
               className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition"

@@ -9,7 +9,6 @@ export async function detectSubject(imageUrl: string): Promise<string | null> {
 
   const apiKey = getAPIKey(settings);
   if (!apiKey) {
-    console.warn("API key bulunamadı");
     return null;
   }
 
@@ -28,7 +27,7 @@ export async function detectSubject(imageUrl: string): Promise<string | null> {
 }
 
 /**
- * Soru çözme için AI servisi
+ * Soru çözme için AI servisi (fallback mekanizması ile)
  */
 export async function solveQuestion(
   imageUrl: string,
@@ -40,22 +39,98 @@ export async function solveQuestion(
   const settings = await getAISettings();
   if (!settings) return null;
 
-  const apiKey = getAPIKey(settings);
-  if (!apiKey) {
+  const primaryApiKey = getAPIKey(settings);
+  if (!primaryApiKey) {
     throw new Error("API key bulunamadı");
   }
 
-  switch (settings.provider) {
-    case "gemini":
-      return await solveQuestionWithGemini(imageUrl, ders, apiKey, settings);
-    case "openai":
-      return await solveQuestionWithOpenAI(imageUrl, ders, apiKey, settings);
-    case "groq":
-      return await solveQuestionWithGroq(imageUrl, ders, apiKey, settings);
-    case "together":
-      return await solveQuestionWithTogether(imageUrl, ders, apiKey, settings);
-    default:
-      return await solveQuestionWithGemini(imageUrl, ders, apiKey, settings);
+  // İlk provider'ı dene
+  let lastError: Error | null = null;
+  
+  try {
+    switch (settings.provider) {
+      case "gemini":
+        return await solveQuestionWithGemini(imageUrl, ders, primaryApiKey, settings);
+      case "openai":
+        return await solveQuestionWithOpenAI(imageUrl, ders, primaryApiKey, settings);
+      case "groq":
+        return await solveQuestionWithGroq(imageUrl, ders, primaryApiKey, settings);
+      case "together":
+        return await solveQuestionWithTogether(imageUrl, ders, primaryApiKey, settings);
+      default:
+        return await solveQuestionWithGemini(imageUrl, ders, primaryApiKey, settings);
+    }
+  } catch (error: any) {
+    lastError = error;
+    const errorMessage = error.message || "";
+    
+    // 429 (quota/rate limit) hatası durumunda fallback yap
+    if (errorMessage.includes("429") || 
+        errorMessage.includes("QUOTA_EXCEEDED") || 
+        errorMessage.includes("RATE_LIMIT_EXCEEDED") ||
+        errorMessage.toLowerCase().includes("resource exhausted") ||
+        errorMessage.toLowerCase().includes("quota")) {
+      // Fallback provider'ları sırayla dene
+      const fallbackProviders = [
+        { 
+          name: "openai", 
+          func: solveQuestionWithOpenAI,
+          defaultModel: "gpt-4o-mini"
+        },
+        { 
+          name: "groq", 
+          func: solveQuestionWithGroq,
+          defaultModel: "llama-3.1-70b-versatile"
+        },
+        { 
+          name: "together", 
+          func: solveQuestionWithTogether,
+          defaultModel: "meta-llama/Llama-3-70b-chat-hf"
+        },
+      ];
+      
+      // Primary provider'ı fallback listesinden çıkar
+      const filteredFallbacks = fallbackProviders.filter(
+        p => p.name !== settings.provider
+      );
+      
+      for (const fallback of filteredFallbacks) {
+        try {
+          // Fallback provider için settings oluştur
+          const fallbackSettings: AISettings = { 
+            ...settings, 
+            provider: fallback.name as any,
+            model: settings.model || fallback.defaultModel
+          };
+          
+          // Fallback provider için API key al
+          const fallbackApiKey = getAPIKey(fallbackSettings);
+          
+          if (!fallbackApiKey || fallbackApiKey.trim() === "") {
+            continue;
+          }
+          
+          const result = await fallback.func(imageUrl, ders, fallbackApiKey, fallbackSettings);
+          
+          if (result) {
+            return result;
+          }
+        } catch (fallbackError: any) {
+          const errorMsg = fallbackError.message || "";
+          lastError = fallbackError;
+          continue; // Sonraki fallback'i dene
+        }
+      }
+      
+      // Tüm fallback'ler başarısız oldu
+      throw new Error(
+        `Tüm AI servisleri başarısız oldu. Son hata: ${lastError?.message || "Bilinmeyen hata"}. ` +
+        `Lütfen birkaç dakika bekleyip tekrar deneyin veya API limitlerinizi kontrol edin.`
+      );
+    }
+    
+    // 429 hatası değilse, hatayı direkt fırlat
+    throw error;
   }
 }
 
@@ -80,9 +155,14 @@ async function detectSubjectWithGemini(
 
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-Dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel, Fen Bilgisi, Sosyal Bilgiler
+Dersler: Matematik, Geometri, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler, Sayısal Mantık, Sözel Mantık, Eğitim Bilimleri, Gelişim, Din Kültürü ve Ahlak Bilgisi, Okul Öncesi, Rehberlik, Sınıf Öğretmenliği, İngilizce, Almanca, İtalyanca, Arapça
 
-Sadece ders adını yaz, başka bir şey yazma.`;
+ÖNEMLİ KURALLAR:
+- Sayılar, rakamlar, denklemler, formüller, toplama, çıkarma, çarpma, bölme, işlem, hesaplama, problem çözme görüyorsan → "Matematik" yaz (Geometri spesifik terimleri yoksa)
+- Açı, üçgen, dörtgen, çember, daire, alan, çevre, hacim, geometrik şekiller görüyorsan → "Geometri" yaz
+- Spor, beden eğitimi, jimnastik, atletizm, futbol, basketbol, voleybol, fiziksel aktivite, egzersiz, antrenman, fitness, sağlık, kas, iskelet, motor, koordinasyon, denge, esneklik, dayanıklılık, kuvvet, hız, çeviklik görüyorsan → "Beden Eğitimi" yaz (ÖNEMLİ: Tarih ile karıştırma! Spor, beden, jimnastik, atletizm, futbol, basketbol, voleybol, egzersiz, antrenman, fitness, kas, iskelet, motor, koordinasyon görüyorsan MUTLAKA Beden Eğitimi'dir!)
+- Osmanlı, göktürk, cumhuriyet, savaş, padişah, sultan, fetih görüyorsan → "Tarih" yaz (ÖNEMLİ: Beden Eğitimi ile karıştırma! Spor, beden, jimnastik varsa Beden Eğitimi'dir)
+- Sadece ders adını yaz, başka bir şey yazma.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
@@ -104,19 +184,20 @@ Sadece ders adını yaz, başka bir şey yazma.`;
             },
           ],
           generationConfig: {
-            temperature: 0.3,
+            temperature: 0.05, // Daha deterministik sonuçlar için düşürüldü
             maxOutputTokens: 50,
           },
         }),
       }
     );
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      return null;
+    }
     const data = await response.json();
     const subject = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
     return subject;
   } catch (error) {
-    console.error("Gemini ders tespiti hatası:", error);
     return null;
   }
 }
@@ -187,7 +268,17 @@ JSON formatında döndür:
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error?.message || "Gemini API hatası");
+      const errorMessage = errorData.error?.message || "Gemini API hatası";
+      
+      // 429 (quota/rate limit) hatası kontrolü
+      if (response.status === 429 || 
+          errorMessage.toLowerCase().includes("resource exhausted") ||
+          errorMessage.toLowerCase().includes("quota") ||
+          errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error(`QUOTA_EXCEEDED: ${errorMessage}`);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -205,7 +296,6 @@ JSON formatında döndür:
       finalAnswer: solution.finalAnswer || "",
     };
   } catch (error) {
-    console.error("Gemini soru çözme hatası:", error);
     throw error;
   }
 }
@@ -231,7 +321,7 @@ async function detectSubjectWithOpenAI(
 
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler
+KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler, Sayısal Mantık, Sözel Mantık
 
 Sadece ders adını yaz, başka bir şey yazma.`;
 
@@ -267,7 +357,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("OpenAI API hatası:", errorData);
       return null;
     }
 
@@ -275,7 +364,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
     const subject = data.choices?.[0]?.message?.content?.trim() || null;
     return subject;
   } catch (error) {
-    console.error("OpenAI ders tespiti hatası:", error);
     return null;
   }
 }
@@ -395,7 +483,6 @@ JSON formatında döndür:
       finalAnswer: solution.finalAnswer || "",
     };
   } catch (error) {
-    console.error("OpenAI soru çözme hatası:", error);
     throw error;
   }
 }
@@ -411,19 +498,16 @@ async function detectSubjectWithGroq(
   try {
     // Groq'un vision desteği sınırlı, bu yüzden görseli base64'e çevirip text olarak göndermeye çalışıyoruz
     // Ancak bu yaklaşım çalışmayabilir çünkü Groq modelleri vision desteklemiyor olabilir
-    console.warn("⚠️ Groq vision desteği sınırlı. Görsel analizi için Gemini veya OpenAI önerilir.");
     
     const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      console.error("Groq: Görsel yüklenemedi");
-      return null;
+    if (!imageResponse.ok) {      return null;
     }
 
     // Groq'un vision modelleri yok, bu yüzden sadece text prompt ile deniyoruz
     // Bu çalışmayabilir, kullanıcıya bilgi veriyoruz
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler
+KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler, Sayısal Mantık, Sözel Mantık
 
 Sadece ders adını yaz, başka bir şey yazma.
 
@@ -450,7 +534,6 @@ NOT: Groq modelleri vision desteği sağlamıyor. Görsel analizi için Gemini v
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Groq API hatası:", errorData);
       
       // Model decommissioned hatası
       if (errorData.error?.message?.includes("decommissioned") || 
@@ -465,7 +548,6 @@ NOT: Groq modelleri vision desteği sağlamıyor. Görsel analizi için Gemini v
     const subject = data.choices?.[0]?.message?.content?.trim() || null;
     return subject;
   } catch (error: any) {
-    console.error("Groq ders tespiti hatası:", error);
     if (error.message?.includes("decommissioned") || error.message?.includes("kullanımdan kaldırılmış")) {
       throw error; // Bu hatayı yukarı fırlat ki kullanıcı görsün
     }
@@ -483,7 +565,6 @@ async function solveQuestionWithGroq(
   finalAnswer: string;
 } | null> {
   try {
-    console.warn("⚠️ Groq vision desteği sınırlı. Görsel analizi için Gemini veya OpenAI önerilir.");
     
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
@@ -561,7 +642,6 @@ NOT: Groq modelleri vision desteği sağlamıyor. Görsel analizi için Gemini v
       finalAnswer: solution.finalAnswer || "",
     };
   } catch (error: any) {
-    console.error("Groq soru çözme hatası:", error);
     if (error.message?.includes("decommissioned") || error.message?.includes("kullanımdan kaldırılmış")) {
       throw error; // Bu hatayı yukarı fırlat ki kullanıcı görsün
     }
@@ -590,7 +670,7 @@ async function detectSubjectWithTogether(
 
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler
+KPSS için genişletilmiş dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler, Sayısal Mantık, Sözel Mantık
 
 Sadece ders adını yaz, başka bir şey yazma.`;
 
@@ -626,7 +706,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Together AI API hatası:", errorData);
       return null;
     }
 
@@ -634,7 +713,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
     const subject = data.choices?.[0]?.message?.content?.trim() || null;
     return subject;
   } catch (error) {
-    console.error("Together AI ders tespiti hatası:", error);
     return null;
   }
 }
@@ -733,7 +811,6 @@ Sadece JSON formatında döndür, başka bir şey yazma:
       finalAnswer: solution.finalAnswer || "",
     };
   } catch (error) {
-    console.error("Together AI soru çözme hatası:", error);
     throw error;
   }
 }

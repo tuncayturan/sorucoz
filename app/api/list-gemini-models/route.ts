@@ -23,9 +23,7 @@ export async function GET(request: NextRequest) {
     const results: any[] = [];
 
     for (const { version, url } of apiVersions) {
-      try {
-        console.log(`🔍 ${version} API versiyonu test ediliyor...`);
-        const response = await fetch(url, {
+      try {        const response = await fetch(url, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -67,9 +65,7 @@ export async function GET(request: NextRequest) {
         .find(r => r.success && r.modelNames && r.modelNames.length > 0)
         ?.modelNames?.[0] || "Model bulunamadı",
     });
-  } catch (error: any) {
-    console.error("❌ Model listesi hatası:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { 
         success: false,
         error: error.message || "Model listesi alınamadı"

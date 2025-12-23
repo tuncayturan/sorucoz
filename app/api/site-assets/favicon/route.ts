@@ -32,9 +32,7 @@ export async function GET(request: NextRequest) {
     
     // Fallback: varsayılan favicon
     return NextResponse.redirect(new URL("/favicon.ico", request.url));
-  } catch (error) {
-    console.error("Favicon serve hatası:", error);
-    return NextResponse.redirect(new URL("/favicon.ico", request.url));
+  } catch (error) {    return NextResponse.redirect(new URL("/favicon.ico", request.url));
   }
 }
 

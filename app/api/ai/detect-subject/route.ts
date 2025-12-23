@@ -9,22 +9,71 @@ const SUBJECT_KEYWORDS: { [key: string]: string[] } = {
   "Matematik": [
     "matematik",
     "mat",
+    "math",
+    "mathematics",
     "sayı",
+    "sayi",
+    "rakam",
     "denklem",
+    "equation",
     "fonksiyon",
+    "function",
     "türev",
+    "derivative",
     "integral",
     "geometri",
+    "geometry",
     "trigonometri",
+    "trigonometry",
     "logaritma",
+    "logarithm",
     "limit",
     "küme",
+    "set",
     "olasılık",
+    "probability",
     "istatistik",
+    "statistics",
     "matris",
+    "matrix",
     "determinant",
     "cebir",
+    "algebra",
     "kalkülüs",
+    "calculus",
+    "toplama",
+    "çıkarma",
+    "cikarma",
+    "çarpma",
+    "carpma",
+    "bölme",
+    "bolme",
+    "işlem",
+    "islem",
+    "hesaplama",
+    "formül",
+    "formul",
+    "formula",
+    "kök",
+    "kok",
+    "üs",
+    "us",
+    "faktöriyel",
+    "faktoriyel",
+    "permütasyon",
+    "permutasyon",
+    "kombinasyon",
+    "polinom",
+    "polynomial",
+    "kesir",
+    "ondalık",
+    "ondalik",
+    "yüzde",
+    "oran",
+    "orantı",
+    "oranti",
+    "problem",
+    "soru",
   ],
   "Fizik": [
     "fizik",
@@ -303,6 +352,258 @@ const SUBJECT_KEYWORDS: { [key: string]: string[] } = {
     "tarih coğrafya",
     "sosyal bilimler",
   ],
+  "Sayısal Mantık": [
+    "sayısal mantık",
+    "sayısal",
+    "mantık",
+    "akıl yürütme",
+    "problem çözme",
+    "sayı dizileri",
+    "sayı bulmacaları",
+    "matematiksel mantık",
+    "sayısal akıl yürütme",
+    "sayısal problem",
+    "sayısal test",
+    "sayısal yetenek",
+    "sayısal düşünme",
+    "sayısal zeka",
+    "sayısal beceri",
+    "sayısal analiz",
+    "sayısal çıkarım",
+    "sayısal muhakeme",
+    "sayısal bulmaca",
+    "sayısal oyun",
+    "sayısal sıralama",
+    "sayısal ilişki",
+    "sayısal desen",
+    "sayısal kural",
+  ],
+  "Sözel Mantık": [
+    "sözel mantık",
+    "sözel",
+    "mantık",
+    "akıl yürütme",
+    "problem çözme",
+    "sözel akıl yürütme",
+    "sözel problem",
+    "sözel test",
+    "sözel yetenek",
+    "sözel düşünme",
+    "kelime ilişkileri",
+    "cümle mantığı",
+    "paragraf mantığı",
+    "metin analizi",
+    "sözel bulmaca",
+    "sözel zeka",
+    "sözel beceri",
+    "sözel analiz",
+    "sözel çıkarım",
+    "sözel muhakeme",
+    "sözel oyun",
+    "sözel sıralama",
+    "sözel ilişki",
+    "sözel desen",
+    "sözel kural",
+    "kelime bulmacası",
+    "cümle tamamlama",
+    "paragraf tamamlama",
+    "metin tamamlama",
+  ],
+  "Eğitim Bilimleri": [
+    "eğitim bilimleri",
+    "eğitim",
+    "eğitim bilimi",
+    "eğitim psikolojisi",
+    "öğretim yöntemleri",
+    "eğitim programları",
+    "eğitim felsefesi",
+    "eğitim sosyolojisi",
+    "eğitim yönetimi",
+    "eğitim teknolojisi",
+    "öğrenme teorileri",
+    "öğretim stratejileri",
+    "eğitim araştırmaları",
+    "eğitim değerlendirme",
+    "eğitim ölçme",
+    "eğitim testleri",
+    "eğitim istatistikleri",
+    "eğitim planlaması",
+    "eğitim politikaları",
+    "eğitim sistemleri",
+  ],
+  "Gelişim": [
+    "gelişim",
+    "gelişim psikolojisi",
+    "çocuk gelişimi",
+    "ergen gelişimi",
+    "bilişsel gelişim",
+    "sosyal gelişim",
+    "duygusal gelişim",
+    "fiziksel gelişim",
+    "dil gelişimi",
+    "ahlak gelişimi",
+    "kişilik gelişimi",
+    "motor gelişim",
+    "gelişim dönemleri",
+    "gelişim teorileri",
+    "gelişim aşamaları",
+    "gelişim özellikleri",
+  ],
+  "Geometri": [
+    "geometri",
+    "geometrik",
+    "açı",
+    "üçgen",
+    "dörtgen",
+    "çember",
+    "daire",
+    "kare",
+    "dikdörtgen",
+    "paralelkenar",
+    "yamuk",
+    "eşkenar",
+    "ikizkenar",
+    "pisagor",
+    "alan",
+    "çevre",
+    "hacim",
+    "yüzey alanı",
+    "koordinat",
+    "vektör",
+    "geometrik şekil",
+    "geometrik cisim",
+    "prizma",
+    "piramit",
+    "küre",
+    "silindir",
+    "koni",
+  ],
+  "Din Kültürü ve Ahlak Bilgisi": [
+    "din kültürü",
+    "din kültürü ve ahlak bilgisi",
+    "din",
+    "ahlak",
+    "ahlak bilgisi",
+    "islam",
+    "islam dini",
+    "kur'an",
+    "kuran",
+    "hadis",
+    "peygamber",
+    "ibadet",
+    "namaz",
+    "oruç",
+    "zekat",
+    "hac",
+    "din bilgisi",
+    "din eğitimi",
+    "dini bilgiler",
+    "islam tarihi",
+    "islam kültürü",
+    "ahlak eğitimi",
+    "değerler eğitimi",
+  ],
+  "Okul Öncesi": [
+    "okul öncesi",
+    "anaokulu",
+    "kreş",
+    "erken çocukluk",
+    "okul öncesi eğitim",
+    "anaokulu eğitimi",
+    "erken çocukluk eğitimi",
+    "okul öncesi program",
+    "okul öncesi öğretmenliği",
+    "okul öncesi gelişim",
+    "okul öncesi etkinlik",
+    "okul öncesi materyal",
+  ],
+  "Rehberlik": [
+    "rehberlik",
+    "psikolojik danışmanlık",
+    "rehberlik ve psikolojik danışmanlık",
+    "rehberlik hizmetleri",
+    "mesleki rehberlik",
+    "eğitsel rehberlik",
+    "kişisel rehberlik",
+    "rehberlik programı",
+    "rehberlik testleri",
+    "rehberlik teknikleri",
+    "rehberlik yaklaşımları",
+    "rehberlik modelleri",
+    "rehberlik kuramları",
+  ],
+  "Sınıf Öğretmenliği": [
+    "sınıf öğretmenliği",
+    "sınıf öğretmeni",
+    "ilkokul",
+    "ilkokul öğretmenliği",
+    "sınıf öğretmeni eğitimi",
+    "sınıf yönetimi",
+    "sınıf içi öğretim",
+    "sınıf öğretmenliği programı",
+    "ilkokul programı",
+    "sınıf öğretmenliği dersleri",
+  ],
+  "İngilizce": [
+    "ingilizce",
+    "english",
+    "ingiliz dili",
+    "ingiliz dili ve edebiyatı",
+    "ingilizce dilbilgisi",
+    "ingilizce kelime",
+    "ingilizce okuma",
+    "ingilizce yazma",
+    "ingilizce konuşma",
+    "ingilizce dinleme",
+    "ingilizce test",
+    "ingilizce sınav",
+    "yabancı dil ingilizce",
+  ],
+  "Almanca": [
+    "almanca",
+    "german",
+    "alman dili",
+    "alman dili ve edebiyatı",
+    "almanca dilbilgisi",
+    "almanca kelime",
+    "almanca okuma",
+    "almanca yazma",
+    "almanca konuşma",
+    "almanca dinleme",
+    "almanca test",
+    "almanca sınav",
+    "yabancı dil almanca",
+  ],
+  "İtalyanca": [
+    "italyanca",
+    "italian",
+    "italyan dili",
+    "italyan dili ve edebiyatı",
+    "italyanca dilbilgisi",
+    "italyanca kelime",
+    "italyanca okuma",
+    "italyanca yazma",
+    "italyanca konuşma",
+    "italyanca dinleme",
+    "italyanca test",
+    "italyanca sınav",
+    "yabancı dil italyanca",
+  ],
+  "Arapça": [
+    "arapça",
+    "arabic",
+    "arap dili",
+    "arap dili ve edebiyatı",
+    "arapça dilbilgisi",
+    "arapça kelime",
+    "arapça okuma",
+    "arapça yazma",
+    "arapça konuşma",
+    "arapça dinleme",
+    "arapça test",
+    "arapça sınav",
+    "yabancı dil arapça",
+  ],
 };
 
 /**
@@ -312,7 +613,6 @@ async function detectSubjectWithGemini(imageUrl: string): Promise<string | null>
   const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    console.warn("GEMINI_API_KEY bulunamadı, basit tespit kullanılıyor");
     return null;
   }
 
@@ -320,7 +620,6 @@ async function detectSubjectWithGemini(imageUrl: string): Promise<string | null>
     // Görseli base64'e çevir
     const imageResponse = await fetch(imageUrl);
     if (!imageResponse.ok) {
-      console.error("Görsel yüklenemedi:", imageResponse.status);
       return null;
     }
     
@@ -335,23 +634,36 @@ async function detectSubjectWithGemini(imageUrl: string): Promise<string | null>
 
     const prompt = `Bu soru hangi derse ait? Sadece ders adını yaz.
 
-Dersler: Matematik, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler
+Dersler: Matematik, Geometri, Fizik, Kimya, Biyoloji, Türkçe, Edebiyat, Tarih, Coğrafya, Felsefe, Vatandaşlık, Güncel Olaylar, Beden Eğitimi, Fen Bilgisi, Sosyal Bilgiler, Sayısal Mantık, Sözel Mantık, Eğitim Bilimleri, Gelişim, Din Kültürü ve Ahlak Bilgisi, Okul Öncesi, Rehberlik, Sınıf Öğretmenliği, İngilizce, Almanca, İtalyanca, Arapça
 
 Kurallar (KPSS için genişletilmiş):
-- Sayılar, denklemler, formüller, geometri varsa → Matematik
+- Sayılar, rakamlar, denklemler, formüller, toplama, çıkarma, çarpma, bölme, işlem, hesaplama, problem çözme varsa → Matematik (ÖNEMLİ: Geometri spesifik terimleri yoksa Matematik'tir)
+- Açı, üçgen, dörtgen, çember, daire, alan, çevre, hacim, geometrik şekiller, koordinat, vektör varsa → Geometri
 - Kuvvet, hareket, enerji, elektrik, optik varsa → Fizik
 - Molekül, atom, element, reaksiyon, periyodik tablo varsa → Kimya
 - Hücre, DNA, organ, bitki, hayvan varsa → Biyoloji
 - Dilbilgisi, yazım, noktalama, paragraf, anlatım bozukluğu varsa → Türkçe
 - Şiir, roman, hikaye, edebiyat tarihi, şair, yazar varsa → Edebiyat
-- Devletler, savaşlar, osmanlı, göktürk, cumhuriyet varsa → Tarih
+- Osmanlı, göktürk, cumhuriyet, savaşlar, padişah, sultan, fetih, antlaşma, imparatorluk, medeniyet varsa → Tarih (ÖNEMLİ: Beden Eğitimi ile karıştırma! Spor, beden, jimnastik varsa Beden Eğitimi'dir)
 - Harita, iklim, nüfus, ülke, şehir varsa → Coğrafya
 - Mantık, etik, filozof, felsefi düşünce varsa → Felsefe
 - Anayasa, hukuk, yasa, hak, demokrasi, meclis, devlet yönetimi varsa → Vatandaşlık
 - Güncel olaylar, haber, son gelişmeler, aktüel konular varsa → Güncel Olaylar
-- Spor, beden, jimnastik, atletizm, fiziksel aktivite, sağlık, egzersiz varsa → Beden Eğitimi
+- Spor, beden eğitimi, jimnastik, atletizm, futbol, basketbol, voleybol, fiziksel aktivite, egzersiz, antrenman, fitness, sağlık, kas, iskelet, motor, koordinasyon, denge, esneklik, dayanıklılık, kuvvet, hız, çeviklik varsa → Beden Eğitimi (ÖNEMLİ: Tarih ile karıştırma! Spor, beden, jimnastik, atletizm, futbol, basketbol, voleybol, egzersiz, antrenman, fitness, kas, iskelet, motor, koordinasyon görüyorsan MUTLAKA Beden Eğitimi'dir!)
 - Fizik, kimya, biyoloji konuları birlikte varsa veya fen bilgisi sorusuysa → Fen Bilgisi
 - Tarih, coğrafya, vatandaşlık konuları birlikte varsa veya sosyal bilgiler sorusuysa → Sosyal Bilgiler
+- Sayılar, diziler, sayı bulmacaları, sayısal akıl yürütme, sayısal problem çözme varsa → Sayısal Mantık
+- Kelime ilişkileri, cümle mantığı, paragraf mantığı, sözel akıl yürütme, sözel problem çözme varsa → Sözel Mantık
+- Eğitim, öğretim yöntemleri, eğitim programları, eğitim psikolojisi, öğrenme teorileri varsa → Eğitim Bilimleri
+- Çocuk gelişimi, ergen gelişimi, bilişsel gelişim, sosyal gelişim, gelişim psikolojisi varsa → Gelişim
+- Din, ahlak, islam, kur'an, ibadet, din kültürü varsa → Din Kültürü ve Ahlak Bilgisi
+- Anaokulu, kreş, erken çocukluk, okul öncesi eğitim varsa → Okul Öncesi
+- Rehberlik, psikolojik danışmanlık, mesleki rehberlik, eğitsel rehberlik varsa → Rehberlik
+- Sınıf öğretmenliği, ilkokul, sınıf yönetimi, ilkokul öğretmenliği varsa → Sınıf Öğretmenliği
+- English, ingilizce kelime, ingilizce dilbilgisi, ingilizce okuma/yazma varsa → İngilizce
+- German, almanca kelime, almanca dilbilgisi, almanca okuma/yazma varsa → Almanca
+- Italian, italyanca kelime, italyanca dilbilgisi, italyanca okuma/yazma varsa → İtalyanca
+- Arabic, arapça kelime, arapça dilbilgisi, arapça okuma/yazma varsa → Arapça
 
 Sadece ders adını yaz, başka bir şey yazma.`;
 
@@ -380,7 +692,7 @@ Sadece ders adını yaz, başka bir şey yazma.`;
             },
           ],
           generationConfig: {
-            temperature: 0.1,
+            temperature: 0.05, // Daha deterministik sonuçlar için düşürüldü
             maxOutputTokens: 50, // Thinking modu olmadığı için 50 yeterli
             // responseMimeType v1 API'de desteklenmiyor, kaldırıldı
           },
@@ -389,43 +701,14 @@ Sadece ders adını yaz, başka bir şey yazma.`;
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      let errorData;
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText };
-      }
-      
-      console.error("❌ Gemini API Ders Tespit Hatası:", {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      
-      // API key hatası
-      if (response.status === 401 || response.status === 403) {
-        console.error("❌ API Key geçersiz veya yetkisiz!");
-      }
-      
-      // Rate limit
-      if (response.status === 429) {
-        console.error("❌ Rate limit aşıldı!");
-      }
-      
       return null;
     }
 
     const data = await response.json();
-    console.log("Gemini API yanıtı:", JSON.stringify(data, null, 2));
     
     // Finish reason kontrolü
     const finishReason = data.candidates?.[0]?.finishReason;
     const candidate = data.candidates?.[0];
-    
-    if (finishReason === "MAX_TOKENS") {
-      console.warn("⚠️ Token limiti aşıldı, yanıt kesilmiş olabilir");
-    }
     
     // JSON yanıtını parse et
     let detectedSubject: string | null = null;
@@ -433,21 +716,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
     try {
       // Content ve parts kontrolü
       if (!candidate?.content?.parts || candidate.content.parts.length === 0) {
-        console.error("❌ Content parts bulunamadı:", {
-          candidate: candidate,
-          finishReason: finishReason,
-          hasContent: !!candidate?.content,
-          hasParts: !!candidate?.content?.parts,
-          partsLength: candidate?.content?.parts?.length || 0
-        });
-        
-        // Eğer MAX_TOKENS ise, belki de kısmi yanıt var, tekrar kontrol et
-        if (finishReason === "MAX_TOKENS" && candidate?.content) {
-          console.warn("⚠️ MAX_TOKENS durumunda content var, detaylı kontrol ediliyor...");
-          // Content objesini detaylı logla
-          console.log("📋 Content detayları:", JSON.stringify(candidate.content, null, 2));
-        }
-        
         return null;
       }
       
@@ -455,9 +723,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
       let responseText = candidate.content.parts[0]?.text?.trim() || "";
       
       if (!responseText) {
-        console.error("❌ Response text boş, finishReason:", finishReason);
-        // Tüm parts'ı kontrol et
-        console.log("📋 Tüm parts:", candidate.content.parts);
         return null;
       }
       
@@ -472,8 +737,6 @@ Sadece ders adını yaz, başka bir şey yazma.`;
         responseText = responseText.trim();
       }
       
-      console.log("📝 Ders tespit yanıtı (temizlenmiş, ilk 200 karakter):", responseText.substring(0, 200));
-      
       if (responseText) {
         // Önce JSON formatında mı kontrol et
         if (responseText.trim().startsWith("{")) {
@@ -481,20 +744,16 @@ Sadece ders adını yaz, başka bir şey yazma.`;
             // JSON parse et
             const parsedResponse = JSON.parse(responseText);
             detectedSubject = parsedResponse.ders || parsedResponse.subject || null;
-            console.log("✅ JSON parse başarılı, ders:", detectedSubject);
           } catch (jsonError) {
             // JSON parse başarısız, direkt metin olarak al
-            console.warn("⚠️ JSON parse başarısız, metin olarak alınıyor:", jsonError);
             detectedSubject = responseText.replace(/[{}"']/g, "").split(":")[1]?.trim() || responseText.trim();
           }
         } else {
           // Direkt metin formatında, sadece ders adı
           detectedSubject = responseText.trim();
-          console.log("✅ Metin formatında ders:", detectedSubject);
         }
       }
     } catch (parseError) {
-      console.error("❌ Parse hatası:", parseError);
       // Direkt metin olarak al
       let responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       // Markdown temizle
@@ -506,14 +765,36 @@ Sadece ders adını yaz, başka bir şey yazma.`;
     
     if (detectedSubject) {
       const normalized = normalizeSubjectName(detectedSubject);
-      console.log("Tespit edilen ders:", detectedSubject, "→ Normalize:", normalized);
+      
+      // Eğer normalize edilemediyse, AI'dan gelen yanıtı daha agresif şekilde kontrol et
+      if (normalized === "Bilinmeyen" && detectedSubject) {
+        // Direkt olarak bazı yaygın varyasyonları kontrol et
+        const lowerDetected = detectedSubject.toLowerCase().trim();
+        
+        // Beden Eğitimi için agresif kontrol
+        if (lowerDetected.includes("beden") || lowerDetected.includes("spor") || 
+            lowerDetected.includes("jimnastik") || lowerDetected.includes("atletizm") ||
+            lowerDetected.includes("futbol") || lowerDetected.includes("basketbol") ||
+            lowerDetected.includes("egzersiz") || lowerDetected.includes("antrenman") ||
+            lowerDetected.includes("fitness") || lowerDetected.includes("motor") ||
+            lowerDetected.includes("koordinasyon")) {
+          return "Beden Eğitimi";
+        }
+        
+        // Matematik için agresif kontrol
+        if (lowerDetected.includes("math") || lowerDetected.includes("matematik") ||
+            lowerDetected.includes("sayı") || lowerDetected.includes("sayi") ||
+            lowerDetected.includes("denklem") || lowerDetected.includes("işlem") ||
+            lowerDetected.includes("islem")) {
+          return "Matematik";
+        }
+      }
+      
       return normalized;
     }
     
-    console.warn("Ders tespit edilemedi, yanıt:", data);
     return null;
   } catch (error) {
-    console.error("Gemini API çağrı hatası:", error);
     return null;
   }
 }
@@ -523,29 +804,103 @@ Sadece ders adını yaz, başka bir şey yazma.`;
  * Ders adını normalize eder (büyük/küçük harf, boşluk vb.)
  */
 function normalizeSubjectName(subject: string): string {
-  if (!subject) return "Bilinmeyen";
+  if (!subject) {
+    return "Bilinmeyen";
+  }
   
   const lowerSubject = subject.toLowerCase().trim();
   
-  // Önce direkt eşleşme kontrolü (en kesin)
-  const subjectNames = Object.keys(SUBJECT_KEYWORDS);
-  for (const name of subjectNames) {
-    const lowerName = name.toLowerCase();
-    // Tam eşleşme veya içeriyor mu kontrol et
-    if (lowerSubject === lowerName || lowerSubject.includes(lowerName)) {
-      return name;
+  // ÖNCE anahtar kelimelere göre eşleştir (daha kapsamlı ve güvenilir)
+  // ÖNEMLİ: Beden Eğitimi ve Geometri gibi özel durumlar için öncelik ver
+  const prioritySubjects = ["Beden Eğitimi", "Geometri", "Sayısal Mantık", "Sözel Mantık"];
+  
+  // Önce öncelikli dersleri kontrol et
+  for (const prioritySubject of prioritySubjects) {
+    const keywords = SUBJECT_KEYWORDS[prioritySubject];
+    if (keywords && keywords.some((keyword) => lowerSubject.includes(keyword))) {
+      return prioritySubject;
     }
   }
   
-  // Anahtar kelimelere göre eşleştir
+  // Sonra diğer dersleri kontrol et
   for (const [subjectName, keywords] of Object.entries(SUBJECT_KEYWORDS)) {
+    if (prioritySubjects.includes(subjectName)) continue; // Zaten kontrol edildi
+    
     if (keywords.some((keyword) => lowerSubject.includes(keyword))) {
       return subjectName;
     }
   }
   
-  // Özel durumlar - daha kapsamlı kontrol
-  if (lowerSubject.includes("math") || lowerSubject.includes("matematik") || lowerSubject.includes("mat")) {
+  // Sonra direkt eşleşme kontrolü (tam eşleşme veya çok benzer ise)
+  const subjectNames = Object.keys(SUBJECT_KEYWORDS);
+  for (const name of subjectNames) {
+    const lowerName = name.toLowerCase();
+    // Tam eşleşme kontrolü
+    if (lowerSubject === lowerName) {
+      return name;
+    }
+    // Çok benzer ise (örneğin "beden eğitimi" vs "beden eğitimi")
+    if (lowerSubject.includes(lowerName) && lowerName.length > 5) {
+      return name;
+    }
+  }
+  
+  // Beden Eğitimi için özel kontrol (ÇOK ERKEN - diğer kontrollerden önce)
+  // AI bazen "beden", "spor", "jimnastik" gibi kelimeleri döndürebilir
+  if (lowerSubject.includes("beden eğitimi") || lowerSubject.includes("beden egitimi") ||
+      lowerSubject.includes("beden") || lowerSubject.includes("spor") ||
+      lowerSubject.includes("atletizm") || lowerSubject.includes("koşu") ||
+      lowerSubject.includes("yürüyüş") || lowerSubject.includes("jimnastik") ||
+      lowerSubject.includes("futbol") || lowerSubject.includes("basketbol") ||
+      lowerSubject.includes("voleybol") || lowerSubject.includes("tenis") ||
+      lowerSubject.includes("yüzme") || lowerSubject.includes("fiziksel aktivite") ||
+      lowerSubject.includes("egzersiz") || lowerSubject.includes("antrenman") ||
+      lowerSubject.includes("fitness") || lowerSubject.includes("sağlık") ||
+      lowerSubject.includes("beslenme") || lowerSubject.includes("kas") ||
+      lowerSubject.includes("iskelet") || lowerSubject.includes("kalp") ||
+      lowerSubject.includes("dolaşım") || lowerSubject.includes("solunum") ||
+      lowerSubject.includes("motor") || lowerSubject.includes("koordinasyon") ||
+      lowerSubject.includes("denge") || lowerSubject.includes("esneklik") ||
+      lowerSubject.includes("dayanıklılık") || lowerSubject.includes("kuvvet") ||
+      lowerSubject.includes("hız") || lowerSubject.includes("çeviklik")) {
+    return "Beden Eğitimi";
+  }
+  
+  // Matematik için özel kontrol (Geometri'den ÖNCE - çünkü geometri matematik altında)
+  // Ama Geometri spesifik terimlerle gelirse öncelik Geometri'ye verilmeli
+  // Önce genel matematik terimlerini kontrol et
+  if (lowerSubject.includes("math") || lowerSubject.includes("matematik") || 
+      lowerSubject.includes("mathematics") || lowerSubject.includes("mat ") ||
+      (lowerSubject.includes("mat") && !lowerSubject.includes("matematiksel mantık") && !lowerSubject.includes("matematiksel mantik"))) {
+    // Eğer geometri spesifik terimleri varsa Geometri döndür
+    if (lowerSubject.includes("geometri") || lowerSubject.includes("geometrik") ||
+        lowerSubject.includes("üçgen") || lowerSubject.includes("ucgen") ||
+        lowerSubject.includes("dörtgen") || lowerSubject.includes("dortgen") ||
+        lowerSubject.includes("çember") || lowerSubject.includes("cember") ||
+        lowerSubject.includes("açı") || lowerSubject.includes("aci")) {
+      return "Geometri";
+    }
+    return "Matematik";
+  }
+  
+  // Sayı, rakam, işlem gibi temel matematik terimleri
+  if ((lowerSubject.includes("sayı") || lowerSubject.includes("sayi") || lowerSubject.includes("rakam") ||
+       lowerSubject.includes("denklem") || lowerSubject.includes("equation") ||
+       lowerSubject.includes("fonksiyon") || lowerSubject.includes("function") ||
+       lowerSubject.includes("toplama") || lowerSubject.includes("çıkarma") || lowerSubject.includes("cikarma") ||
+       lowerSubject.includes("çarpma") || lowerSubject.includes("carpma") || lowerSubject.includes("bölme") || lowerSubject.includes("bolme") ||
+       lowerSubject.includes("işlem") || lowerSubject.includes("islem") || lowerSubject.includes("hesaplama") ||
+       lowerSubject.includes("formül") || lowerSubject.includes("formul") || lowerSubject.includes("formula")) &&
+      !lowerSubject.includes("sayısal mantık") && !lowerSubject.includes("sayisal mantik") &&
+      !lowerSubject.includes("sözel") && !lowerSubject.includes("sozel")) {
+    // Geometri terimleri varsa Geometri
+    if (lowerSubject.includes("geometri") || lowerSubject.includes("geometrik") ||
+        lowerSubject.includes("üçgen") || lowerSubject.includes("ucgen") ||
+        lowerSubject.includes("dörtgen") || lowerSubject.includes("dortgen") ||
+        lowerSubject.includes("çember") || lowerSubject.includes("cember") ||
+        lowerSubject.includes("açı") || lowerSubject.includes("aci")) {
+      return "Geometri";
+    }
     return "Matematik";
   }
   if (lowerSubject.includes("physics") || lowerSubject.includes("fizik")) {
@@ -568,15 +923,20 @@ function normalizeSubjectName(subject: string): string {
     }
     return "Türkçe";
   }
-  // Tarih için daha kapsamlı kontrol
+  // Tarih için daha kapsamlı kontrol (Beden Eğitimi zaten yukarıda kontrol edildi - "devlet" kelimesi çok genel, daha spesifik kontrol)
   if (lowerSubject.includes("history") || lowerSubject.includes("tarih") || 
       lowerSubject.includes("osmanlı") || lowerSubject.includes("osmanli") ||
       lowerSubject.includes("göktürk") || lowerSubject.includes("gokturk") ||
       lowerSubject.includes("uygur") || lowerSubject.includes("cumhuriyet") ||
       lowerSubject.includes("savaş") || lowerSubject.includes("savas") ||
-      lowerSubject.includes("devlet") || lowerSubject.includes("medeniyet") ||
+      (lowerSubject.includes("devlet") && !lowerSubject.includes("beden") && !lowerSubject.includes("spor")) ||
+      lowerSubject.includes("medeniyet") ||
       lowerSubject.includes("selçuklu") || lowerSubject.includes("selcuklu") ||
-      lowerSubject.includes("padişah") || lowerSubject.includes("padisah")) {
+      lowerSubject.includes("padişah") || lowerSubject.includes("padisah") ||
+      lowerSubject.includes("imparatorluk") || lowerSubject.includes("beylik") ||
+      lowerSubject.includes("sultan") || lowerSubject.includes("fetih") ||
+      lowerSubject.includes("antlaşma") || lowerSubject.includes("antlasma") ||
+      lowerSubject.includes("inkılap") || lowerSubject.includes("inkilap")) {
     return "Tarih";
   }
   if (lowerSubject.includes("geography") || lowerSubject.includes("coğrafya") || lowerSubject.includes("cografya")) {
@@ -629,25 +989,6 @@ function normalizeSubjectName(subject: string): string {
       lowerSubject.includes("milli edebiyat") || lowerSubject.includes("cumhuriyet dönemi")) {
     return "Edebiyat";
   }
-  // Beden Eğitimi için kontrol
-  if (lowerSubject.includes("beden eğitimi") || lowerSubject.includes("beden egitimi") ||
-      lowerSubject.includes("beden") || lowerSubject.includes("spor") ||
-      lowerSubject.includes("atletizm") || lowerSubject.includes("koşu") ||
-      lowerSubject.includes("yürüyüş") || lowerSubject.includes("jimnastik") ||
-      lowerSubject.includes("futbol") || lowerSubject.includes("basketbol") ||
-      lowerSubject.includes("voleybol") || lowerSubject.includes("tenis") ||
-      lowerSubject.includes("yüzme") || lowerSubject.includes("fiziksel aktivite") ||
-      lowerSubject.includes("egzersiz") || lowerSubject.includes("antrenman") ||
-      lowerSubject.includes("fitness") || lowerSubject.includes("sağlık") ||
-      lowerSubject.includes("beslenme") || lowerSubject.includes("kas") ||
-      lowerSubject.includes("iskelet") || lowerSubject.includes("kalp") ||
-      lowerSubject.includes("dolaşım") || lowerSubject.includes("solunum") ||
-      lowerSubject.includes("motor") || lowerSubject.includes("koordinasyon") ||
-      lowerSubject.includes("denge") || lowerSubject.includes("esneklik") ||
-      lowerSubject.includes("dayanıklılık") || lowerSubject.includes("kuvvet") ||
-      lowerSubject.includes("hız") || lowerSubject.includes("çeviklik")) {
-    return "Beden Eğitimi";
-  }
   // Güncel Olaylar için kontrol (genişletilmiş)
   if (lowerSubject.includes("güncel") || lowerSubject.includes("guncel") ||
       lowerSubject.includes("aktüel") || lowerSubject.includes("aktuel") ||
@@ -677,8 +1018,222 @@ function normalizeSubjectName(subject: string): string {
       (lowerSubject.includes("sosyal") && !lowerSubject.includes("sosyal bilimler"))) {
     return "Sosyal Bilgiler";
   }
+  // Geometri için kontrol
+  if (lowerSubject.includes("geometri") || lowerSubject.includes("geometrik") ||
+      lowerSubject.includes("açı") || lowerSubject.includes("üçgen") ||
+      lowerSubject.includes("dörtgen") || lowerSubject.includes("çember") ||
+      lowerSubject.includes("daire") || lowerSubject.includes("alan") ||
+      lowerSubject.includes("çevre") || lowerSubject.includes("hacim") ||
+      lowerSubject.includes("koordinat") || lowerSubject.includes("vektör") ||
+      lowerSubject.includes("prizma") || lowerSubject.includes("piramit") ||
+      lowerSubject.includes("küre") || lowerSubject.includes("silindir") ||
+      lowerSubject.includes("koni")) {
+    return "Geometri";
+  }
+  // Sayısal Mantık için kontrol
+  if (lowerSubject.includes("sayısal mantık") || lowerSubject.includes("sayisal mantik") ||
+      (lowerSubject.includes("sayısal") && lowerSubject.includes("mantık")) ||
+      (lowerSubject.includes("sayisal") && lowerSubject.includes("mantik")) ||
+      lowerSubject.includes("sayı dizileri") || lowerSubject.includes("sayi dizileri") ||
+      lowerSubject.includes("sayı bulmacaları") || lowerSubject.includes("sayi bulmacalari") ||
+      lowerSubject.includes("matematiksel mantık") || lowerSubject.includes("matematiksel mantik") ||
+      lowerSubject.includes("sayısal akıl yürütme") || lowerSubject.includes("sayisal akil yurutme") ||
+      lowerSubject.includes("sayısal problem") || lowerSubject.includes("sayisal problem") ||
+      lowerSubject.includes("sayısal test") || lowerSubject.includes("sayisal test") ||
+      lowerSubject.includes("sayısal yetenek") || lowerSubject.includes("sayisal yetenek") ||
+      lowerSubject.includes("sayısal düşünme") || lowerSubject.includes("sayisal dusunme") ||
+      lowerSubject.includes("sayısal zeka") || lowerSubject.includes("sayisal zeka") ||
+      lowerSubject.includes("sayısal beceri") || lowerSubject.includes("sayisal beceri") ||
+      lowerSubject.includes("sayısal analiz") || lowerSubject.includes("sayisal analiz") ||
+      lowerSubject.includes("sayısal çıkarım") || lowerSubject.includes("sayisal cikarim") ||
+      lowerSubject.includes("sayısal muhakeme") || lowerSubject.includes("sayisal muhakeme") ||
+      lowerSubject.includes("sayısal bulmaca") || lowerSubject.includes("sayisal bulmaca") ||
+      lowerSubject.includes("sayısal oyun") || lowerSubject.includes("sayisal oyun") ||
+      lowerSubject.includes("sayısal sıralama") || lowerSubject.includes("sayisal siralam") ||
+      lowerSubject.includes("sayısal ilişki") || lowerSubject.includes("sayisal iliski") ||
+      lowerSubject.includes("sayısal desen") || lowerSubject.includes("sayisal desen") ||
+      lowerSubject.includes("sayısal kural") || lowerSubject.includes("sayisal kural")) {
+    return "Sayısal Mantık";
+  }
+  // Sözel Mantık için kontrol
+  if (lowerSubject.includes("sözel mantık") || lowerSubject.includes("sozel mantik") ||
+      (lowerSubject.includes("sözel") && lowerSubject.includes("mantık")) ||
+      (lowerSubject.includes("sozel") && lowerSubject.includes("mantik")) ||
+      lowerSubject.includes("kelime ilişkileri") || lowerSubject.includes("kelime iliskileri") ||
+      lowerSubject.includes("cümle mantığı") || lowerSubject.includes("cumle mantigi") ||
+      lowerSubject.includes("paragraf mantığı") || lowerSubject.includes("paragraf mantigi") ||
+      lowerSubject.includes("metin analizi") || lowerSubject.includes("sözel akıl yürütme") ||
+      lowerSubject.includes("sozel akil yurutme") || lowerSubject.includes("sözel problem") ||
+      lowerSubject.includes("sozel problem") || lowerSubject.includes("sözel test") ||
+      lowerSubject.includes("sozel test") || lowerSubject.includes("sözel yetenek") ||
+      lowerSubject.includes("sozel yetenek") || lowerSubject.includes("sözel düşünme") ||
+      lowerSubject.includes("sozel dusunme") || lowerSubject.includes("sözel bulmaca") ||
+      lowerSubject.includes("sozel bulmaca") || lowerSubject.includes("sözel zeka") ||
+      lowerSubject.includes("sozel zeka") || lowerSubject.includes("sözel beceri") ||
+      lowerSubject.includes("sozel beceri") || lowerSubject.includes("sözel analiz") ||
+      lowerSubject.includes("sozel analiz") || lowerSubject.includes("sözel çıkarım") ||
+      lowerSubject.includes("sozel cikarim") || lowerSubject.includes("sözel muhakeme") ||
+      lowerSubject.includes("sozel muhakeme") || lowerSubject.includes("sözel oyun") ||
+      lowerSubject.includes("sozel oyun") || lowerSubject.includes("sözel sıralama") ||
+      lowerSubject.includes("sozel siralam") || lowerSubject.includes("sözel ilişki") ||
+      lowerSubject.includes("sozel iliski") || lowerSubject.includes("sözel desen") ||
+      lowerSubject.includes("sozel desen") || lowerSubject.includes("sözel kural") ||
+      lowerSubject.includes("sozel kural") || lowerSubject.includes("kelime bulmacası") ||
+      lowerSubject.includes("kelime bulmacasi") || lowerSubject.includes("cümle tamamlama") ||
+      lowerSubject.includes("cumle tamamlama") || lowerSubject.includes("paragraf tamamlama") ||
+      lowerSubject.includes("metin tamamlama")) {
+    return "Sözel Mantık";
+  }
+  // Geometri için kontrol (Matematik'ten önce kontrol edilmeli)
+  if (lowerSubject.includes("geometri") || lowerSubject.includes("geometrik") ||
+      lowerSubject.includes("açı") || lowerSubject.includes("aci") ||
+      lowerSubject.includes("üçgen") || lowerSubject.includes("ucgen") ||
+      lowerSubject.includes("dörtgen") || lowerSubject.includes("dortgen") ||
+      lowerSubject.includes("çember") || lowerSubject.includes("cember") ||
+      lowerSubject.includes("daire") || lowerSubject.includes("alan") ||
+      lowerSubject.includes("çevre") || lowerSubject.includes("cevre") ||
+      lowerSubject.includes("hacim") || lowerSubject.includes("koordinat") ||
+      lowerSubject.includes("vektör") || lowerSubject.includes("vektor") ||
+      lowerSubject.includes("prizma") || lowerSubject.includes("piramit") ||
+      lowerSubject.includes("küre") || lowerSubject.includes("kure") ||
+      lowerSubject.includes("silindir") || lowerSubject.includes("koni")) {
+    return "Geometri";
+  }
+  // Eğitim Bilimleri için kontrol
+  if (lowerSubject.includes("eğitim bilimleri") || lowerSubject.includes("egitim bilimleri") ||
+      (lowerSubject.includes("eğitim") && lowerSubject.includes("bilim")) ||
+      (lowerSubject.includes("egitim") && lowerSubject.includes("bilim")) ||
+      lowerSubject.includes("eğitim psikolojisi") || lowerSubject.includes("egitim psikolojisi") ||
+      lowerSubject.includes("öğretim yöntemleri") || lowerSubject.includes("ogretim yontemleri") ||
+      lowerSubject.includes("eğitim programları") || lowerSubject.includes("egitim programlari") ||
+      lowerSubject.includes("eğitim felsefesi") || lowerSubject.includes("egitim felsefesi") ||
+      lowerSubject.includes("öğrenme teorileri") || lowerSubject.includes("ogrenme teorileri") ||
+      lowerSubject.includes("eğitim yönetimi") || lowerSubject.includes("egitim yonetimi")) {
+    return "Eğitim Bilimleri";
+  }
+  // Gelişim için kontrol
+  if (lowerSubject.includes("gelişim") || lowerSubject.includes("gelisim") ||
+      lowerSubject.includes("gelişim psikolojisi") || lowerSubject.includes("gelisim psikolojisi") ||
+      lowerSubject.includes("çocuk gelişimi") || lowerSubject.includes("cocuk gelisimi") ||
+      lowerSubject.includes("ergen gelişimi") || lowerSubject.includes("ergen gelisimi") ||
+      lowerSubject.includes("bilişsel gelişim") || lowerSubject.includes("bilissel gelisim") ||
+      lowerSubject.includes("sosyal gelişim") || lowerSubject.includes("sosyal gelisim") ||
+      lowerSubject.includes("duygusal gelişim") || lowerSubject.includes("duygusal gelisim") ||
+      lowerSubject.includes("fiziksel gelişim") || lowerSubject.includes("fiziksel gelisim") ||
+      lowerSubject.includes("dil gelişimi") || lowerSubject.includes("dil gelisimi") ||
+      lowerSubject.includes("ahlak gelişimi") || lowerSubject.includes("ahlak gelisimi") ||
+      lowerSubject.includes("kişilik gelişimi") || lowerSubject.includes("kisilik gelisimi") ||
+      lowerSubject.includes("motor gelişim") || lowerSubject.includes("motor gelisim") ||
+      lowerSubject.includes("gelişim dönemleri") || lowerSubject.includes("gelisim donemleri") ||
+      lowerSubject.includes("gelişim teorileri") || lowerSubject.includes("gelisim teorileri")) {
+    return "Gelişim";
+  }
+  // Din Kültürü ve Ahlak Bilgisi için kontrol
+  if (lowerSubject.includes("din kültürü") || lowerSubject.includes("din kulturu") ||
+      lowerSubject.includes("din kültürü ve ahlak bilgisi") || lowerSubject.includes("din kulturu ve ahlak bilgisi") ||
+      (lowerSubject.includes("din") && lowerSubject.includes("ahlak")) ||
+      lowerSubject.includes("islam") || lowerSubject.includes("kur'an") ||
+      lowerSubject.includes("kuran") || lowerSubject.includes("hadis") ||
+      lowerSubject.includes("peygamber") || lowerSubject.includes("ibadet") ||
+      lowerSubject.includes("namaz") || lowerSubject.includes("oruç") ||
+      lowerSubject.includes("oruc") || lowerSubject.includes("zekat") ||
+      lowerSubject.includes("hac") || lowerSubject.includes("din bilgisi") ||
+      lowerSubject.includes("din eğitimi") || lowerSubject.includes("din egitimi") ||
+      lowerSubject.includes("islam tarihi") || lowerSubject.includes("islam kulturu") ||
+      lowerSubject.includes("ahlak eğitimi") || lowerSubject.includes("ahlak egitimi") ||
+      lowerSubject.includes("değerler eğitimi") || lowerSubject.includes("degerler egitimi")) {
+    return "Din Kültürü ve Ahlak Bilgisi";
+  }
+  // Okul Öncesi için kontrol
+  if (lowerSubject.includes("okul öncesi") || lowerSubject.includes("okul oncesi") ||
+      lowerSubject.includes("anaokulu") || lowerSubject.includes("kreş") ||
+      lowerSubject.includes("kres") || lowerSubject.includes("erken çocukluk") ||
+      lowerSubject.includes("erken cocukluk") || lowerSubject.includes("okul öncesi eğitim") ||
+      lowerSubject.includes("okul oncesi egitim") || lowerSubject.includes("anaokulu eğitimi") ||
+      lowerSubject.includes("anaokulu egitimi") || lowerSubject.includes("erken çocukluk eğitimi") ||
+      lowerSubject.includes("erken cocukluk egitimi") || lowerSubject.includes("okul öncesi program") ||
+      lowerSubject.includes("okul oncesi program") || lowerSubject.includes("okul öncesi öğretmenliği") ||
+      lowerSubject.includes("okul oncesi ogretmenligi")) {
+    return "Okul Öncesi";
+  }
+  // Rehberlik için kontrol
+  if (lowerSubject.includes("rehberlik") ||
+      lowerSubject.includes("psikolojik danışmanlık") || lowerSubject.includes("psikolojik danismanlik") ||
+      lowerSubject.includes("rehberlik ve psikolojik danışmanlık") || lowerSubject.includes("rehberlik ve psikolojik danismanlik") ||
+      lowerSubject.includes("rehberlik hizmetleri") || lowerSubject.includes("mesleki rehberlik") ||
+      lowerSubject.includes("eğitsel rehberlik") || lowerSubject.includes("egitsel rehberlik") ||
+      lowerSubject.includes("kişisel rehberlik") || lowerSubject.includes("kisisel rehberlik") ||
+      lowerSubject.includes("rehberlik programı") || lowerSubject.includes("rehberlik programi") ||
+      lowerSubject.includes("rehberlik testleri") || lowerSubject.includes("rehberlik teknikleri") ||
+      lowerSubject.includes("rehberlik yaklaşımları") || lowerSubject.includes("rehberlik yaklasimlari") ||
+      lowerSubject.includes("rehberlik modelleri") || lowerSubject.includes("rehberlik kuramları") ||
+      lowerSubject.includes("rehberlik kuramlari")) {
+    return "Rehberlik";
+  }
+  // Sınıf Öğretmenliği için kontrol
+  if (lowerSubject.includes("sınıf öğretmenliği") || lowerSubject.includes("sinif ogretmenligi") ||
+      lowerSubject.includes("sınıf öğretmeni") || lowerSubject.includes("sinif ogretmeni") ||
+      lowerSubject.includes("ilkokul") || lowerSubject.includes("ilkokul öğretmenliği") ||
+      lowerSubject.includes("ilkokul ogretmenligi") || lowerSubject.includes("sınıf öğretmeni eğitimi") ||
+      lowerSubject.includes("sinif ogretmeni egitimi") || lowerSubject.includes("sınıf yönetimi") ||
+      lowerSubject.includes("sinif yonetimi") || lowerSubject.includes("sınıf içi öğretim") ||
+      lowerSubject.includes("sinif ici ogretim") || lowerSubject.includes("sınıf öğretmenliği programı") ||
+      lowerSubject.includes("sinif ogretmenligi programi") || lowerSubject.includes("ilkokul programı") ||
+      lowerSubject.includes("ilkokul programi")) {
+    return "Sınıf Öğretmenliği";
+  }
+  // İngilizce için kontrol
+  if (lowerSubject.includes("ingilizce") || lowerSubject.includes("english") ||
+      lowerSubject.includes("ingiliz dili") || lowerSubject.includes("ingiliz dili ve edebiyatı") ||
+      lowerSubject.includes("ingiliz dili ve edebiyati") || lowerSubject.includes("ingilizce dilbilgisi") ||
+      lowerSubject.includes("ingilizce kelime") || lowerSubject.includes("ingilizce okuma") ||
+      lowerSubject.includes("ingilizce yazma") || lowerSubject.includes("ingilizce konuşma") ||
+      lowerSubject.includes("ingilizce konusma") || lowerSubject.includes("ingilizce dinleme") ||
+      lowerSubject.includes("ingilizce test") || lowerSubject.includes("ingilizce sınav") ||
+      lowerSubject.includes("ingilizce sinav") || (lowerSubject.includes("yabancı dil") && lowerSubject.includes("ingilizce")) ||
+      (lowerSubject.includes("yabanci dil") && lowerSubject.includes("ingilizce"))) {
+    return "İngilizce";
+  }
+  // Almanca için kontrol
+  if (lowerSubject.includes("almanca") || lowerSubject.includes("german") ||
+      lowerSubject.includes("alman dili") || lowerSubject.includes("alman dili ve edebiyatı") ||
+      lowerSubject.includes("alman dili ve edebiyati") || lowerSubject.includes("almanca dilbilgisi") ||
+      lowerSubject.includes("almanca kelime") || lowerSubject.includes("almanca okuma") ||
+      lowerSubject.includes("almanca yazma") || lowerSubject.includes("almanca konuşma") ||
+      lowerSubject.includes("almanca konusma") || lowerSubject.includes("almanca dinleme") ||
+      lowerSubject.includes("almanca test") || lowerSubject.includes("almanca sınav") ||
+      lowerSubject.includes("almanca sinav") || (lowerSubject.includes("yabancı dil") && lowerSubject.includes("almanca")) ||
+      (lowerSubject.includes("yabanci dil") && lowerSubject.includes("almanca"))) {
+    return "Almanca";
+  }
+  // İtalyanca için kontrol
+  if (lowerSubject.includes("italyanca") || lowerSubject.includes("italian") ||
+      lowerSubject.includes("italyan dili") || lowerSubject.includes("italyan dili ve edebiyatı") ||
+      lowerSubject.includes("italyan dili ve edebiyati") || lowerSubject.includes("italyanca dilbilgisi") ||
+      lowerSubject.includes("italyanca kelime") || lowerSubject.includes("italyanca okuma") ||
+      lowerSubject.includes("italyanca yazma") || lowerSubject.includes("italyanca konuşma") ||
+      lowerSubject.includes("italyanca konusma") || lowerSubject.includes("italyanca dinleme") ||
+      lowerSubject.includes("italyanca test") || lowerSubject.includes("italyanca sınav") ||
+      lowerSubject.includes("italyanca sinav") || (lowerSubject.includes("yabancı dil") && lowerSubject.includes("italyanca")) ||
+      (lowerSubject.includes("yabanci dil") && lowerSubject.includes("italyanca"))) {
+    return "İtalyanca";
+  }
+  // Arapça için kontrol
+  if (lowerSubject.includes("arapça") || lowerSubject.includes("arapca") || lowerSubject.includes("arabic") ||
+      lowerSubject.includes("arap dili") || lowerSubject.includes("arap dili ve edebiyatı") ||
+      lowerSubject.includes("arap dili ve edebiyati") || lowerSubject.includes("arapça dilbilgisi") ||
+      lowerSubject.includes("arapca dilbilgisi") || lowerSubject.includes("arapça kelime") ||
+      lowerSubject.includes("arapca kelime") || lowerSubject.includes("arapça okuma") ||
+      lowerSubject.includes("arapca okuma") || lowerSubject.includes("arapça yazma") ||
+      lowerSubject.includes("arapca yazma") || lowerSubject.includes("arapça konuşma") ||
+      lowerSubject.includes("arapca konusma") || lowerSubject.includes("arapça dinleme") ||
+      lowerSubject.includes("arapca dinleme") || lowerSubject.includes("arapça test") ||
+      lowerSubject.includes("arapca test") || lowerSubject.includes("arapça sınav") ||
+      lowerSubject.includes("arapca sinav") || (lowerSubject.includes("yabancı dil") && lowerSubject.includes("arapça")) ||
+      (lowerSubject.includes("yabanci dil") && lowerSubject.includes("arapca"))) {
+    return "Arapça";
+  }
   
-  console.warn("Ders normalize edilemedi:", subject);
   return "Bilinmeyen";
 }
 
@@ -687,24 +1242,18 @@ export async function POST(request: NextRequest) {
     const { imageUrl } = await request.json();
 
     if (!imageUrl) {
-      console.error("❌ imageUrl gerekli");
       return NextResponse.json({ error: "imageUrl gerekli" }, { status: 400 });
     }
-
-    console.log("🔍 Ders tespiti başlatılıyor:", imageUrl);
 
     // AI servisi ile ders tespiti (Firestore ayarlarına göre)
     const subject = await detectSubject(imageUrl);
     
     if (!subject || subject === "Bilinmeyen") {
-      console.warn("⚠️ Ders tespit edilemedi veya 'Bilinmeyen' döndü");
       return NextResponse.json({ subject: "Bilinmeyen" });
     }
 
-    console.log("✅ Ders başarıyla tespit edildi:", subject);
     return NextResponse.json({ subject });
   } catch (error: any) {
-    console.error("❌ Ders tespit hatası:", error);
     return NextResponse.json(
       { error: error.message || "Ders tespit edilemedi" },
       { status: 500 }

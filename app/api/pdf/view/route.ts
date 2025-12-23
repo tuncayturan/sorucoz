@@ -35,9 +35,7 @@ export async function GET(request: NextRequest) {
         "Cache-Control": "public, max-age=31536000, immutable",
       },
     });
-  } catch (error: any) {
-    console.error("PDF view error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  } catch (error: any) {    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
 

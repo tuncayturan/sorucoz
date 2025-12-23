@@ -73,9 +73,7 @@ export default function AdminAyarlarPage() {
           yearlyDiscountPercent: 15,
         });
       }
-    } catch (error) {
-      console.error("Ayarlar yüklenirken hata:", error);
-      showToast("Ayarlar yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Ayarlar yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -146,9 +144,7 @@ export default function AdminAyarlarPage() {
         "Bildirim Sesi";
       
       showToast(`${typeLabel} başarıyla güncellendi!`, "success");
-    } catch (error: any) {
-      console.error("Yükleme hatası:", error);
-      showToast(error.message || "Yükleme başarısız", "error");
+    } catch (error: any) {      showToast(error.message || "Yükleme başarısız", "error");
     } finally {
       setUploading(null);
     }
@@ -677,9 +673,7 @@ export default function AdminAyarlarPage() {
                       src={settings.landingVideoUrl}
                       controls
                       className="w-full h-full object-contain"
-                      onError={(e) => {
-                        console.error("Video yüklenemedi:", e);
-                      }}
+                      onError={(e) => {                      }}
                     >
                       Tarayıcınız video oynatmayı desteklemiyor.
                     </video>

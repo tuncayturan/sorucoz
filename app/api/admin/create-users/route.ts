@@ -135,9 +135,7 @@ export async function POST(req: NextRequest) {
         failed: results.errors.length,
       },
     });
-  } catch (error: any) {
-    console.error("API hatası:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { error: "Sunucu hatası", details: error.message },
       { status: 500 }
     );

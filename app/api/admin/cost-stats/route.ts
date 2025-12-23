@@ -210,9 +210,7 @@ export async function GET(request: NextRequest) {
         end: endTimestamp.toDate().toISOString(),
       },
     });
-  } catch (error: any) {
-    console.error("Maliyet istatistikleri hatası:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       {
         error: error.message || "Maliyet istatistikleri alınamadı",
       },

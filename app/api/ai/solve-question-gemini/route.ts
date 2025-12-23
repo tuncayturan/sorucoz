@@ -67,7 +67,6 @@ async function solveQuestionWithGemini(imageUrl: string, ders: string): Promise<
       let errorMessage = "Soruyu çözerken hata oluştu";
       try {
         const error = await response.json();
-        console.error("Gemini API hatası:", error);
         errorMessage = error.error?.message || errorMessage;
         
         // Quota hatası kontrolü
@@ -103,7 +102,6 @@ async function solveQuestionWithGemini(imageUrl: string, ders: string): Promise<
         finalAnswer: solution.finalAnswer || "Cevap bulunamadı",
       };
     } catch (parseError) {
-      console.error("JSON parse hatası:", parseError);
       // JSON parse hatası durumunda fallback
       const lines = content.split('\n').filter((line: string) => line.trim());
       return {
@@ -115,7 +113,6 @@ async function solveQuestionWithGemini(imageUrl: string, ders: string): Promise<
       };
     }
   } catch (error: any) {
-    console.error("Gemini API çağrı hatası:", error);
     throw error;
   }
 }
@@ -137,9 +134,7 @@ export async function POST(request: NextRequest) {
     const solution = await solveQuestionWithGemini(imageUrl, ders);
 
     return NextResponse.json(solution);
-  } catch (error: any) {
-    console.error("Soru çözme hatası:", error);
-    const errorMessage = error.message || "Soruyu çözerken bir hata oluştu";
+  } catch (error: any) {    const errorMessage = error.message || "Soruyu çözerken bir hata oluştu";
     
     // Gemini API key yoksa
     if (errorMessage.includes("GEMINI_API_KEY")) {

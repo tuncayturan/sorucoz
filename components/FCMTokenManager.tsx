@@ -26,22 +26,8 @@ export default function FCMTokenManager() {
     const isIOSChrome = isIOS && /CriOS/i.test(ua);
     const isIOSFirefox = isIOS && /FxiOS/i.test(ua);
     const isIOSEdge = isIOS && /EdgiOS/i.test(ua);
-    const isIOSNonSafari = isIOSChrome || isIOSFirefox || isIOSEdge;
-    
-    console.log("[FCMTokenManager] Browser detection:", {
-      isIOS,
-      isIOSSafari,
-      isIOSChrome,
-      isIOSFirefox,
-      isIOSEdge,
-      isIOSNonSafari,
-      userAgent: ua
-    });
-    
-    // iOS'ta Safari olmayan tarayıcıda Notification API yok
-    if (isIOSNonSafari) {
-      console.warn("[FCMTokenManager] ⚠️ iOS non-Safari browser detected - Notifications not supported");
-      // iOS'ta Safari dışı tarayıcı uyarısı göster
+    const isIOSNonSafari = isIOSChrome || isIOSFirefox || isIOSEdge;    // iOS'ta Safari olmayan tarayıcıda Notification API yok
+    if (isIOSNonSafari) {      // iOS'ta Safari dışı tarayıcı uyarısı göster
       if (user) {
         setShow(true);
       }
@@ -60,10 +46,7 @@ export default function FCMTokenManager() {
                     (window.navigator as any).standalone === true;
       
       // iOS'ta bildirimler sadece PWA modunda çalışır
-      if (isIOS && !isPWA && isIOSSafari) {
-        console.log("[FCMTokenManager] iOS Safari detected but not in PWA mode");
-        console.log("[FCMTokenManager] Notifications require app to be added to home screen");
-        // iOS PWA uyarısı göster (AddToHomeScreenPrompt zaten gösteriyor)
+      if (isIOS && !isPWA && isIOSSafari) {        // iOS PWA uyarısı göster (AddToHomeScreenPrompt zaten gösteriyor)
         return;
       }
       
@@ -78,29 +61,20 @@ export default function FCMTokenManager() {
           // Popup gösterildikten 1.5 saniye sonra otomatik olarak izin iste
           // NOT: User gesture gerekli ama popup gösterildikten sonra kısa bir süre bekleyip otomatik isteyebiliriz
           setTimeout(async () => {
-            // Otomatik izin iste (sadece popup gösterildikten sonra)
-            console.log("[FCMTokenManager] Auto-requesting permission after popup shown");
-            try {
+            // Otomatik izin iste (sadece popup gösterildikten sonra)            try {
               // Direkt olarak izin iste
               if ('Notification' in window && Notification.permission === 'default') {
-                const permission = await Notification.requestPermission();
-                console.log("[FCMTokenManager] Auto-permission result:", permission);
-                
-                if (permission === 'granted') {
+                const permission = await Notification.requestPermission();                if (permission === 'granted') {
                   // İzin verildi, token al
                   const { requestNotificationPermission, saveFCMTokenToUser } = await import("@/lib/fcmUtils");
                   const token = await requestNotificationPermission();
                   if (token && user) {
                     await saveFCMTokenToUser(user.uid, token);
                     setPermission("granted");
-                    setShow(false);
-                    console.log("[FCMTokenManager] ✅ Auto-permission granted and token saved");
-                  }
+                    setShow(false);                  }
                 }
               }
-            } catch (autoError) {
-              console.error("[FCMTokenManager] Auto-permission error:", autoError);
-              // Hata olsa bile popup açık kalsın, kullanıcı manuel tıklayabilir
+            } catch (autoError) {              // Hata olsa bile popup açık kalsın, kullanıcı manuel tıklayabilir
             }
           }, 1500);
         } else {
@@ -111,13 +85,9 @@ export default function FCMTokenManager() {
       
       // İzin verilmişse ama token yoksa da göster (token yenileme için)
       if (Notification.permission === "granted" && user) {
-        // Token kontrolü yapılabilir ama şimdilik sadece izin kontrolü yeterli
-        console.log("[FCMTokenManager] Permission granted, token should be available");
-      }
+        // Token kontrolü yapılabilir ama şimdilik sadece izin kontrolü yeterli      }
     } else if (user) {
-      // Notification API yok - muhtemelen iOS non-Safari
-      console.warn("[FCMTokenManager] ⚠️ Notification API not available");
-      setShow(true);
+      // Notification API yok - muhtemelen iOS non-Safari      setShow(true);
     }
   }, [user]);
 
@@ -129,46 +99,22 @@ export default function FCMTokenManager() {
 
     try {
       setLoading(true);
-      console.log("[FCMTokenManager] 📱 User clicked - requesting permission...");
-      console.log("[FCMTokenManager] 👤 User:", user.email);
-      console.log("[FCMTokenManager] 🌐 Environment:", {
-        hasNotification: 'Notification' in window,
-        hasServiceWorker: 'serviceWorker' in navigator,
-        notificationPermission: 'Notification' in window ? Notification.permission : 'N/A',
-        userAgent: navigator.userAgent.substring(0, 100)
-      });
       
       // İlk kontrol: Notification API var mı?
-      if (!('Notification' in window)) {
-        console.error("[FCMTokenManager] ❌ Notification API not available");
-        alert("❌ Bu tarayıcıda bildirimler desteklenmiyor.\n\niOS kullanıyorsanız Safari tarayıcısını kullanın.");
+      if (!('Notification' in window)) {        alert("❌ Bu tarayıcıda bildirimler desteklenmiyor.\n\niOS kullanıyorsanız Safari tarayıcısını kullanın.");
         setLoading(false);
         return;
       }
       
       // İkinci kontrol: Service Worker var mı?
-      if (!('serviceWorker' in navigator)) {
-        console.error("[FCMTokenManager] ❌ Service Worker not supported");
-        alert("❌ Service Worker desteklenmiyor.\n\nLütfen tarayıcınızı güncelleyin.");
+      if (!('serviceWorker' in navigator)) {        alert("❌ Service Worker desteklenmiyor.\n\nLütfen tarayıcınızı güncelleyin.");
         setLoading(false);
         return;
-      }
-      
-      console.log("[FCMTokenManager] ✅ All APIs available, requesting permission...");
-      
-      // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır
-      console.log("[FCMTokenManager] 🔔 Requesting notification permission...");
-      const token = await requestNotificationPermission();
+      }      // MOBIL FIX: Bu user gesture (button click) içinde çağrıldığı için mobilde çalışır      const token = await requestNotificationPermission();
       
       if (token) {
-        console.log("[FCMTokenManager] ✅ Token received:", token.substring(0, 30) + "...");
-        console.log("[FCMTokenManager] 💾 Saving to Firestore for user:", user.uid);
-        
         try {
-          await saveFCMTokenToUser(user.uid, token);
-          console.log("[FCMTokenManager] ✅ Token saved successfully to Firestore!");
-          
-          // Firestore'da token'ın gerçekten kaydedildiğini doğrula
+          await saveFCMTokenToUser(user.uid, token);          // Firestore'da token'ın gerçekten kaydedildiğini doğrula
           const { doc, getDoc } = await import("firebase/firestore");
           const { db } = await import("@/lib/firebase");
           const userRef = doc(db, "users", user.uid);
@@ -176,19 +122,8 @@ export default function FCMTokenManager() {
           
           if (userSnap.exists()) {
             const savedTokens = userSnap.data().fcmTokens || [];
-            const tokenSaved = savedTokens.includes(token);
-            console.log("[FCMTokenManager] 🔍 Token verification:", {
-              tokenSaved,
-              savedTokensCount: savedTokens.length,
-              tokenInArray: tokenSaved
-            });
-            
-            if (!tokenSaved) {
-              console.error("[FCMTokenManager] ⚠️ Token not found in Firestore after save!");
-              // Tekrar kaydetmeyi dene
-              await saveFCMTokenToUser(user.uid, token);
-              console.log("[FCMTokenManager] 🔄 Retried saving token");
-            }
+            const tokenSaved = savedTokens.includes(token);            if (!tokenSaved) {              // Tekrar kaydetmeyi dene
+              await saveFCMTokenToUser(user.uid, token);            }
           }
           
           setPermission("granted");
@@ -197,32 +132,17 @@ export default function FCMTokenManager() {
           
           // Başarı mesajı
           alert("✅ Bildirimler aktif edildi!\n\nArtık mesaj ve soru yanıtlarını anında alacaksınız.");
-        } catch (saveError: any) {
-          console.error("[FCMTokenManager] ❌ Error saving token to Firestore:", saveError);
-          console.error("[FCMTokenManager] Error details:", saveError.message, saveError.stack);
-          
-          setLoading(false);
+        } catch (saveError: any) {          setLoading(false);
           alert(`❌ Token kaydedilemedi\n\nHata: ${saveError.message}\n\nLütfen sayfayı yenileyin ve tekrar deneyin.`);
         }
-      } else {
-        console.error("[FCMTokenManager] ❌ Token is null");
-        
-        // Detaylı hata debug
+      } else {        // Detaylı hata debug
         const debugInfo = {
           notificationPermission: Notification.permission,
           swReady: 'serviceWorker' in navigator ? await navigator.serviceWorker.ready.then(() => true).catch(() => false) : false
-        };
-        
-        console.error("[FCMTokenManager] Debug info:", debugInfo);
-        
-        setLoading(false);
+        };        setLoading(false);
         alert(`❌ Token alınamadı\n\nHata detayları:\n- İzin durumu: ${debugInfo.notificationPermission}\n- Service Worker: ${debugInfo.swReady ? 'Hazır' : 'Hazır değil'}\n\nLütfen sayfayı yenileyin ve tekrar deneyin.`);
       }
-    } catch (error: any) {
-      console.error("[FCMTokenManager] ❌ Error:", error);
-      console.error("[FCMTokenManager] Error stack:", error.stack);
-      
-      // Hata mesajını daha detaylı göster
+    } catch (error: any) {      // Hata mesajını daha detaylı göster
       let errorMsg = "Bir hata oluştu:\n\n";
       errorMsg += error.message || error.toString();
       

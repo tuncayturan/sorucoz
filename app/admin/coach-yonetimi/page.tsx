@@ -132,9 +132,7 @@ export default function CoachYonetimiPage() {
       setCoachForm({ name: "", email: "", password: "", title: "" });
       setShowAddModal(false);
       showToast("Coach başarıyla eklendi!", "success");
-    } catch (error: any) {
-      console.error("Error adding coach:", error);
-      if (error.code === "auth/email-already-in-use") {
+    } catch (error: any) {      if (error.code === "auth/email-already-in-use") {
         showToast("Bu e-posta adresi zaten kullanılıyor.", "error");
       } else if (error.code === "auth/weak-password") {
         showToast("Şifre en az 6 karakter olmalıdır.", "error");
@@ -203,17 +201,13 @@ export default function CoachYonetimiPage() {
         const auth = getAuth();
         // Coach kullanıcısının auth bilgilerini güncellemek için Firebase Admin SDK gerekir
         // Bu yüzden sadece Firestore'da güncelleme yapıyoruz
-      } catch (authError) {
-        console.error("Auth update error:", authError);
-      }
+      } catch (authError) {      }
 
       setCoachForm({ name: "", email: "", password: "", title: "" });
       setShowEditModal(false);
       setEditingCoachId(null);
       showToast("Coach bilgileri başarıyla güncellendi!", "success");
-    } catch (error: any) {
-      console.error("Error updating coach:", error);
-      showToast("Coach güncellenirken bir hata oluştu.", "error");
+    } catch (error: any) {      showToast("Coach güncellenirken bir hata oluştu.", "error");
     } finally {
       setSaving(false);
     }
@@ -229,9 +223,7 @@ export default function CoachYonetimiPage() {
       // Firebase Auth'dan silmek için Firebase Admin SDK gerekir
       // Şimdilik sadece Firestore'dan siliyoruz
       showToast("Coach başarıyla silindi!", "success");
-    } catch (error) {
-      console.error("Error deleting coach:", error);
-      showToast("Coach silinirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Coach silinirken bir hata oluştu.", "error");
     }
   };
 

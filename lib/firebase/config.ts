@@ -51,11 +51,7 @@ if (typeof window !== 'undefined') {
     firebaseConfig.apiKey === defaultFirebaseConfig.apiKey &&
     firebaseConfig.projectId === defaultFirebaseConfig.projectId;
   
-  if (usingFallback) {
-    console.warn('[Firebase Config] Using fallback values. Environment variables may not be set in Railway.');
-  } else {
-    console.log('[Firebase Config] Using environment variables from Railway.');
-  }
+  if (usingFallback) {  } else {  }
 }
 
 // Service Worker için config (public/firebase-messaging-sw.js'de kullanılır)

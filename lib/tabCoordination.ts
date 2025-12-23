@@ -27,9 +27,7 @@ class TabCoordinator {
       const { type, key, timestamp } = event.data;
       
       if (type === 'notification-sent') {
-        // Başka bir tab bildirim gönderdi, bunu kaydet
-        console.log('[TabCoord] 📡 Another tab sent notification:', key);
-        this.recentSends.set(key, timestamp);
+        // Başka bir tab bildirim gönderdi, bunu kaydet        this.recentSends.set(key, timestamp);
         
         // Timeout sonra temizle
         setTimeout(() => {
@@ -42,9 +40,7 @@ class TabCoordinator {
   private electLeader() {
     // İlk açılan tab leader olur
     // Leader olma durumu şimdilik basit - ilk initialize olan
-    this.isLeader = true;
-    console.log('[TabCoord] 👑 This tab is the leader');
-  }
+    this.isLeader = true;  }
   
   /**
    * Bildirim göndermeyi dene
@@ -55,9 +51,7 @@ class TabCoordinator {
     const lastSendTime = this.recentSends.get(key);
     const now = Date.now();
     
-    if (lastSendTime && (now - lastSendTime) < SEND_LOCK_TIMEOUT) {
-      console.log(`[TabCoord] 🛑 Another tab sent this notification ${now - lastSendTime}ms ago`);
-      return false;
+    if (lastSendTime && (now - lastSendTime) < SEND_LOCK_TIMEOUT) {      return false;
     }
     
     // Bu tabın gönderebileceğini işaretle
@@ -70,10 +64,7 @@ class TabCoordinator {
         key,
         timestamp: now,
       });
-    }
-    
-    console.log('[TabCoord] ✅ This tab can send notification');
-    return true;
+    }    return true;
   }
   
   /**

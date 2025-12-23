@@ -126,9 +126,7 @@ export default function EtkinliklerPage() {
         if (coachesSnapshot.docs.length === 0) {
           setLoading(false);
         }
-      } catch (error) {
-        console.error("Etkinlikler yüklenirken hata:", error);
-        setLoading(false);
+      } catch (error) {        setLoading(false);
       }
     };
 

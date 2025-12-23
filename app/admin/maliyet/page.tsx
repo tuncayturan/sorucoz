@@ -83,9 +83,7 @@ export default function MaliyetPage() {
         setSubjectDistribution(data.subjectDistribution || {});
         setTopUsers(data.topUsers || []);
       }
-    } catch (error) {
-      console.error("Maliyet istatistikleri hatası:", error);
-    } finally {
+    } catch (error) {    } finally {
       setLoading(false);
     }
   };

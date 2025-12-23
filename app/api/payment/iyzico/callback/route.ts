@@ -130,9 +130,7 @@ export async function POST(request: NextRequest) {
         : `/premium?payment=failed`;
 
     return NextResponse.redirect(new URL(redirectUrl, request.url));
-  } catch (error: any) {
-    console.error("iyzico callback error:", error);
-    return NextResponse.redirect(new URL("/premium?payment=error", request.url));
+  } catch (error: any) {    return NextResponse.redirect(new URL("/premium?payment=error", request.url));
   }
 }
 

@@ -97,9 +97,7 @@ export default function AdminDashboard() {
 
       // Fetch support messages statistics
       await fetchSupportStats();
-    } catch (error) {
-      console.error("Kullanıcılar yüklenirken hata:", error);
-      showToast("Veri yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Veri yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -135,9 +133,7 @@ export default function AdminDashboard() {
       }
 
       setSupportStats({ pending, answered, closed, total });
-    } catch (error) {
-      console.error("Destek mesajları istatistikleri yüklenirken hata:", error);
-    }
+    } catch (error) {    }
   };
 
 
@@ -518,13 +514,6 @@ export default function AdminDashboard() {
             >
               <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">👨‍🏫</div>
               <p className="font-bold text-gray-900 text-sm">Coach Yönetimi</p>
-            </a>
-            <a
-              href="/admin/security"
-              className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl p-6 border border-red-100 hover:shadow-lg hover:scale-105 transition-all text-center group"
-            >
-              <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🔒</div>
-              <p className="font-bold text-gray-900 text-sm">Security</p>
             </a>
             <a
               href="/admin/sorular"

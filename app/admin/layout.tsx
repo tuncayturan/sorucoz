@@ -145,9 +145,7 @@ export default function AdminLayout({
           
           unsubscribeFunctions.push(unsubscribeDestek);
         });
-      } catch (error) {
-        console.error("Real-time listeners kurulurken hata:", error);
-      }
+      } catch (error) {      }
     };
 
     const updateNotifications = () => {
@@ -207,9 +205,7 @@ export default function AdminLayout({
             });
           }
         }
-      } catch (error) {
-        console.error("Destek mesajı görüntüleme hatası:", error);
-      }
+      } catch (error) {      }
     }
     
     // Sadece destek bildirimleri için yönlendirme
@@ -249,7 +245,6 @@ export default function AdminLayout({
     { href: "/admin/destek", label: "Destek", icon: "💬", badge: pendingSupportCount > 0 ? pendingSupportCount : null },
     { href: "/admin/kullanicilar", label: "Kullanıcılar", icon: "👥", badge: null },
     { href: "/admin/coach-yonetimi", label: "Coach Yönetimi", icon: "👨‍🏫", badge: null },
-    { href: "/admin/security", label: "Security", icon: "🔒", badge: null },
     { href: "/admin/sorular", label: "Sorular", icon: "❓", badge: null },
     { href: "/admin/ai-yonetimi", label: "AI Yönetimi", icon: "🤖", badge: null },
     { href: "/admin/maliyet", label: "Maliyet Yönetimi", icon: "💵", badge: null },

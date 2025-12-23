@@ -29,9 +29,7 @@ export async function POST(request: NextRequest) {
         logoUrl = settingsData?.logo || settingsData?.icon;
         soundUrl = settingsData?.notificationSound;
       }
-    } catch (error) {
-      console.warn("[Send Notification to Students] Ayarlar alınamadı:", error);
-    }
+    } catch (error) {    }
 
     // Tüm öğrenci kullanıcıları bul
     const usersRef = adminDb.collection("users");
@@ -52,13 +50,7 @@ export async function POST(request: NextRequest) {
       const studentId = studentDoc.id;
       const fcmTokens: string[] = (studentData?.fcmTokens as string[]) || [];
 
-      if (fcmTokens.length === 0) continue;
-
-      console.log(
-        `[Send Notification to Students] Student: ${studentId}, FCM Tokens: ${fcmTokens.length}`
-      );
-
-      // Firestore'a bildirim kaydet (Admin SDK)
+      if (fcmTokens.length === 0) continue;      // Firestore'a bildirim kaydet (Admin SDK)
       const bildirimlerRef = adminDb.collection("users").doc(studentId).collection("bildirimler");
       bildirimlerRef.add({
         title,
@@ -94,9 +86,7 @@ export async function POST(request: NextRequest) {
             notifiedUsers++;
           }
         })
-        .catch(err => {
-          console.error(`[Send Notification to Students] Error sending to ${studentId}:`, err);
-        });
+        .catch(err => {        });
       
       sendPromises.push(sendPromise);
     }
@@ -104,14 +94,7 @@ export async function POST(request: NextRequest) {
     // Tüm bildirimleri paralel gönder
     if (sendPromises.length > 0) {
       console.log(`[Send Notification to Students] Sending ${sendPromises.length} notification(s) in parallel...`);
-      await Promise.all(sendPromises);
-      console.log(`[Send Notification to Students] ✅ All notifications sent`);
-
-    } else {
-      console.warn(
-        `[Send Notification to Students] No FCM tokens found for any student`
-      );
-    }
+      await Promise.all(sendPromises);    } else {    }
 
     return NextResponse.json({
       success: true,
@@ -119,9 +102,7 @@ export async function POST(request: NextRequest) {
       notifiedUsers,
       tokensSent: totalTokensSent,
     });
-  } catch (error: any) {
-    console.error("Student notification send error:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { error: error.message || "Bildirim gönderilirken hata oluştu" },
       { status: 500 }
     );

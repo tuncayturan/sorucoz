@@ -136,9 +136,7 @@ export default function AIYonetimiPage() {
           setSettings(data.aiSettings as AISettings);
         }
       }
-    } catch (error) {
-      console.error("AI ayarları yüklenirken hata:", error);
-      showToast("AI ayarları yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("AI ayarları yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -150,13 +148,28 @@ export default function AIYonetimiPage() {
       return;
     }
 
-    // Seçilen provider için API key kontrolü
+    // Seçilen provider için API key kontrolü (zorunlu)
     const providerInfo = AI_PROVIDERS[settings.provider as keyof typeof AI_PROVIDERS];
     const apiKeyField = providerInfo.apiKeyName as keyof AISettings;
     
     if (!settings[apiKeyField] || (settings[apiKeyField] as string).trim() === "") {
       showToast(`Lütfen ${providerInfo.name} API key girin.`, "error");
       return;
+    }
+
+    // Fallback provider'lar için uyarı (zorunlu değil ama önerilir)
+    const fallbackProviders = Object.entries(AI_PROVIDERS).filter(([key]) => key !== settings.provider);
+    const missingFallbacks = fallbackProviders.filter(([key, provider]) => {
+      const apiKeyField = provider.apiKeyName as keyof AISettings;
+      return !settings[apiKeyField] || (settings[apiKeyField] as string).trim() === "";
+    });
+
+    if (missingFallbacks.length > 0) {
+      const missingNames = missingFallbacks.map(([, provider]) => provider.name).join(", ");
+      showToast(
+        `Uyarı: Fallback API key'leri girilmedi (${missingNames}). Ana provider'ın limiti dolduğunda alternatif servisler kullanılamayacak.`,
+        "info"
+      );
     }
 
     try {
@@ -172,9 +185,7 @@ export default function AIYonetimiPage() {
       }, { merge: true });
 
       showToast("AI ayarları başarıyla kaydedildi!", "success");
-    } catch (error) {
-      console.error("AI ayarları kaydedilirken hata:", error);
-      showToast("AI ayarları kaydedilirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("AI ayarları kaydedilirken bir hata oluştu.", "error");
     } finally {
       setSaving(false);
     }
@@ -276,9 +287,10 @@ export default function AIYonetimiPage() {
               </select>
             </div>
 
-            {/* API Key */}
+            {/* API Keys - Primary Provider */}
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">API Key</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Ana Provider API Key</h2>
+              <p className="text-sm text-gray-600 mb-4">Seçili provider için API key (zorunlu)</p>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -334,6 +346,86 @@ export default function AIYonetimiPage() {
               </div>
             </div>
 
+            {/* Fallback API Keys */}
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-lg border border-amber-200 p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="text-2xl">🔄</div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Fallback API Keys</h2>
+                  <p className="text-sm text-gray-600">
+                    Ana provider'ın quota/rate limit hatası durumunda otomatik olarak kullanılacak alternatif API key'ler (isteğe bağlı ama önerilir)
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {Object.entries(AI_PROVIDERS)
+                  .filter(([key]) => key !== settings.provider)
+                  .map(([key, provider]) => {
+                    const apiKeyField = provider.apiKeyName as keyof AISettings;
+                    return (
+                      <div key={key} className="bg-white/80 rounded-xl p-4 border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">{provider.icon}</span>
+                          <label className="block text-sm font-medium text-gray-700">
+                            {provider.apiKeyLabel}
+                          </label>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showApiKey[provider.apiKeyName] ? "text" : "password"}
+                            value={settings[apiKeyField] as string || ""}
+                            onChange={(e) =>
+                              setSettings({
+                                ...settings,
+                                [apiKeyField]: e.target.value,
+                              })
+                            }
+                            placeholder={provider.apiKeyPlaceholder}
+                            className="w-full px-4 py-2 pr-10 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent font-mono text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleApiKeyVisibility(provider.apiKeyName)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          >
+                            {showApiKey[provider.apiKeyName] ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          <a
+                            href={provider.apiKeyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-700 underline"
+                          >
+                            API key al →
+                          </a>
+                        </p>
+                        {settings[apiKeyField] && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✓ Key mevcut: {maskApiKey(settings[apiKeyField] as string)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-800">
+                  <strong>💡 İpucu:</strong> Fallback API key'lerini girerseniz, ana provider'ın limiti dolduğunda sistem otomatik olarak alternatif provider'ları deneyecektir. Bu sayede kesintisiz hizmet sağlanır.
+                </p>
+              </div>
+            </div>
+
             {/* Advanced Settings */}
             <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/50 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Gelişmiş Ayarlar</h2>
@@ -382,10 +474,10 @@ export default function AIYonetimiPage() {
 
             {/* Current Settings Info */}
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-lg border border-blue-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">📊 Mevcut Ayarlar</h3>
-              <div className="space-y-2 text-sm">
+              <h3 className="text-lg font-bold text-gray-900 mb-4">📊 Mevcut Ayarlar</h3>
+              <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-700">Provider:</span>
+                  <span className="font-semibold text-gray-700">Ana Provider:</span>
                   <span className="text-gray-900">{currentProvider.name} {currentProvider.icon}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -393,12 +485,33 @@ export default function AIYonetimiPage() {
                   <span className="text-gray-900">{settings.model}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-700">API Key:</span>
+                  <span className="font-semibold text-gray-700">Ana API Key:</span>
                   <span className="text-gray-900 font-mono text-xs">
                     {settings[currentProvider.apiKeyName as keyof AISettings]
-                      ? maskApiKey(settings[currentProvider.apiKeyName as keyof AISettings] as string)
-                      : "Belirtilmemiş"}
+                      ? `✓ ${maskApiKey(settings[currentProvider.apiKeyName as keyof AISettings] as string)}`
+                      : "❌ Belirtilmemiş"}
                   </span>
+                </div>
+                <div className="pt-2 border-t border-blue-200">
+                  <span className="font-semibold text-gray-700 block mb-2">Fallback API Keys:</span>
+                  <div className="space-y-1 pl-2">
+                    {Object.entries(AI_PROVIDERS)
+                      .filter(([key]) => key !== settings.provider)
+                      .map(([key, provider]) => {
+                        const apiKeyField = provider.apiKeyName as keyof AISettings;
+                        const hasKey = settings[apiKeyField] && (settings[apiKeyField] as string).trim() !== "";
+                        return (
+                          <div key={key} className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-600">{provider.icon} {provider.name}:</span>
+                            <span className={hasKey ? "text-green-600 font-mono" : "text-gray-400"}>
+                              {hasKey
+                                ? `✓ ${maskApiKey(settings[apiKeyField] as string)}`
+                                : "❌ Belirtilmemiş"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             </div>

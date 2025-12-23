@@ -85,20 +85,13 @@ export default function RegisterPage() {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         requestNotificationPermission()
           .then((token) => {
-            if (token) {
-              console.log("[Google Register] FCM token received, saving to Firestore...");
-              return saveFCMTokenToUser(user.uid, token);
+            if (token) {              return saveFCMTokenToUser(user.uid, token);
             } else {
-              console.warn("[Google Register] No FCM token received (permission granted but token null)");
             }
           })
-          .catch((error) => {
-            console.error("[Google Register] Error in FCM token process:", error);
-            // Token kaydetme hatası kayıt işlemini durdurmaz
+          .catch((error) => {            // Token kaydetme hatası kayıt işlemini durdurmaz
           });
-      } else {
-        console.log("[Google Register] Notification permission not granted, FCMTokenManager will handle it");
-      }
+      } else {      }
 
       const role = snap.exists() ? snap.data().role : "student";
 
@@ -107,13 +100,8 @@ export default function RegisterPage() {
       else router.replace("/home");
     } catch (err: any) {
       // Popup kapatıldığında sessizce görmezden gel
-      if (err?.code === "auth/cancelled-popup-request" || err?.code === "auth/popup-closed-by-user") {
-        console.log("Google popup kapatıldı");
-        return;
-      }
-      
-      console.error("Google Register Error:", err);
-      showToast("Google ile kayıt başarısız. Lütfen tekrar deneyin.", "error");
+      if (err?.code === "auth/cancelled-popup-request" || err?.code === "auth/popup-closed-by-user") {        return;
+      }      showToast("Google ile kayıt başarısız. Lütfen tekrar deneyin.", "error");
     }
   };
 
@@ -142,15 +130,12 @@ export default function RegisterPage() {
         };
         
         await sendEmailVerification(cred.user, actionCodeSettings);
-        console.log("[Register] ✅ Email verification sent successfully to:", email);
       } catch (emailError: any) {
-        console.error("[Register] ❌ Email verification error:", emailError);
         // Email gönderim hatası kayıt işlemini durdurmaz, sadece log'lar
         if (emailError.code === "auth/too-many-requests") {
-          console.warn("[Register] ⚠️ Too many email verification requests");
+          // Too many requests
         } else {
           // Diğer hatalar için de log
-          console.warn("[Register] ⚠️ Email verification failed, but registration continues");
         }
       }
 
@@ -173,20 +158,13 @@ export default function RegisterPage() {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         requestNotificationPermission()
           .then((token) => {
-            if (token) {
-              console.log("[Email Register] FCM token received, saving to Firestore...");
-              return saveFCMTokenToUser(cred.user.uid, token);
+            if (token) {              return saveFCMTokenToUser(cred.user.uid, token);
             } else {
-              console.warn("[Email Register] No FCM token received (permission granted but token null)");
             }
           })
-          .catch((error) => {
-            console.error("[Email Register] Error in FCM token process:", error);
-            // Token kaydetme hatası kayıt işlemini durdurmaz
+          .catch((error) => {            // Token kaydetme hatası kayıt işlemini durdurmaz
           });
-      } else {
-        console.log("[Email Register] Notification permission not granted, FCMTokenManager will handle it");
-      }
+      } else {      }
 
       showToast("Kayıt başarılı! Email doğrulama sayfasına yönlendiriliyorsunuz...", "success");
       
@@ -194,10 +172,7 @@ export default function RegisterPage() {
         router.replace("/auth/verify-email");
       }, 500);
 
-    } catch (err: any) {
-      console.error("REGISTER ERROR:", err);
-      
-      let errorMessage = "Kayıt başarısız.";
+    } catch (err: any) {      let errorMessage = "Kayıt başarısız.";
       
       if (err.code === "auth/email-already-in-use") {
         errorMessage = "Bu email adresi zaten kullanılıyor.";

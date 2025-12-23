@@ -23,9 +23,7 @@ export async function POST(request: NextRequest) {
     const lastRequestTime = recentRequests.get(requestKey);
     const now = Date.now();
     
-    if (lastRequestTime && (now - lastRequestTime) < REQUEST_TIMEOUT) {
-      console.log('[Send Notification to Admin] ⚠️ Duplicate request prevented:', requestKey);
-      return NextResponse.json({
+    if (lastRequestTime && (now - lastRequestTime) < REQUEST_TIMEOUT) {      return NextResponse.json({
         success: true,
         message: "Duplicate request prevented",
         notifiedUsers: 0,
@@ -56,9 +54,7 @@ export async function POST(request: NextRequest) {
         logoUrl = settingsData?.logo || settingsData?.icon;
         soundUrl = settingsData?.notificationSound;
       }
-    } catch (error) {
-      console.warn("[Send Notification to Admin] Ayarlar alınamadı:", error);
-    }
+    } catch (error) {    }
 
     // Tüm admin ve coach kullanıcıları bul
     const usersRef = adminDb.collection("users");
@@ -80,17 +76,11 @@ export async function POST(request: NextRequest) {
       const adminId = adminDoc.id;
       
       // Bu kullanıcı zaten işlendiyse atla (duplicate önleme)
-      if (processedUserIds.has(adminId)) {
-        console.log(`[Send Notification to Admin/Coach] ⚠️ Duplicate user skipped: ${adminId}`);
-        continue;
+      if (processedUserIds.has(adminId)) {        continue;
       }
       
       processedUserIds.add(adminId);
-      const fcmTokens: string[] = (adminData?.fcmTokens as string[]) || [];
-
-      console.log(`[Send Notification to Admin/Coach] Admin: ${adminId}, FCM Tokens: ${fcmTokens.length}`);
-
-      // Firestore'a bildirim kaydet (Admin SDK)
+      const fcmTokens: string[] = (adminData?.fcmTokens as string[]) || [];      // Firestore'a bildirim kaydet (Admin SDK)
       const bildirimlerRef = adminDb.collection("users").doc(adminId).collection("bildirimler");
       await bildirimlerRef.add({
         title,
@@ -114,17 +104,11 @@ export async function POST(request: NextRequest) {
       const coachId = coachDoc.id;
       
       // Bu kullanıcı zaten işlendiyse atla (duplicate önleme)
-      if (processedUserIds.has(coachId)) {
-        console.log(`[Send Notification to Admin/Coach] ⚠️ Duplicate user skipped: ${coachId}`);
-        continue;
+      if (processedUserIds.has(coachId)) {        continue;
       }
       
       processedUserIds.add(coachId);
-      const fcmTokens: string[] = (coachData?.fcmTokens as string[]) || [];
-
-      console.log(`[Send Notification to Admin/Coach] Coach: ${coachId}, FCM Tokens: ${fcmTokens.length}`);
-
-      // Firestore'a bildirim kaydet (Admin SDK)
+      const fcmTokens: string[] = (coachData?.fcmTokens as string[]) || [];      // Firestore'a bildirim kaydet (Admin SDK)
       const bildirimlerRef = adminDb.collection("users").doc(coachId).collection("bildirimler");
       await bildirimlerRef.add({
         title,
@@ -176,15 +160,8 @@ export async function POST(request: NextRequest) {
       // Send push notification to all admin tokens with logo and sound
       // Now supports both FCM (web) and Expo Push (mobile) tokens
       try {
-        const pushResults = await sendPushNotification(allTokens, title, body, fcmData, logoUrl, soundUrl);
-        console.log(`[Send Notification to Admin] ✅ Push notification sent: FCM ${pushResults.fcmSent}, Expo ${pushResults.expoSent}`);
-        console.log(`[Send Notification to Admin] ⚠️ Failed: FCM ${pushResults.fcmFailed}, Expo ${pushResults.expoFailed}`);
-      } catch (pushError) {
-        console.error(`[Send Notification to Admin] Error sending push notification:`, pushError);
-      }
-    } else {
-      console.warn(`[Send Notification to Admin] No FCM tokens found for any admin`);
-    }
+        const pushResults = await sendPushNotification(allTokens, title, body, fcmData, logoUrl, soundUrl);      } catch (pushError) {      }
+    } else {    }
 
     return NextResponse.json({
       success: true,
@@ -192,9 +169,7 @@ export async function POST(request: NextRequest) {
       notifiedUsers,
       tokensSent: allTokens.length,
     });
-  } catch (error: any) {
-    console.error("Admin notification send error:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { error: error.message || "Bildirim gönderilirken hata oluştu" },
       { status: 500 }
     );

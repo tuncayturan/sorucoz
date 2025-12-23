@@ -139,9 +139,7 @@ export async function POST(request: NextRequest) {
       htmlContent: paymentResult.threeDSHtmlContent,
       conversationId: paymentRequest.conversationId,
     });
-  } catch (error: any) {
-    console.error("iyzico initialize error:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { error: error.message || "Ödeme başlatılamadı" },
       { status: 500 }
     );

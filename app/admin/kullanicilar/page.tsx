@@ -94,9 +94,7 @@ export default function AdminKullanicilarPage() {
 
       setKullanicilar(users);
       setFilteredKullanicilar(users);
-    } catch (error) {
-      console.error("Kullanıcılar yüklenirken hata:", error);
-      showToast("Kullanıcılar yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Kullanıcılar yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -127,9 +125,7 @@ export default function AdminKullanicilarPage() {
       setEditingUser(null);
       setEditData({});
       await fetchKullanicilar();
-    } catch (error) {
-      console.error("Güncelleme hatası:", error);
-      showToast("Güncelleme başarısız!", "error");
+    } catch (error) {      showToast("Güncelleme başarısız!", "error");
     }
   };
 
@@ -151,9 +147,7 @@ export default function AdminKullanicilarPage() {
       showToast(`${deleteConfirm.userName} kullanıcısı başarıyla silindi!`, "success");
       setDeleteConfirm(null);
       await fetchKullanicilar();
-    } catch (error) {
-      console.error("Silme hatası:", error);
-      showToast("Kullanıcı silinirken bir hata oluştu!", "error");
+    } catch (error) {      showToast("Kullanıcı silinirken bir hata oluştu!", "error");
     } finally {
       setDeleting(false);
     }
@@ -189,9 +183,7 @@ export default function AdminKullanicilarPage() {
 
         setBulkUsers(users);
         showToast(`${users.length} kullanıcı yüklendi!`, "success");
-      } catch (error) {
-        console.error("Excel okuma hatası:", error);
-        showToast("Excel dosyası okunamadı!", "error");
+      } catch (error) {        showToast("Excel dosyası okunamadı!", "error");
       }
     };
     reader.readAsArrayBuffer(file);
@@ -222,9 +214,7 @@ export default function AdminKullanicilarPage() {
       } else {
         showToast(data.results.errors[0]?.error || "Kullanıcı eklenemedi!", "error");
       }
-    } catch (error) {
-      console.error("Kullanıcı ekleme hatası:", error);
-      showToast("Bir hata oluştu!", "error");
+    } catch (error) {      showToast("Bir hata oluştu!", "error");
     } finally {
       setUploading(false);
     }
@@ -258,9 +248,7 @@ export default function AdminKullanicilarPage() {
       if (data.results.errors.length > 0) {
         showToast(`${data.results.errors.length} kullanıcı eklenemedi!`, "error");
       }
-    } catch (error) {
-      console.error("Toplu kullanıcı ekleme hatası:", error);
-      showToast("Bir hata oluştu!", "error");
+    } catch (error) {      showToast("Bir hata oluştu!", "error");
     } finally {
       setUploading(false);
     }

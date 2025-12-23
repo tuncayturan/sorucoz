@@ -167,9 +167,7 @@ export default function LandingPage() {
                         height={112}
                         className="w-full h-full object-cover rounded-[1.8rem] sm:rounded-[2.2rem]"
                         unoptimized
-                        onError={(e) => {
-                          console.error("Logo yüklenemedi:", siteLogo);
-                          // Fallback to initial
+                        onError={(e) => {                          // Fallback to initial
                           const target = e.target as HTMLImageElement;
                           if (target) {
                             target.style.display = "none";

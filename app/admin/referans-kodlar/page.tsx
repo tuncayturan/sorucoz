@@ -57,9 +57,7 @@ export default function ReferansKodlarPage() {
       });
 
       setCodes(codesList);
-    } catch (error) {
-      console.error("Referans kodları yüklenirken hata:", error);
-      showToast("Kodlar yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Kodlar yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -104,9 +102,7 @@ export default function ReferansKodlarPage() {
       setShowCreateModal(false);
       setNewCode({ code: "", name: "", discountPercent: 10, maxUsage: "" });
       fetchCodes();
-    } catch (error) {
-      console.error("Kod oluşturulurken hata:", error);
-      showToast("Kod oluşturulurken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Kod oluşturulurken bir hata oluştu.", "error");
     }
   };
 
@@ -119,9 +115,7 @@ export default function ReferansKodlarPage() {
 
       showToast(`Kod ${!currentStatus ? "aktif" : "pasif"} edildi.`, "success");
       fetchCodes();
-    } catch (error) {
-      console.error("Kod durumu güncellenirken hata:", error);
-      showToast("Kod durumu güncellenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Kod durumu güncellenirken bir hata oluştu.", "error");
     }
   };
 

@@ -61,9 +61,7 @@ export default function CoachDashboard() {
 
       // Fetch message statistics
       await fetchMessageStats();
-    } catch (error) {
-      console.error("Veri yüklenirken hata:", error);
-    } finally {
+    } catch (error) {    } finally {
       setLoading(false);
     }
   };
@@ -94,9 +92,7 @@ export default function CoachDashboard() {
       }
 
       setMessageStats({ total, unread });
-    } catch (error) {
-      console.error("Mesaj istatistikleri yüklenirken hata:", error);
-    }
+    } catch (error) {    }
   };
 
   if (loading) {

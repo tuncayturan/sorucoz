@@ -33,6 +33,19 @@ const SUBJECT_COLORS: { [key: string]: string } = {
   "Beden Eğitimi": "from-orange-500 to-red-600",
   "Fen Bilgisi": "from-emerald-500 to-teal-600",
   "Sosyal Bilgiler": "from-orange-500 to-amber-600",
+  "Sayısal Mantık": "from-violet-500 to-purple-600",
+  "Sözel Mantık": "from-cyan-500 to-blue-600",
+  "Geometri": "from-indigo-500 to-blue-600",
+  "Eğitim Bilimleri": "from-emerald-500 to-green-600",
+  "Gelişim": "from-pink-500 to-rose-600",
+  "Din Kültürü ve Ahlak Bilgisi": "from-amber-500 to-yellow-600",
+  "Okul Öncesi": "from-purple-500 to-pink-600",
+  "Rehberlik": "from-teal-500 to-cyan-600",
+  "Sınıf Öğretmenliği": "from-orange-500 to-red-600",
+  "İngilizce": "from-red-500 to-pink-600",
+  "Almanca": "from-yellow-500 to-amber-600",
+  "İtalyanca": "from-green-500 to-emerald-600",
+  "Arapça": "from-slate-500 to-gray-600",
   "Bilinmeyen": "from-gray-500 to-gray-600",
 };
 
@@ -52,6 +65,19 @@ const SUBJECT_ICONS: { [key: string]: string } = {
   "Beden Eğitimi": "⚽",
   "Fen Bilgisi": "🔬",
   "Sosyal Bilgiler": "🌐",
+  "Sayısal Mantık": "🔢",
+  "Sözel Mantık": "💡",
+  "Geometri": "📐",
+  "Eğitim Bilimleri": "🎓",
+  "Gelişim": "🌱",
+  "Din Kültürü ve Ahlak Bilgisi": "🕌",
+  "Okul Öncesi": "🧸",
+  "Rehberlik": "🤝",
+  "Sınıf Öğretmenliği": "👨‍🏫",
+  "İngilizce": "🇬🇧",
+  "Almanca": "🇩🇪",
+  "İtalyanca": "🇮🇹",
+  "Arapça": "🇸🇦",
   "Bilinmeyen": "❓",
 };
 
@@ -166,7 +192,7 @@ export default function HomePage() {
       if (userData.emailVerified !== true) {
         updateDoc(doc(db, "users", user.uid), {
           emailVerified: true,
-        }).catch(console.error);
+        }).catch(() => {});
       }
       setShowEmailVerificationBanner(false);
       return;
@@ -217,7 +243,6 @@ export default function HomePage() {
     if (userData.notificationsEnabled === false) return;
 
     if (!("Notification" in window)) {
-      console.log("[Home] Notification API not available");
       return;
     }
 
@@ -230,25 +255,21 @@ export default function HomePage() {
     
     // iOS'ta bildirimler sadece PWA modunda çalışır
     if (isIOS && !isPWA) {
-      console.log("[Home] iOS detected but not in PWA mode - notifications require PWA");
       return;
     }
 
     // Zaten izin verdiyse ve token varsa kontrol et
+    // Token'ın kayıtlı olup olmadığını kontrol et (FCMTokenManager hallediyor)
     if (Notification.permission === "granted") {
-      console.log("[Home] Notification permission already granted");
-      // Token'ın kayıtlı olup olmadığını kontrol et (FCMTokenManager hallediyor)
       return;
     }
 
     // Kullanıcı daha önce 'block' ettiyse, tarayıcı ayarlarından açması gerekir
     if (Notification.permission === "denied") {
-      console.log("[Home] Notification permission denied by user");
       return;
     }
 
     // 'default' durumunda - FCMTokenManager buton ile izin isteyecek
-    console.log("[Home] Notification permission is default - FCMTokenManager will show button");
   }, [user, userData]);
 
   // Scroll to top button visibility
@@ -267,7 +288,7 @@ export default function HomePage() {
     const handleFocus = () => {
       if (user) {
         // Firebase Auth'taki user bilgilerini yenile (emailVerified durumu için)
-        user.reload().catch(console.error);
+        user.reload().catch(() => {});
         refreshUserData();
         fetchTodayQuestions();
       }
@@ -367,9 +388,7 @@ export default function HomePage() {
 
           unsubscribeFunctions.push(unsubscribe);
         });
-      } catch (error) {
-        console.error("Etkinlikler yüklenirken hata:", error);
-      }
+      } catch (error) {      }
     };
 
     setupEventListeners();
@@ -428,9 +447,7 @@ export default function HomePage() {
       });
       setSolvedQuestionsCount(solvedCount);
       setRecentQuestions(recentData.slice(0, 5));
-    } catch (error) {
-      console.error("Bugünkü sorular yüklenirken hata:", error);
-      // Hata durumunda userData'dan al
+    } catch (error) {      // Hata durumunda userData'dan al
       const today = new Date().toISOString().split("T")[0];
       if (userData?.lastQuestionDate === today) {
         setTodayQuestionsCount(userData?.dailyQuestionCount || 0);
@@ -478,12 +495,8 @@ export default function HomePage() {
         handleCodeInApp: false,
       };
       
-      await sendEmailVerification(user, actionCodeSettings);
-      console.log("[Home] ✅ Email verification sent successfully");
-      showToast("✅ Doğrulama emaili gönderildi! Lütfen email kutunuzu kontrol edin.", "success");
-    } catch (error: any) {
-      console.error("[Home] ❌ Email gönderme hatası:", error);
-      if (error.code === "auth/too-many-requests") {
+      await sendEmailVerification(user, actionCodeSettings);      showToast("✅ Doğrulama emaili gönderildi! Lütfen email kutunuzu kontrol edin.", "success");
+    } catch (error: any) {      if (error.code === "auth/too-many-requests") {
         showToast("⚠️ Çok fazla istek gönderdiniz. Lütfen biraz bekleyin.", "error");
       } else {
         showToast(`❌ Email gönderilemedi: ${error.message || "Bilinmeyen hata"}. Lütfen tekrar deneyin.`, "error");
@@ -504,9 +517,7 @@ export default function HomePage() {
       });
       setShowEmailVerificationBanner(false);
       showToast("✅ Email doğrulama banner'ı kapatıldı.", "success");
-    } catch (error) {
-      console.error("Banner kapatma hatası:", error);
-    }
+    } catch (error) {    }
   };
 
   // Premium/Lite bitince otomatik Trial'a döndür, Trial bitince Freemium'a geçir
@@ -518,8 +529,6 @@ export default function HomePage() {
     
     // 1. Lite veya Premium süresi dolmuşsa → 7 günlük yeni Trial ver
     if ((plan === "lite" || plan === "premium") && status === "expired") {
-      console.log("[Home] Premium/Lite süresi doldu, Trial'a geri dönüyor...");
-      
       const now = new Date();
       const trialEndDate = new Date(now);
       trialEndDate.setDate(trialEndDate.getDate() + 7);
@@ -534,18 +543,14 @@ export default function HomePage() {
         dailyQuestionCount: 0,
         lastQuestionDate: now.toISOString().split("T")[0],
       }).then(() => {
-        console.log("[Home] ✅ Kullanıcı Trial'a döndürüldü");
         showToast("Aboneliğiniz bitti. 7 günlük yeni Trial başlatıldı! Planınızı yenileyin.", "info");
         refreshUserData();
       }).catch((error) => {
-        console.error("[Home] Trial'a döndürme hatası:", error);
       });
     }
     
     // 2. Trial süresi dolmuşsa ve Firestore'da hala "trial" olarak işaretliyse → Freemium'a geçir
     if (plan === "trial" && status === "freemium" && (userData?.subscriptionPlan as any) !== "freemium") {
-      console.log("[Home] Trial süresi doldu, Freemium moduna geçiliyor...");
-      
       const now = new Date();
       const userRef = doc(db, "users", user.uid);
       updateDoc(userRef, {
@@ -555,11 +560,9 @@ export default function HomePage() {
         dailyQuestionCount: 0,
         lastQuestionDate: now.toISOString().split("T")[0],
       }).then(() => {
-        console.log("[Home] ✅ Kullanıcı Freemium moduna geçirildi");
         showToast("Trial süreniz bitti. Freemium moduna geçtiniz. Premium için plan seçin!", "info");
         refreshUserData();
       }).catch((error) => {
-        console.error("[Home] Freemium'a geçme hatası:", error);
       });
     }
   }, [user, userData, subscriptionStatus]);
@@ -1080,7 +1083,7 @@ export default function HomePage() {
                           <h3 className="text-2xl font-bold text-gray-900">Yaklaşan Etkinlikler</h3>
                         </div>
                       </div>
-                    {upcomingEvents.length === 0 ? (
+                      {upcomingEvents.length === 0 ? (
                       <div className="text-center py-8">
                         <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                           <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1271,7 +1274,7 @@ export default function HomePage() {
           />
         </svg>
       </button>
-      
+
       <StudentFooter />
 
       {/* Toast */}

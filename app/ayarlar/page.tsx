@@ -170,9 +170,7 @@ export default function AyarlarPage() {
       refreshUserData();
 
       showToast("Profil resmi başarıyla güncellendi!", "success");
-    } catch (error: any) {
-      console.error("Photo upload error:", error);
-      const errorMessage = error?.message || "Profil resmi yüklenirken bir hata oluştu.";
+    } catch (error: any) {      const errorMessage = error?.message || "Profil resmi yüklenirken bir hata oluştu.";
       showToast(errorMessage, "error");
     } finally {
       setUploadingPhoto(false);
@@ -195,9 +193,7 @@ export default function AyarlarPage() {
       setIsEditing(false);
       refreshUserData();
       showToast("İsim başarıyla güncellendi!", "success");
-    } catch (error) {
-      console.error("Error updating name:", error);
-      showToast("İsim güncellenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("İsim güncellenirken bir hata oluştu.", "error");
     }
   };
 
@@ -232,9 +228,7 @@ export default function AyarlarPage() {
 
       setPasswordData({ current: "", new: "", confirm: "" });
       showToast("Şifre başarıyla değiştirildi!", "success");
-    } catch (error: any) {
-      console.error("Password change error:", error);
-      if (error.code === "auth/wrong-password") {
+    } catch (error: any) {      if (error.code === "auth/wrong-password") {
         showToast("Mevcut şifre yanlış.", "error");
       } else if (error.code === "auth/weak-password") {
         showToast("Şifre çok zayıf. Daha güçlü bir şifre seçin.", "error");

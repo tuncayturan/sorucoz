@@ -50,9 +50,7 @@ export async function POST(request: NextRequest) {
             // Signed upload için upload_preset kullanmıyoruz, API secret ile imzalı yükleme yapıyoruz
           },
           (error, result) => {
-            if (error) {
-              console.error("Cloudinary upload error:", error);
-              resolve(NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 }));
+            if (error) {              resolve(NextResponse.json({ error: error.message || "Upload failed" }, { status: 500 }));
             } else {
               resolve(
                 NextResponse.json({
@@ -65,9 +63,7 @@ export async function POST(request: NextRequest) {
         )
         .end(buffer);
     });
-  } catch (error: any) {
-    console.error("Upload route error:", error);
-    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+  } catch (error: any) {    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
 

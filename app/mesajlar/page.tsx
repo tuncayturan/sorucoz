@@ -161,9 +161,7 @@ function MesajlarContent() {
       }
       
       return conversationId;
-    } catch (error) {
-      console.error("Conversation oluşturulurken hata:", error);
-      return null;
+    } catch (error) {      return null;
     }
   };
 
@@ -187,36 +185,26 @@ function MesajlarContent() {
     if (!user) return;
     
     // Notification izni durumunu kontrol et
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      console.log("[Student Messages] Notifications not supported");
-      return;
+    if (typeof window === "undefined" || !("Notification" in window)) {      return;
     }
     
     // Eğer izin verilmişse token al, verilmemişse iste
-    if (Notification.permission === "granted") {
-      console.log("[Student Messages] Notification permission already granted, getting token...");
-      requestNotificationPermission()
+    if (Notification.permission === "granted") {      requestNotificationPermission()
         .then((token) => {
-          if (token) {
-            console.log("[Student Messages] FCM token received, saving...");
-            return saveFCMTokenToUser(user.uid, token);
+          if (token) {            return saveFCMTokenToUser(user.uid, token);
           }
         })
-        .catch((err) => console.error("[Student Messages] FCM token error:", err));
+        .catch(() => {});
     } else if (Notification.permission === "default") {
       // İlk ziyarette otomatik izin isteme (sadece 1 kere)
       const hasAskedBefore = localStorage.getItem("fcm_permission_asked");
-      if (!hasAskedBefore) {
-        console.log("[Student Messages] Requesting notification permission...");
-        localStorage.setItem("fcm_permission_asked", "true");
+      if (!hasAskedBefore) {        localStorage.setItem("fcm_permission_asked", "true");
         requestNotificationPermission()
           .then((token) => {
-            if (token) {
-              console.log("[Student Messages] FCM token received after permission grant");
-              return saveFCMTokenToUser(user.uid, token);
+            if (token) {              return saveFCMTokenToUser(user.uid, token);
             }
           })
-          .catch((err) => console.error("[Student Messages] Permission request error:", err));
+          .catch(() => {});
       }
     }
   }, [user]);
@@ -227,9 +215,7 @@ function MesajlarContent() {
     
     if (conversationId && conversations.length > 0) {
       const conv = conversations.find(c => c.id === conversationId);
-      if (conv) {
-        console.log('[Student Messages] Opening conversation from notification:', conversationId);
-        setSelectedConversation(conv);
+      if (conv) {        setSelectedConversation(conv);
         
         // URL'yi temizle
         if (typeof window !== 'undefined') {
@@ -314,9 +300,7 @@ function MesajlarContent() {
         
         setConversations(conversationsList);
         setLoading(false);
-      } catch (error) {
-        console.error("Conversations yüklenirken hata:", error);
-        setLoading(false);
+      } catch (error) {        setLoading(false);
     }
     };
 
@@ -406,7 +390,7 @@ function MesajlarContent() {
           unreadMessages.forEach((msg) => {
             updateDoc(doc(db, "conversations", selectedConversation.id, "messages", msg.id), {
               readByStudent: true,
-            }).catch(console.error);
+            }).catch(() => {});
           });
           
           // Update unread count
@@ -419,9 +403,7 @@ function MesajlarContent() {
           );
         }
       },
-      (error) => {
-        console.error("Mesajlar yüklenirken hata:", error);
-      }
+      (error) => {      }
     );
 
     return () => unsubscribe();
@@ -535,9 +517,7 @@ function MesajlarContent() {
       });
       setEditingMessageId(null);
       setEditingText("");
-    } catch (error) {
-      console.error("Mesaj düzenlenirken hata:", error);
-      showToast("Mesaj düzenlenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Mesaj düzenlenirken bir hata oluştu.", "error");
     }
   };
 
@@ -550,9 +530,7 @@ function MesajlarContent() {
     try {
       const messageRef = doc(db, "conversations", selectedConversation.id, "messages", messageId);
       await deleteDoc(messageRef);
-    } catch (error) {
-      console.error("Mesaj silinirken hata:", error);
-      showToast("Mesaj silinirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Mesaj silinirken bir hata oluştu.", "error");
     }
   };
 
@@ -609,9 +587,7 @@ function MesajlarContent() {
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-          console.log("Audio chunk alındı, boyut:", event.data.size, "toplam chunks:", audioChunksRef.current.length);
-        }
+          audioChunksRef.current.push(event.data);        }
       };
 
       mediaRecorder.onstop = async () => {
@@ -639,16 +615,10 @@ function MesajlarContent() {
           try {
             const blob = new Blob(audioChunksRef.current, { 
               type: mediaRecorder.mimeType || 'audio/webm' 
-            });
-            console.log("Ses kaydı hazır, boyut:", blob.size, "süre:", finalTime);
-            await handleVoiceRecordingComplete(blob);
-          } catch (error) {
-            console.error("Ses işlenirken hata:", error);
-            showToast("Ses kaydı işlenirken bir hata oluştu.", "error");
+            });            await handleVoiceRecordingComplete(blob);
+          } catch (error) {            showToast("Ses kaydı işlenirken bir hata oluştu.", "error");
           }
-        } else {
-          console.log("Kayıt gönderilmiyor - chunks:", audioChunksRef.current.length, "süre:", finalTime);
-        }
+        } else {        }
         
         // Clear chunks
         audioChunksRef.current = [];
@@ -665,9 +635,7 @@ function MesajlarContent() {
         recordingTimeRef.current += 0.1;
         setRecordingTime(recordingTimeRef.current);
       }, 100);
-    } catch (error) {
-      console.error("Ses kaydı başlatılırken hata:", error);
-      showToast("Mikrofon erişimi reddedildi. Lütfen izin verin.", "error");
+    } catch (error) {      showToast("Mikrofon erişimi reddedildi. Lütfen izin verin.", "error");
       setIsRecording(false);
     }
   };
@@ -675,9 +643,7 @@ function MesajlarContent() {
   // Ses kaydı durdurma
   const stopVoiceRecording = () => {
     if (mediaRecorderRef.current && isRecording && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        console.log("Kayıt durduruluyor, mevcut chunks:", audioChunksRef.current.length);
-        // Request data before stopping to ensure we get all data
+      try {        // Request data before stopping to ensure we get all data
         if (mediaRecorderRef.current.state === 'recording') {
           mediaRecorderRef.current.requestData();
           // Small delay to ensure data is collected
@@ -689,9 +655,7 @@ function MesajlarContent() {
         } else {
           mediaRecorderRef.current.stop();
         }
-      } catch (error) {
-        console.error("Kayıt durdurulurken hata:", error);
-        setIsRecording(false);
+      } catch (error) {        setIsRecording(false);
         setRecordingTime(0);
         recordingTimeRef.current = 0;
         if (streamRef.current) {
@@ -704,22 +668,15 @@ function MesajlarContent() {
 
   // Ses kaydı gönderme
   const handleVoiceRecordingComplete = async (audioBlob: Blob) => {
-    if (!user || !selectedConversation) {
-      console.error("Kullanıcı veya konuşma bulunamadı");
-      return;
+    if (!user || !selectedConversation) {      return;
     }
 
-    if (!audioBlob || audioBlob.size === 0) {
-      console.error("Ses dosyası geçersiz veya boş");
-      showToast("Ses kaydı boş. Lütfen tekrar deneyin.", "error");
+    if (!audioBlob || audioBlob.size === 0) {      showToast("Ses kaydı boş. Lütfen tekrar deneyin.", "error");
       return;
     }
 
     try {
-      setGonderiliyor(true);
-      console.log("Ses dosyası yükleniyor, boyut:", audioBlob.size);
-      
-      // Upload audio file
+      setGonderiliyor(true);      // Upload audio file
       const formData = new FormData();
       const fileName = `voice_${Date.now()}.${audioBlob.type.includes('webm') ? 'webm' : 'mp4'}`;
       formData.append("file", audioBlob, fileName);
@@ -730,16 +687,11 @@ function MesajlarContent() {
       });
 
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error("Upload hatası:", errorText);
-        throw new Error("Ses dosyası yüklenemedi");
+        const errorText = await uploadResponse.text();        throw new Error("Ses dosyası yüklenemedi");
       }
 
       const uploadData = await uploadResponse.json();
-      const audioUrl = uploadData.url;
-      console.log("Ses dosyası yüklendi, URL:", audioUrl);
-
-      // Ensure conversation exists
+      const audioUrl = uploadData.url;      // Ensure conversation exists
       await getOrCreateConversation(
         selectedConversation.coachId,
         selectedConversation.coachName,
@@ -775,9 +727,7 @@ function MesajlarContent() {
       const voiceLastNotificationTime = voiceLastNotificationStr ? parseInt(voiceLastNotificationStr) : 0;
       const voiceTimeSince = voiceNow - voiceLastNotificationTime;
       
-      if (voiceTimeSince > 10000 || voiceLastNotificationTime === 0) {
-        console.log("[Student Messages] 📤 ✅ SENDING voice notification...");
-        localStorage.setItem(voiceThrottleKey, voiceNow.toString());
+      if (voiceTimeSince > 10000 || voiceLastNotificationTime === 0) {        localStorage.setItem(voiceThrottleKey, voiceNow.toString());
         
         fetch("/api/admin/send-notification", {
           method: "POST",
@@ -795,16 +745,12 @@ function MesajlarContent() {
           }),
         })
         .then(res => res.json())
-        .then(data => console.log("[Student Messages] ✅ Voice notification response:", data))
-        .catch(error => console.error("[Student Messages] ❌ Voice notification error:", error));
-      } else {
-        console.log(`[Student Messages] 🚫🚫🚫 VOICE THROTTLED: ${voiceTimeSince}ms önce, ${10000 - voiceTimeSince}ms sonra tekrar`);
-      }
+        .then(data => {})
+        .catch(error => {});
+      } else {      }
 
       setTimeout(() => scrollToBottom(), 100);
-    } catch (error) {
-      console.error("Ses mesajı gönderilirken hata:", error);
-      showToast("Ses mesajı gönderilirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Ses mesajı gönderilirken bir hata oluştu.", "error");
     } finally {
       setGonderiliyor(false);
     }
@@ -827,14 +773,8 @@ function MesajlarContent() {
     if (!user || !selectedConversation || (!yeniMesaj.trim() && selectedFiles.length === 0) || gonderiliyor) return;
 
     // Aggressive double submit prevention
-    if (gonderiliyor) {
-      console.log("[Student Messages] ⚠️ Already sending, prevented duplicate");
-      return;
-    }
-    
-    console.log("[Student Messages] 🚀 Sending message...");
-
-    try {
+    if (gonderiliyor) {      return;
+    }    try {
       setGonderiliyor(true);
       setUploadingFiles(true);
 
@@ -890,20 +830,8 @@ function MesajlarContent() {
       const lastNotificationTime = lastNotificationStr ? parseInt(lastNotificationStr) : 0;
       const timeSinceLastNotification = now - lastNotificationTime;
       
-      console.log(`[Student Messages] 🔍 Throttle Check:`, {
-        conversationId: selectedConversation.id,
-        lastNotificationTime: lastNotificationTime,
-        now: now,
-        timeSince: timeSinceLastNotification,
-        threshold: 10000,
-        willSend: timeSinceLastNotification > 10000 || lastNotificationTime === 0
-      });
-      console.log(`[Student Messages] LocalStorage value:`, localStorage.getItem(throttleKey));
-      
       // 10 saniyede max 1 bildirim
-      if (timeSinceLastNotification > 10000 || lastNotificationTime === 0) {
-        console.log("[Student Messages] 📤 ✅ SENDING notification to coach...");
-        localStorage.setItem(throttleKey, now.toString());
+      if (timeSinceLastNotification > 10000 || lastNotificationTime === 0) {        localStorage.setItem(throttleKey, now.toString());
         
         // Send FCM notification (non-blocking)
         fetch("/api/admin/send-notification", {
@@ -922,10 +850,8 @@ function MesajlarContent() {
           }),
         })
         .then(res => res.json())
-        .then(data => {
-          console.log("[Student Messages] ✅ Notification response:", data);
-        })
-        .catch(error => console.error("[Student Messages] ❌ Notification error:", error));
+        .then(data => {        })
+        .catch(error => {});
 
         // WhatsApp notification (optional, non-blocking)
         fetch("/api/whatsapp/send", {
@@ -936,11 +862,9 @@ function MesajlarContent() {
             message: `📨 Yeni Mesaj\n\n${userData?.name || "Öğrenci"}: ${yeniMesaj.trim() || "Dosya gönderildi"}\n\nMesajı görüntülemek için uygulamaya giriş yapın.`,
           }),
         })
-        .then(() => console.log("[Student Messages] ✅ WhatsApp sent"))
-        .catch(() => console.log("[Student Messages] ℹ️ WhatsApp skipped"));
-      } else {
-        console.log(`[Student Messages] 🚫🚫🚫 THROTTLED: Son bildirim ${timeSinceLastNotification}ms önce, ${10000 - timeSinceLastNotification}ms sonra tekrar deneyin`);
-      }
+        .then(() => {})
+        .catch(() => {});
+      } else {      }
 
       setYeniMesaj("");
       setSelectedFiles([]);
@@ -948,9 +872,7 @@ function MesajlarContent() {
       
       // Mesaj gönderildikten sonra scroll yap (sadece bir kez)
       setTimeout(() => scrollToBottom(), 100);
-    } catch (error) {
-      console.error("Mesaj gönderilirken hata:", error);
-      showToast("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.", "error");
+    } catch (error) {      showToast("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.", "error");
     } finally {
       setGonderiliyor(false);
       setUploadingFiles(false);
@@ -1432,9 +1354,7 @@ function MesajlarContent() {
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
-                      e.stopPropagation();
-                      console.log('[Öğrenci Mesaj] Emoji butonu tıklandı, showEmojiPicker:', !showEmojiPicker);
-                      setShowEmojiPicker(!showEmojiPicker);
+                      e.stopPropagation();                      setShowEmojiPicker(!showEmojiPicker);
                     }}
                     className="hidden md:flex absolute right-3 bottom-3 w-8 h-8 items-center justify-center hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-gray-700 z-10 pointer-events-auto"
                     style={{ visibility: 'visible' }}
@@ -1449,19 +1369,10 @@ function MesajlarContent() {
                       <EmojiPicker
                         isOpen={true}
                         buttonRef={emojiButtonRef}
-                        onClose={() => {
-                          console.log('[Öğrenci Mesaj] Emoji picker kapatılıyor');
-                          setShowEmojiPicker(false);
+                        onClose={() => {                          setShowEmojiPicker(false);
                         }}
-                        onEmojiSelect={(emoji) => {
-                          console.log('[Öğrenci Mesaj] Emoji seçildi:', emoji);
-                          console.log('[Öğrenci Mesaj] Mevcut yeniMesaj:', yeniMesaj);
-                          
-                          // Hem state'i hem de direkt textarea'yı güncelle
-                          const newText = yeniMesaj + emoji;
-                          console.log('[Öğrenci Mesaj] Yeni text olacak:', newText);
-                          
-                          setYeniMesaj(newText);
+                        onEmojiSelect={(emoji) => {                          // Hem state'i hem de direkt textarea'yı güncelle
+                          const newText = yeniMesaj + emoji;                          setYeniMesaj(newText);
                           
                           // Textarea'yı da direkt güncelle
                           if (textareaRef.current) {
@@ -1470,10 +1381,7 @@ function MesajlarContent() {
                             // Cursor'u sona taşı
                             const length = newText.length;
                             textareaRef.current.setSelectionRange(length, length);
-                          }
-                          
-                          console.log('[Öğrenci Mesaj] State ve textarea güncellendi');
-                        }}
+                          }                        }}
                       />
                     </div>
                   )}

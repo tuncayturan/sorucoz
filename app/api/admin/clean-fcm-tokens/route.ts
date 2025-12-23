@@ -9,16 +9,11 @@ import { getMessaging } from "firebase-admin/messaging";
  * GET /api/admin/clean-fcm-tokens
  */
 export async function GET() {
-  try {
-    console.log("[Clean ALL Tokens] ========== STARTING AGGRESSIVE CLEANUP ==========");
-    const adminApp = getAdminApp();
+  try {    const adminApp = getAdminApp();
     const adminDb = getFirestore(adminApp);
 
     // Tüm kullanıcıları al
-    const usersSnapshot = await adminDb.collection("users").get();
-    console.log(`[Clean ALL Tokens] Found ${usersSnapshot.size} users`);
-
-    let totalCleaned = 0;
+    const usersSnapshot = await adminDb.collection("users").get();    let totalCleaned = 0;
     let usersWithMultipleTokens = 0;
 
     for (const userDoc of usersSnapshot.docs) {
@@ -32,11 +27,7 @@ export async function GET() {
 
         // Eğer birden fazla token varsa, sadece son token'ı tut
         if (fcmTokens.length > 1) {
-          const lastToken = fcmTokens[fcmTokens.length - 1];
-          
-          console.log(`[Clean ALL Tokens] User ${userDoc.id}: ${fcmTokens.length} tokens → 1 token`);
-          
-          await userDoc.ref.update({
+          const lastToken = fcmTokens[fcmTokens.length - 1];          await userDoc.ref.update({
             fcmTokens: [lastToken], // Sadece son token
             lastTokenCleanup: new Date(),
           });
@@ -44,9 +35,7 @@ export async function GET() {
           totalCleaned += (fcmTokens.length - 1);
           usersWithMultipleTokens++;
         }
-      } catch (error) {
-        console.error(`[Clean ALL Tokens] Error with user ${userDoc.id}:`, error);
-      }
+      } catch (error) {      }
     }
 
     const summary = {
@@ -55,15 +44,10 @@ export async function GET() {
       usersChecked: usersSnapshot.size,
       usersWithMultipleTokens,
       totalTokensCleaned: totalCleaned,
-    };
-
-    console.log("[Clean ALL Tokens] ========== SUMMARY ==========");
-    console.log(JSON.stringify(summary, null, 2));
+    };    console.log(JSON.stringify(summary, null, 2));
 
     return NextResponse.json(summary);
-  } catch (error: any) {
-    console.error("[Clean ALL Tokens] FATAL ERROR:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { error: error.message || "Cleanup failed" },
       { status: 500 }
     );
@@ -99,11 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = userSnap.data();
-    const fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];
-
-    console.log(`[Clean FCM Tokens] User: ${userId}, Total tokens: ${fcmTokens.length}`);
-
-    if (fcmTokens.length === 0) {
+    const fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];    if (fcmTokens.length === 0) {
       return NextResponse.json({
         success: true,
         message: "Token bulunamadı",
@@ -146,9 +126,7 @@ export async function POST(request: NextRequest) {
       cleaned: invalidTokens.length,
       remaining: validTokens.length,
     });
-  } catch (error: any) {
-    console.error("FCM token temizleme hatası:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { error: error.message || "Token temizleme başarısız" },
       { status: 500 }
     );

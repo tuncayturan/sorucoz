@@ -132,9 +132,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
           prev.map(b => b.id === bildirim.id ? { ...b, read: true } : b)
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
-      } catch (error) {
-        console.error("Bildirim okuma hatası:", error);
-      }
+      } catch (error) {      }
     }
 
     // Bildirim tipine göre yönlendir
@@ -220,9 +218,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
                         fill
                         className="object-cover rounded-2xl"
                         unoptimized={logoUrl.startsWith("http")}
-                        onError={(e) => {
-                          console.error("Logo yüklenemedi:", logoUrl);
-                          // Fallback to initial
+                        onError={(e) => {                          // Fallback to initial
                           const target = e.target as HTMLImageElement;
                           if (target) {
                             target.style.display = "none";
@@ -403,9 +399,7 @@ export default function HomeHeader({ onMenuClick }: HomeHeaderProps) {
                           );
                           setUnreadCount(0);
                         }
-                      } catch (error) {
-                        console.error("Bildirimleri okundu işaretleme hatası:", error);
-                      }
+                      } catch (error) {                      }
                     }
                     
                     setShowNotifications(newShowState);

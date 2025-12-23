@@ -93,9 +93,7 @@ export default function AdminOdemeYontemleriPage() {
         await setDoc(settingsRef, { methods: defaultMethods });
         setOdemeYontemleri(defaultMethods);
       }
-    } catch (error) {
-      console.error("Ödeme yöntemleri yüklenirken hata:", error);
-      showToast("Ödeme yöntemleri yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Ödeme yöntemleri yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -112,9 +110,7 @@ export default function AdminOdemeYontemleriPage() {
       await setDoc(settingsRef, { methods: updated });
 
       showToast("Ödeme yöntemi güncellendi!", "success");
-    } catch (error) {
-      console.error("Güncelleme hatası:", error);
-      showToast("Güncelleme başarısız!", "error");
+    } catch (error) {      showToast("Güncelleme başarısız!", "error");
       fetchOdemeYontemleri();
     }
   };
@@ -147,9 +143,7 @@ export default function AdminOdemeYontemleriPage() {
       showToast("Ayarlar kaydedildi!", "success");
       setEditing(null);
       setEditData({});
-    } catch (error) {
-      console.error("Kaydetme hatası:", error);
-      showToast("Kaydetme başarısız!", "error");
+    } catch (error) {      showToast("Kaydetme başarısız!", "error");
     }
   };
 

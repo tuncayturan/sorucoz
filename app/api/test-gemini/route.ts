@@ -24,13 +24,7 @@ export async function GET(request: NextRequest) {
     const apiKeyLength = apiKey.length;
 
     // Basit bir test isteği - v1 API ve gemini-2.5-flash modeli kullanıyoruz
-    const testUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-    console.log("🧪 Gemini API test ediliyor...");
-    console.log("🔑 API Key başlangıç:", apiKeyStart + "...");
-    console.log("📏 API Key uzunluk:", apiKeyLength);
-
-    const response = await fetch(testUrl, {
+    const testUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;    const response = await fetch(testUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -58,15 +52,7 @@ export async function GET(request: NextRequest) {
         errorData = JSON.parse(errorText);
       } catch {
         errorData = { message: errorText };
-      }
-
-      console.error("❌ Gemini API Test Hatası:", {
-        status: responseStatus,
-        statusText: responseStatusText,
-        error: errorData
-      });
-
-      return NextResponse.json({
+      }      return NextResponse.json({
         success: false,
         apiKeyExists: true,
         apiKeyLength: apiKeyLength,
@@ -78,13 +64,7 @@ export async function GET(request: NextRequest) {
       }, { status: responseStatus });
     }
 
-    const data = await response.json();
-    console.log("✅ Gemini API Test Başarılı:", {
-      hasCandidates: !!data.candidates,
-      candidatesLength: data.candidates?.length || 0
-    });
-
-    return NextResponse.json({
+    const data = await response.json();    return NextResponse.json({
       success: true,
       apiKeyExists: true,
       apiKeyLength: apiKeyLength,
@@ -98,9 +78,7 @@ export async function GET(request: NextRequest) {
       },
       message: "API key çalışıyor!"
     });
-  } catch (error: any) {
-    console.error("❌ Test endpoint hatası:", error);
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { 
         success: false,
         error: error.message || "Test sırasında bir hata oluştu",

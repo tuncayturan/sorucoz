@@ -78,9 +78,7 @@ export default function AdminPopupMesajPage() {
           imageUrl: "",
         });
       }
-    } catch (error) {
-      console.error("Popup mesaj yüklenirken hata:", error);
-      showToast("Popup mesaj yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Popup mesaj yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }
@@ -102,9 +100,7 @@ export default function AdminPopupMesajPage() {
       });
 
       showToast("Popup mesaj başarıyla kaydedildi!", "success");
-    } catch (error) {
-      console.error("Kaydetme hatası:", error);
-      showToast("Kaydetme başarısız!", "error");
+    } catch (error) {      showToast("Kaydetme başarısız!", "error");
     } finally {
       setSaving(false);
     }
@@ -299,9 +295,7 @@ export default function AdminPopupMesajPage() {
                     const data = await response.json();
                     setPopup({ ...popup, imageUrl: data.url });
                     showToast("Resim başarıyla yüklendi!", "success");
-                  } catch (error: any) {
-                    console.error("Resim yükleme hatası:", error);
-                    showToast(error.message || "Resim yüklenirken bir hata oluştu", "error");
+                  } catch (error: any) {                    showToast(error.message || "Resim yüklenirken bir hata oluştu", "error");
                   } finally {
                     setUploadingImage(false);
                   }

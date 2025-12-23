@@ -19,9 +19,7 @@ export default function PWAInstallPrompt() {
     const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     // Masaüstü ise hiç gösterme
-    if (!isMobileScreen && !isMobileUserAgent) {
-      console.log('[PWA] Desktop detected, not showing install prompt');
-      return;
+    if (!isMobileScreen && !isMobileUserAgent) {      return;
     }
     
     // iOS detection
@@ -33,17 +31,7 @@ export default function PWAInstallPrompt() {
     
     // Android detection
     const isAndroidDevice = /Android/.test(navigator.userAgent);
-    setIsAndroid(isAndroidDevice);
-    
-    console.log('[PWA] Device detection:', {
-      isIOSDevice,
-      isAndroidDevice,
-      isInStandaloneMode,
-      isMobileScreen,
-      isMobileUserAgent
-    });
-    
-    // iOS: Eğer zaten PWA modunda değilse ve daha önce kapatılmamışsa göster
+    setIsAndroid(isAndroidDevice);    // iOS: Eğer zaten PWA modunda değilse ve daha önce kapatılmamışsa göster
     if (isIOSDevice && !isInStandaloneMode) {
       const hasClosedBefore = localStorage.getItem('pwa-install-closed-ios');
       if (!hasClosedBefore) {
@@ -55,76 +43,40 @@ export default function PWAInstallPrompt() {
     }
 
     // Android: beforeinstallprompt event'ini dinle (sadece mobil ise)
-    const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('[PWA] ✅ beforeinstallprompt event fired');
-      
-      // Masaüstü ise event'i görmezden gel
-      if (!isMobileScreen && !isMobileUserAgent) {
-        console.log('[PWA] Desktop detected in event, ignoring');
-        return;
+    const handleBeforeInstallPrompt = (e: Event) => {      // Masaüstü ise event'i görmezden gel
+      if (!isMobileScreen && !isMobileUserAgent) {        return;
       }
       
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(promptEvent);
-      console.log('[PWA] Deferred prompt saved');
-      
-      const hasClosedBefore = localStorage.getItem('pwa-install-closed-android');
-      console.log('[PWA] Has closed before:', hasClosedBefore);
-      
-      if (!hasClosedBefore) {
+      setDeferredPrompt(promptEvent);      const hasClosedBefore = localStorage.getItem('pwa-install-closed-android');      if (!hasClosedBefore) {
         // 3 saniye sonra otomatik olarak native prompt'u göster
-        setTimeout(async () => {
-          console.log('[PWA] Auto-showing Android install prompt');
-          try {
+        setTimeout(async () => {          try {
             // Otomatik olarak native prompt'u göster
-            console.log('[PWA] Calling prompt()...');
-            await promptEvent.prompt();
-            console.log('[PWA] Prompt shown, waiting for user choice...');
-            
-            const { outcome } = await promptEvent.userChoice;
-            console.log('[PWA] User choice:', outcome);
-            
-            if (outcome === 'accepted') {
-              console.log('[PWA] ✅ User accepted Android install - app will be installed');
-              // Kullanıcı kabul etti, artık prompt gösterme
+            await promptEvent.prompt();            const { outcome } = await promptEvent.userChoice;            if (outcome === 'accepted') {              // Kullanıcı kabul etti, artık prompt gösterme
               localStorage.setItem('pwa-install-closed-android', 'accepted');
               
               // Android'de uygulama ana ekrana eklendikten sonra sayfayı yenile
               // (PWA moduna geçiş için)
               setTimeout(() => {
-                if (window.matchMedia('(display-mode: standalone)').matches) {
-                  console.log('[PWA] ✅ App is now in standalone mode');
-                } else {
-                  console.log('[PWA] ⚠️ App not yet in standalone mode, may need page refresh');
-                }
+                if (window.matchMedia('(display-mode: standalone)').matches) {                } else {                }
               }, 1000);
-            } else {
-              console.log('[PWA] User dismissed Android install');
-              // Kullanıcı reddetti, bir sonraki sefer tekrar göster
+            } else {              // Kullanıcı reddetti, bir sonraki sefer tekrar göster
             }
             
             setDeferredPrompt(null);
             setShowPrompt(false);
-          } catch (error: any) {
-            console.error('[PWA] ❌ Error showing prompt:', error);
-            console.error('[PWA] Error details:', error.message, error.stack);
-            // Hata olursa fallback olarak custom prompt göster
+          } catch (error: any) {            // Hata olursa fallback olarak custom prompt göster
             setShowPrompt(true);
           }
         }, 2000); // 2 saniye bekle (daha hızlı)
       } else {
-        // Daha önce kapatılmışsa custom prompt göster (manuel buton ile)
-        console.log('[PWA] Previously closed, showing custom prompt for manual install');
-        setShowPrompt(true);
+        // Daha önce kapatılmışsa custom prompt göster (manuel buton ile)        setShowPrompt(true);
       }
     };
 
     // Android için beforeinstallprompt event'ini dinle
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    console.log('[PWA] ✅ beforeinstallprompt listener added');
-
-    // Android'de event gelmemişse ve PWA değilse, custom prompt göster
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);    // Android'de event gelmemişse ve PWA değilse, custom prompt göster
     let fallbackTimeout: NodeJS.Timeout | null = null;
     if (isAndroidDevice && !isInStandaloneMode) {
       const hasClosedBefore = localStorage.getItem('pwa-install-closed-android');
@@ -133,9 +85,7 @@ export default function PWAInstallPrompt() {
         // Bu closure'da deferredPrompt state'ine erişemeyiz, bu yüzden
         // sadece localStorage kontrolü yapıyoruz
         const stillClosed = localStorage.getItem('pwa-install-closed-android');
-        if (!stillClosed) {
-          console.log('[PWA] ⚠️ beforeinstallprompt event not fired after 5s, showing custom prompt');
-          setShowPrompt(true);
+        if (!stillClosed) {          setShowPrompt(true);
         }
       }, 5000);
     }
@@ -152,20 +102,15 @@ export default function PWAInstallPrompt() {
   const handleInstallClick = async () => {
     if (isAndroid && deferredPrompt) {
       // Android: Native install prompt (manuel tıklama için)
-      console.log('[PWA] Manually showing Android install prompt');
       try {
         await deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
-        console.log('[PWA] User choice:', outcome);
-        
         if (outcome === 'accepted') {
-          console.log('[PWA] ✅ User accepted Android install - app will be installed');
           localStorage.setItem('pwa-install-closed-android', 'accepted');
           
           // PWA moduna geçiş kontrolü
           setTimeout(() => {
             if (window.matchMedia('(display-mode: standalone)').matches) {
-              console.log('[PWA] ✅ App is now in standalone mode');
               window.location.reload();
             }
           }, 1000);
@@ -174,16 +119,13 @@ export default function PWAInstallPrompt() {
         setDeferredPrompt(null);
         setShowPrompt(false);
       } catch (error) {
-        console.error('[PWA] Error showing prompt:', error);
         setShowPrompt(false);
       }
     } else if (isAndroid && !deferredPrompt) {
       // Android: deferredPrompt yoksa tarayıcı menüsünden ekleme talimatları
-      console.log('[PWA] Android - showing manual instructions');
       // Popup kapatılmaz, kullanıcı talimatları görsün
     } else if (isIOS) {
       // iOS: Sadece talimatları göster (otomatik install yok)
-      console.log('[PWA] iOS - showing instructions');
       // Popup kapatılmaz, kullanıcı talimatları görsün
     }
   };
@@ -195,7 +137,6 @@ export default function PWAInstallPrompt() {
     } else if (isAndroid) {
       localStorage.setItem('pwa-install-closed-android', 'true');
     }
-    console.log('[PWA] Install prompt closed by user');
   };
 
   if (!showPrompt) return null;

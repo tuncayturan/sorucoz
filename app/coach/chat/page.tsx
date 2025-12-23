@@ -121,33 +121,23 @@ export default function CoachChatPage() {
     if (!user) return;
     
     // Notification izni durumunu kontrol et
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      console.log("[Coach Chat] Notifications not supported");
-      return;
+    if (typeof window === "undefined" || !("Notification" in window)) {      return;
     }
     
     // Eğer izin verilmişse token al, verilmemişse iste
-    if (Notification.permission === "granted") {
-      console.log("[Coach Chat] Notification permission already granted, getting token...");
-      requestNotificationPermission()
+    if (Notification.permission === "granted") {      requestNotificationPermission()
         .then((token) => {
-          if (token) {
-            console.log("[Coach Chat] FCM token received, saving...");
-            return saveFCMTokenToUser(user.uid, token);
+          if (token) {            return saveFCMTokenToUser(user.uid, token);
           }
         })
-        .catch((err) => console.error("[Coach Chat] FCM token error:", err));
+        .catch(() => {});
     } else if (Notification.permission === "default") {
       // İlk ziyarette otomatik izin isteme (sadece 1 kere)
       const hasAskedBefore = localStorage.getItem("fcm_permission_asked");
-      if (!hasAskedBefore) {
-        console.log("[Coach Chat] Requesting notification permission...");
-        localStorage.setItem("fcm_permission_asked", "true");
+      if (!hasAskedBefore) {        localStorage.setItem("fcm_permission_asked", "true");
         requestNotificationPermission()
           .then((token) => {
-            if (token) {
-              console.log("[Coach Chat] FCM token received after permission grant");
-              return saveFCMTokenToUser(user.uid, token);
+            if (token) {              return saveFCMTokenToUser(user.uid, token);
             }
           })
           .catch((err) => console.error("[Coach Chat] Permission request error:", err));
@@ -177,15 +167,11 @@ export default function CoachChatPage() {
           const conversationId = convDoc.id;
           
           // Double-check: Ensure this conversation belongs to this coach
-          if (convData.coachId !== user.uid) {
-            console.warn(`Conversation ${conversationId} does not belong to coach ${user.uid}, skipping...`);
-            continue; // Skip conversations that don't belong to this coach
+          if (convData.coachId !== user.uid) {            continue; // Skip conversations that don't belong to this coach
           }
           
           // Coach tarafından gizlenmiş conversation'ları atla
-          if (convData.hiddenForCoach === true) {
-            console.log(`Conversation ${conversationId} hidden for coach, skipping...`);
-            continue;
+          if (convData.hiddenForCoach === true) {            continue;
           }
           
           // Get student info
@@ -242,9 +228,7 @@ export default function CoachChatPage() {
         
         setConversations(conversationsList);
         setLoading(false);
-      } catch (error) {
-        console.error("Conversations yüklenirken hata:", error);
-        setLoading(false);
+      } catch (error) {        setLoading(false);
       }
     };
 
@@ -324,16 +308,11 @@ export default function CoachChatPage() {
         const bildirimlerSnapshot = await getDocs(bildirimlerQuery);
         
         if (!bildirimlerSnapshot.empty) {
-          console.log(`[Coach Chat] 📬 Marking ${bildirimlerSnapshot.docs.length} notification(s) as read for conversation ${selectedConversation.id}`);
           const updatePromises = bildirimlerSnapshot.docs.map((notifDoc) =>
             updateDoc(doc(db, "users", user.uid, "bildirimler", notifDoc.id), { read: true })
           );
-          await Promise.all(updatePromises);
-          console.log(`[Coach Chat] ✅ All notifications marked as read`);
-        }
-      } catch (error) {
-        console.error("[Coach Chat] ❌ Error marking notifications as read:", error);
-      }
+          await Promise.all(updatePromises);        }
+      } catch (error) {      }
     };
 
     markConversationNotificationsAsRead();
@@ -375,9 +354,7 @@ export default function CoachChatPage() {
           );
         }
       },
-      (error) => {
-        console.error("Mesajlar yüklenirken hata:", error);
-      }
+      (error) => {      }
     );
 
     return () => unsubscribe();
@@ -464,9 +441,7 @@ export default function CoachChatPage() {
       });
       setEditingMessageId(null);
       setEditingText("");
-    } catch (error) {
-      console.error("Mesaj düzenlenirken hata:", error);
-      showToast("Mesaj düzenlenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Mesaj düzenlenirken bir hata oluştu.", "error");
     }
   };
 
@@ -480,9 +455,7 @@ export default function CoachChatPage() {
       const messageRef = doc(db, "conversations", selectedConversation.id, "messages", messageId);
       await deleteDoc(messageRef);
       showToast("Mesaj silindi.", "success");
-    } catch (error) {
-      console.error("Mesaj silinirken hata:", error);
-      showToast("Mesaj silinirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Mesaj silinirken bir hata oluştu.", "error");
     }
   };
 
@@ -545,9 +518,7 @@ export default function CoachChatPage() {
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-          console.log("Audio chunk alındı, boyut:", event.data.size, "toplam chunks:", audioChunksRef.current.length);
-        }
+          audioChunksRef.current.push(event.data);        }
       };
 
       mediaRecorder.onstop = async () => {
@@ -575,16 +546,10 @@ export default function CoachChatPage() {
           try {
             const blob = new Blob(audioChunksRef.current, { 
               type: mediaRecorder.mimeType || 'audio/webm' 
-            });
-            console.log("Ses kaydı hazır, boyut:", blob.size, "süre:", finalTime);
-            await handleVoiceRecordingComplete(blob);
-          } catch (error) {
-            console.error("Ses işlenirken hata:", error);
-            showToast("Ses kaydı işlenirken bir hata oluştu.", "error");
+            });            await handleVoiceRecordingComplete(blob);
+          } catch (error) {            showToast("Ses kaydı işlenirken bir hata oluştu.", "error");
           }
-        } else {
-          console.log("Kayıt gönderilmiyor - chunks:", audioChunksRef.current.length, "süre:", finalTime);
-        }
+        } else {        }
         
         // Clear chunks
         audioChunksRef.current = [];
@@ -600,9 +565,7 @@ export default function CoachChatPage() {
         recordingTimeRef.current += 0.1;
         setRecordingTime(recordingTimeRef.current);
       }, 100);
-    } catch (error) {
-      console.error("Ses kaydı başlatılırken hata:", error);
-      showToast("Mikrofon erişimi reddedildi. Lütfen izin verin.", "error");
+    } catch (error) {      showToast("Mikrofon erişimi reddedildi. Lütfen izin verin.", "error");
       setIsRecording(false);
     }
   };
@@ -610,9 +573,7 @@ export default function CoachChatPage() {
   // Ses kaydı durdurma
   const stopVoiceRecording = () => {
     if (mediaRecorderRef.current && isRecording && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        console.log("Kayıt durduruluyor, mevcut chunks:", audioChunksRef.current.length);
-        // Request data before stopping to ensure we get all data
+      try {        // Request data before stopping to ensure we get all data
         if (mediaRecorderRef.current.state === 'recording') {
           mediaRecorderRef.current.requestData();
           // Small delay to ensure data is collected
@@ -624,9 +585,7 @@ export default function CoachChatPage() {
         } else {
           mediaRecorderRef.current.stop();
         }
-      } catch (error) {
-        console.error("Kayıt durdurulurken hata:", error);
-        setIsRecording(false);
+      } catch (error) {        setIsRecording(false);
         setRecordingTime(0);
         recordingTimeRef.current = 0;
         if (streamRef.current) {
@@ -639,22 +598,15 @@ export default function CoachChatPage() {
 
   // Ses kaydı gönderme
   const handleVoiceRecordingComplete = async (audioBlob: Blob) => {
-    if (!user || !selectedConversation) {
-      console.error("Kullanıcı veya konuşma bulunamadı");
-      return;
+    if (!user || !selectedConversation) {      return;
     }
 
-    if (!audioBlob || audioBlob.size === 0) {
-      console.error("Ses dosyası geçersiz veya boş");
-      showToast("Ses kaydı boş. Lütfen tekrar deneyin.", "error");
+    if (!audioBlob || audioBlob.size === 0) {      showToast("Ses kaydı boş. Lütfen tekrar deneyin.", "error");
       return;
     }
 
     try {
-      setReplying(true);
-      console.log("Ses dosyası yükleniyor, boyut:", audioBlob.size);
-      
-      const formData = new FormData();
+      setReplying(true);      const formData = new FormData();
       const fileName = `voice_${Date.now()}.${audioBlob.type.includes('webm') ? 'webm' : 'mp4'}`;
       formData.append("file", audioBlob, fileName);
 
@@ -664,16 +616,11 @@ export default function CoachChatPage() {
       });
 
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error("Upload hatası:", errorText);
-        throw new Error("Ses dosyası yüklenemedi");
+        const errorText = await uploadResponse.text();        throw new Error("Ses dosyası yüklenemedi");
       }
 
       const uploadData = await uploadResponse.json();
-      const audioUrl = uploadData.url;
-      console.log("Ses dosyası yüklendi, URL:", audioUrl);
-
-      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
+      const audioUrl = uploadData.url;      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
       
       await addDoc(messagesRef, {
         text: "🎤 Ses mesajı",
@@ -700,9 +647,7 @@ export default function CoachChatPage() {
       const voiceLastNotificationTime = voiceLastNotificationStr ? parseInt(voiceLastNotificationStr) : 0;
       const voiceTimeSince = voiceNow - voiceLastNotificationTime;
       
-      if (voiceTimeSince > 10000 || voiceLastNotificationTime === 0) {
-        console.log("[Coach Chat] 📤 ✅ SENDING voice notification...");
-        localStorage.setItem(voiceThrottleKey, voiceNow.toString());
+      if (voiceTimeSince > 10000 || voiceLastNotificationTime === 0) {        localStorage.setItem(voiceThrottleKey, voiceNow.toString());
         
         fetch("/api/admin/send-notification", {
           method: "POST",
@@ -720,16 +665,12 @@ export default function CoachChatPage() {
           }),
         })
         .then(res => res.json())
-        .then(data => console.log("[Coach Chat] ✅ Voice notification response:", data))
-        .catch(error => console.error("[Coach Chat] ❌ Voice notification error:", error));
-      } else {
-        console.log(`[Coach Chat] 🚫🚫🚫 VOICE THROTTLED: ${voiceTimeSince}ms önce, ${10000 - voiceTimeSince}ms sonra`);
-      }
+        .then(() => {})
+        .catch(() => {});
+      } else {      }
 
       setTimeout(() => scrollToBottom(), 100);
-    } catch (error) {
-      console.error("Ses mesajı gönderilirken hata:", error);
-      showToast("Ses mesajı gönderilirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Ses mesajı gönderilirken bir hata oluştu.", "error");
     } finally {
       setReplying(false);
     }
@@ -752,14 +693,8 @@ export default function CoachChatPage() {
     if (!selectedConversation || (!replyText.trim() && selectedFiles.length === 0) || !user) return;
 
     // Double submit prevention
-    if (replying) {
-      console.log("[Coach Chat] ⚠️ Already sending, preventing duplicate");
-      return;
-    }
-    
-    console.log("[Coach Chat] 🚀 Sending message...");
-
-    try {
+    if (replying) {      return;
+    }    try {
       setReplying(true);
       setUploadingFiles(true);
 
@@ -806,18 +741,7 @@ export default function CoachChatPage() {
       const throttleKey = `last_notification_${selectedConversation.id}`;
       const lastNotificationStr = localStorage.getItem(throttleKey);
       const lastNotificationTime = lastNotificationStr ? parseInt(lastNotificationStr) : 0;
-      const timeSince = now - lastNotificationTime;
-      
-      console.log(`[Coach Chat] 🔍 Throttle Check:`, {
-        conversationId: selectedConversation.id,
-        timeSince,
-        threshold: 10000,
-        willSend: timeSince > 10000 || lastNotificationTime === 0
-      });
-      
-      if (timeSince > 10000 || lastNotificationTime === 0) {
-        console.log("[Coach Chat] 📤 ✅ SENDING notification to student...");
-        localStorage.setItem(throttleKey, now.toString());
+      const timeSince = now - lastNotificationTime;      if (timeSince > 10000 || lastNotificationTime === 0) {        localStorage.setItem(throttleKey, now.toString());
         
         fetch("/api/admin/send-notification", {
           method: "POST",
@@ -839,9 +763,7 @@ export default function CoachChatPage() {
         .then(res => res.json())
         .then(data => console.log("[Coach Chat] ✅ Notification response:", data))
         .catch(notifError => console.error("[Coach Chat] ❌ Notification error:", notifError));
-      } else {
-        console.log(`[Coach Chat] 🚫🚫🚫 THROTTLED: ${timeSince}ms önce, ${10000 - timeSince}ms sonra tekrar`);
-      }
+      } else {      }
 
       setReplyText("");
       setSelectedFiles([]);
@@ -849,9 +771,7 @@ export default function CoachChatPage() {
       
       setTimeout(() => scrollToBottom(), 300);
       setTimeout(() => scrollToBottom(), 600);
-    } catch (error) {
-      console.error("Mesaj gönderme hatası:", error);
-      showToast("Mesaj gönderilirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Mesaj gönderilirken bir hata oluştu.", "error");
     } finally {
       setReplying(false);
       setUploadingFiles(false);
@@ -886,9 +806,7 @@ export default function CoachChatPage() {
       setConversations(prev => prev.filter(c => c.id !== selectedConversation.id));
       setSelectedConversation(null);
       setConversationMessages([]);
-    } catch (error) {
-      console.error("Sohbet silme hatası:", error);
-      showToast("Sohbet silinirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Sohbet silinirken bir hata oluştu.", "error");
     }
   };
 
@@ -951,9 +869,7 @@ export default function CoachChatPage() {
       });
       
       return newConv;
-    } catch (error) {
-      console.error("Conversation oluşturma hatası:", error);
-      showToast("Sohbet başlatılamadı!", "error");
+    } catch (error) {      showToast("Sohbet başlatılamadı!", "error");
       return null;
     }
   };
@@ -1028,20 +944,11 @@ export default function CoachChatPage() {
   useEffect(() => {
     const userId = searchParams.get('userId');
     const studentId = searchParams.get('studentId'); // Öğrenci sayfasından gelen parametre
-    const conversationId = searchParams.get('conversationId');
-    
-    console.log('[Coach Chat] URL Params:', { userId, studentId, conversationId });
-    console.log('[Coach Chat] State:', { conversationsCount: conversations.length, loading, hasUser: !!user });
-    
-    // Loading bitmeden işlem yapma
-    if (loading) {
-      console.log('[Coach Chat] Still loading, waiting...');
-      return;
+    const conversationId = searchParams.get('conversationId');    // Loading bitmeden işlem yapma
+    if (loading) {      return;
     }
     
-    if (!user) {
-      console.log('[Coach Chat] No user, waiting...');
-      return;
+    if (!user) {      return;
     }
     
     if (userId || studentId || conversationId) {
@@ -1049,31 +956,19 @@ export default function CoachChatPage() {
       
       // Önce conversationId ile ara
       if (conversationId) {
-        conv = conversations.find(c => c.id === conversationId);
-        console.log('[Coach Chat] ConversationId search result:', conv ? 'Found' : 'Not found');
-      }
+        conv = conversations.find(c => c.id === conversationId);      }
       
       // conversationId yoksa userId veya studentId ile ara
       if (!conv && (userId || studentId)) {
-        const targetStudentId = userId || studentId;
-        console.log('[Coach Chat] Searching for studentId:', targetStudentId);
-        
-        // Conversations varsa aramayı yap
+        const targetStudentId = userId || studentId;        // Conversations varsa aramayı yap
         if (conversations.length > 0) {
           conv = conversations.find(c => c.studentId === targetStudentId);
-          console.log('[Coach Chat] StudentId search result:', conv ? `Found (${conv.id})` : 'Not found');
-        } else {
-          console.log('[Coach Chat] No conversations yet, will create new one');
-        }
+        } else {        }
         
         // Conversation bulunamazsa yeni conversation oluştur
-        if (!conv && targetStudentId) {
-          console.log('[Coach Chat] 🚀 Creating new conversation for student:', targetStudentId);
-          createNewConversation(targetStudentId).then((newConv) => {
+        if (!conv && targetStudentId) {          createNewConversation(targetStudentId).then((newConv) => {
             if (newConv) {
-              setSelectedConversation(newConv);
-              console.log('[Coach Chat] ✅ Yeni conversation oluşturuldu ve seçildi:', newConv.id);
-            }
+              setSelectedConversation(newConv);            }
           });
           
           // URL'yi temizle
@@ -1089,10 +984,7 @@ export default function CoachChatPage() {
       }
       
       if (conv) {
-        setSelectedConversation(conv);
-        console.log('[Coach Chat] ✅ Conversation açıldı:', conv.id);
-        
-        // URL'yi temizle
+        setSelectedConversation(conv);        // URL'yi temizle
         if (typeof window !== 'undefined') {
           const url = new URL(window.location.href);
           url.searchParams.delete('userId');
@@ -1100,9 +992,7 @@ export default function CoachChatPage() {
           url.searchParams.delete('conversationId');
           window.history.replaceState({}, '', url.pathname);
         }
-      } else {
-        console.log('[Coach Chat] ❌ Conversation bulunamadı ve oluşturulamadı');
-      }
+      } else {      }
     }
   }, [searchParams, conversations, loading, user]);
 
@@ -1702,9 +1592,7 @@ export default function CoachChatPage() {
                         type="button"
                         onClick={(e) => {
                           e.preventDefault();
-                          e.stopPropagation();
-                          console.log('[Coach Mesaj] Emoji butonu tıklandı, showEmojiPicker:', !showEmojiPicker);
-                          setShowEmojiPicker(!showEmojiPicker);
+                          e.stopPropagation();                          setShowEmojiPicker(!showEmojiPicker);
                         }}
                         className="hidden md:flex absolute right-3 bottom-3 w-8 h-8 items-center justify-center hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-gray-700 z-10 pointer-events-auto"
                         style={{ visibility: 'visible' }}
@@ -1719,19 +1607,10 @@ export default function CoachChatPage() {
                           <EmojiPicker
                             isOpen={true}
                             buttonRef={emojiButtonRef}
-                            onClose={() => {
-                              console.log('[Coach Mesaj] Emoji picker kapatılıyor');
-                              setShowEmojiPicker(false);
+                            onClose={() => {                              setShowEmojiPicker(false);
                             }}
-                            onEmojiSelect={(emoji) => {
-                              console.log('[Coach Mesaj] Emoji seçildi:', emoji);
-                              console.log('[Coach Mesaj] Mevcut replyText:', replyText);
-                              
-                              // Hem state'i hem de direkt textarea'yı güncelle
-                              const newText = replyText + emoji;
-                              console.log('[Coach Mesaj] Yeni text olacak:', newText);
-                              
-                              setReplyText(newText);
+                            onEmojiSelect={(emoji) => {                              // Hem state'i hem de direkt textarea'yı güncelle
+                              const newText = replyText + emoji;                              setReplyText(newText);
                               
                               // Textarea'yı da direkt güncelle
                               if (textareaRef.current) {
@@ -1740,10 +1619,7 @@ export default function CoachChatPage() {
                                 // Cursor'u sona taşı
                                 const length = newText.length;
                                 textareaRef.current.setSelectionRange(length, length);
-                              }
-                              
-                              console.log('[Coach Mesaj] State ve textarea güncellendi');
-                            }}
+                              }                            }}
                           />
                         </div>
                       )}
@@ -2255,9 +2131,7 @@ export default function CoachChatPage() {
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
-                        e.stopPropagation();
-                        console.log('[Coach Mesaj Mobile] Emoji butonu tıklandı, showEmojiPicker:', !showEmojiPicker);
-                        setShowEmojiPicker(!showEmojiPicker);
+                        e.stopPropagation();                        setShowEmojiPicker(!showEmojiPicker);
                       }}
                       className="hidden md:flex absolute right-3 bottom-3 w-8 h-8 items-center justify-center hover:bg-gray-100 rounded-full transition text-gray-500 hover:text-gray-700 z-10 pointer-events-auto"
                       style={{ visibility: 'visible' }}
@@ -2272,19 +2146,10 @@ export default function CoachChatPage() {
                         <EmojiPicker
                           isOpen={true}
                           buttonRef={emojiButtonRef}
-                          onClose={() => {
-                            console.log('[Coach Mesaj Mobile] Emoji picker kapatılıyor');
-                            setShowEmojiPicker(false);
+                          onClose={() => {                            setShowEmojiPicker(false);
                           }}
-                          onEmojiSelect={(emoji) => {
-                            console.log('[Coach Mesaj Mobile] Emoji seçildi:', emoji);
-                            console.log('[Coach Mesaj Mobile] Mevcut replyText:', replyText);
-                            
-                            // Hem state'i hem de direkt textarea'yı güncelle
-                            const newText = replyText + emoji;
-                            console.log('[Coach Mesaj Mobile] Yeni text olacak:', newText);
-                            
-                            setReplyText(newText);
+                          onEmojiSelect={(emoji) => {                            // Hem state'i hem de direkt textarea'yı güncelle
+                            const newText = replyText + emoji;                            setReplyText(newText);
                             
                             // Textarea'yı da direkt güncelle
                             if (textareaRef.current) {
@@ -2293,10 +2158,7 @@ export default function CoachChatPage() {
                               // Cursor'u sona taşı
                               const length = newText.length;
                               textareaRef.current.setSelectionRange(length, length);
-                            }
-                            
-                            console.log('[Coach Mesaj Mobile] State ve textarea güncellendi');
-                          }}
+                            }                          }}
                         />
                       </div>
                     )}

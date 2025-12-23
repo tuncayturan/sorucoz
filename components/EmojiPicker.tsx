@@ -104,9 +104,7 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
             type="button"
             onClick={(e) => {
               e.preventDefault();
-              e.stopPropagation();
-              console.log('[EmojiPicker] Kategori seçildi:', category);
-              setSelectedCategory(category);
+              e.stopPropagation();              setSelectedCategory(category);
             }}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition ${
               selectedCategory === category
@@ -129,9 +127,7 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose, buttonRef 
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
-                  e.stopPropagation();
-                  console.log('[EmojiPicker] Emoji seçildi:', emoji);
-                  onEmojiSelect(emoji);
+                  e.stopPropagation();                  onEmojiSelect(emoji);
                 }}
                 className="w-10 h-10 flex items-center justify-center text-2xl hover:bg-gray-100 rounded-lg transition cursor-pointer"
               >

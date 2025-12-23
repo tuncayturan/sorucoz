@@ -171,12 +171,7 @@ export default function SoruSorPage() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         
-        videoRef.current.onloadedmetadata = () => {
-          console.log("Kamera hazır:", {
-            width: videoRef.current?.videoWidth,
-            height: videoRef.current?.videoHeight,
-          });
-          setCameraReady(true);
+        videoRef.current.onloadedmetadata = () => {          setCameraReady(true);
         };
 
         videoRef.current.onplaying = () => {
@@ -185,15 +180,11 @@ export default function SoruSorPage() {
           }
         };
 
-        videoRef.current.onerror = (error) => {
-          console.error("Video hatası:", error);
-          setCameraReady(false);
+        videoRef.current.onerror = (error) => {          setCameraReady(false);
           showToast("Video yüklenirken bir hata oluştu.", "error");
         };
       }
-    } catch (error: any) {
-      console.error("Kamera hatası:", error);
-      setCameraReady(false);
+    } catch (error: any) {      setCameraReady(false);
       setShowCamera(false);
       
       let errorMessage = "Kameraya erişim izni verilmedi.";
@@ -288,9 +279,7 @@ export default function SoruSorPage() {
       handleCloseCamera();
       
       showToast("Fotoğraf çekildi!", "success");
-    } catch (error: any) {
-      console.error("Fotoğraf çekme hatası:", error);
-      showToast("Fotoğraf çekilirken bir hata oluştu: " + (error.message || "Bilinmeyen hata"), "error");
+    } catch (error: any) {      showToast("Fotoğraf çekilirken bir hata oluştu: " + (error.message || "Bilinmeyen hata"), "error");
     }
   };
 
@@ -312,9 +301,7 @@ export default function SoruSorPage() {
 
       const data = await response.json();
       return data.subject || "Bilinmeyen";
-    } catch (error) {
-      console.error("Ders tespit hatası:", error);
-      return "Bilinmeyen";
+    } catch (error) {      return "Bilinmeyen";
     } finally {
       setDetectingSubject(false);
     }
@@ -376,7 +363,6 @@ export default function SoruSorPage() {
 
       // AI ile soruyu çöz (arka planda) - SADECE AI ERİŞİMİ VARSA
       if (canUseAI) {
-        console.log("[Soru Sor] AI erişimi var, çözüm başlatılıyor...");
         try {
           const solveResponse = await fetch("/api/ai/solve-question", {
             method: "POST",
@@ -404,17 +390,14 @@ export default function SoruSorPage() {
             });
           }
         } catch (solveError: any) {
-          console.error("Çözüm hatası:", solveError);
           // Hata olsa bile soru kaydedildi, sadece solving durumunu güncelle
           const questionDocRef = doc(db, "users", user.uid, "sorular", questionDoc.id);
           await updateDoc(questionDocRef, {
             solving: false,
           });
           // Hata mesajını logla ama kullanıcıya gösterme (arka planda çalışıyor)
-          console.warn("⚠️ Soru çözme arka planda başarısız oldu, soru kaydedildi:", solveError.message);
         }
       } else {
-        console.log("[Soru Sor] 🆓 Freemium mod: AI çözüm yok, sadece coach çözümü.");
         // Freemium kullanıcısına bilgi ver
         showToast("🆓 Freemium mod: Sorunuz kaydedildi. AI çözüm için Premium gerekli. Coach'unuz yardımcı olacak!", "info");
       }
@@ -448,9 +431,7 @@ export default function SoruSorPage() {
       setTimeout(() => {
         router.push("/sorularim");
       }, 1500);
-    } catch (error: any) {
-      console.error("Yükleme hatası:", error);
-      showToast(error.message || "Soru yüklenirken bir hata oluştu.", "error");
+    } catch (error: any) {      showToast(error.message || "Soru yüklenirken bir hata oluştu.", "error");
     } finally {
       setUploading(false);
       setDetectingSubject(false);

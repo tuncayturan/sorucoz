@@ -8,13 +8,8 @@ const recentRequests = new Map<string, number>();
 const REQUEST_TIMEOUT = 30000; // 30 saniye içinde aynı request'i tekrar işleme (ULTRA AGGRESSIVE)
 
 // FCM Admin SDK kullanarak bildirim gönderme
-export async function POST(request: NextRequest) {
-  console.log(`[Send Notification API] ========== NEW REQUEST ==========`);
-  try {
-    const { userId, title, body, data } = await request.json();
-    console.log(`[Send Notification API] Parsed request:`, { userId, title, body, data });
-
-    if (!userId || !title || !body) {
+export async function POST(request: NextRequest) {  try {
+    const { userId, title, body, data } = await request.json();    if (!userId || !title || !body) {
       return NextResponse.json(
         { error: "userId, title ve body gerekli" },
         { status: 400 }
@@ -31,16 +26,8 @@ export async function POST(request: NextRequest) {
     // CRITICAL: receiverRole, conversationId ve body'yi key'e ekle - aynı mesaj için aynı key
     const requestKey = `${userId}-${receiverRole}-${conversationId}-${bodyHash}-${timestamp}`;
     const lastRequestTime = recentRequests.get(requestKey);
-    const now = Date.now();
-    
-    console.log(`[Send Notification] Request key: ${requestKey}`);
-    console.log(`[Send Notification] Last request: ${lastRequestTime ? `${now - lastRequestTime}ms ago` : 'never'}`);
-    console.log(`[Send Notification] Receiver role: ${receiverRole || 'none'}`);
-    
-    if (lastRequestTime && (now - lastRequestTime) < REQUEST_TIMEOUT) {
-      console.log(`[Send Notification] 🛑 DUPLICATE REQUEST PREVENTED (${now - lastRequestTime}ms ago)`);
-      console.log(`[Send Notification] ⚠️ Same request detected within ${REQUEST_TIMEOUT}ms window`);
-      return NextResponse.json({
+    const now = Date.now();    if (lastRequestTime && (now - lastRequestTime) < REQUEST_TIMEOUT) {
+      console.log(`[Send Notification] 🛑 DUPLICATE REQUEST PREVENTED (${now - lastRequestTime}ms ago)`);      return NextResponse.json({
         success: false,
         message: "Duplicate request prevented",
         tokensSent: 0,
@@ -49,22 +36,15 @@ export async function POST(request: NextRequest) {
     }
     
     // Mark this request as processed
-    recentRequests.set(requestKey, now);
-    console.log(`[Send Notification] ✅ Request marked as processed`);
-    
-    // Clean up old entries after timeout
+    recentRequests.set(requestKey, now);    // Clean up old entries after timeout
     setTimeout(() => {
       recentRequests.delete(requestKey);
-      console.log(`[Send Notification] 🗑️ Request key cleaned up: ${requestKey}`);
     }, REQUEST_TIMEOUT);
 
     // Firebase Admin Firestore instance
-    console.log(`[Send Notification API] Getting Admin App...`);
     const adminApp = getAdminApp();
-    console.log(`[Send Notification API] Getting Firestore...`);
     const adminDb = getFirestore(adminApp);
-    console.log(`[Send Notification API] ✅ Admin Firestore ready`);
-
+    
     // Site ayarlarından logo ve ses URL'sini al
     let logoUrl: string | undefined;
     let soundUrl: string | undefined;
@@ -76,9 +56,7 @@ export async function POST(request: NextRequest) {
         logoUrl = settingsData?.logo || settingsData?.icon;
         soundUrl = settingsData?.notificationSound;
       }
-    } catch (error) {
-      console.warn("[Send Notification] Ayarlar alınamadı:", error);
-    }
+    } catch (error) {    }
 
     // Kullanıcının FCM token'larını al
     const userRef = adminDb.collection("users").doc(userId);
@@ -89,15 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = userSnap.data();
-    let fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];
-
-    console.log(`[Send Notification] ========== START ==========`);
-    console.log(`[Send Notification] User: ${userId}, FCM Tokens: ${fcmTokens.length}`);
-    console.log(`[Send Notification] Title: "${title}"`);
-    console.log(`[Send Notification] Body: "${body}"`);
-    console.log(`[Send Notification] Data:`, data);
-
-    // Firestore'a bildirim kaydet (Admin SDK)
+    let fcmTokens: string[] = (userData?.fcmTokens as string[]) || [];    // Firestore'a bildirim kaydet (Admin SDK)
     const bildirimlerRef = adminDb.collection("users").doc(userId).collection("bildirimler");
     await bildirimlerRef.add({
       title,
@@ -124,9 +94,7 @@ export async function POST(request: NextRequest) {
       const tokensToSend = uniqueFcmTokens;
       
       if (uniqueFcmTokens.length > 1) {
-        console.log(`[Send Notification] ✅ Multiple tokens detected: ${uniqueFcmTokens.length} token(s) found for user ${userId}`);
-        console.log(`[Send Notification] ✅ Sending to ALL tokens - Service worker will handle duplicate prevention`);
-      } else {
+        console.log(`[Send Notification] ✅ Multiple tokens detected: ${uniqueFcmTokens.length} token(s) found for user ${userId}`);      } else {
         console.log(`[Send Notification] ✅ Single token found, sending to: ${tokensToSend[0].substring(0, 40)}...`);
       }
       
@@ -172,33 +140,17 @@ export async function POST(request: NextRequest) {
       // Send push notification using Firebase Admin SDK with logo and sound
       // Now supports both FCM (web) and Expo Push (mobile) tokens
       try {
-        console.log(`[Send Notification] Calling sendPushNotification with ${tokensToSend.length} token(s)`);
-        console.log(`[Send Notification] Data:`, fcmData);
-        const pushResults = await sendPushNotification(tokensToSend, title, body, fcmData, logoUrl, soundUrl);
-        tokensSent = pushResults.fcmSent + pushResults.expoSent;
-        console.log(`[Send Notification] ✅ Push notification sent: FCM ${pushResults.fcmSent}, Expo ${pushResults.expoSent}`);
-        console.log(`[Send Notification] ⚠️ Failed: FCM ${pushResults.fcmFailed}, Expo ${pushResults.expoFailed}`);
-        console.log(`[Send Notification] ========== END ==========`);
-      } catch (pushError) {
-        console.error(`[Send Notification] ❌ Error sending push notification:`, pushError);
-        console.error(`[Send Notification] Error details:`, JSON.stringify(pushError, null, 2));
+        console.log(`[Send Notification] Calling sendPushNotification with ${tokensToSend.length} token(s)`);        const pushResults = await sendPushNotification(tokensToSend, title, body, fcmData, logoUrl, soundUrl);
+        tokensSent = pushResults.fcmSent + pushResults.expoSent;      } catch (pushError) {        console.error(`[Send Notification] Error details:`, JSON.stringify(pushError, null, 2));
       }
-    } else {
-      console.warn(`[Send Notification] No FCM tokens found for user ${userId}`);
-    }
+    } else {    }
 
     return NextResponse.json({
       success: true,
       message: "Bildirim gönderildi",
       tokensSent: tokensSent,
     });
-  } catch (error: any) {
-    console.error("========== NOTIFICATION SEND ERROR ==========");
-    console.error("Error:", error);
-    console.error("Error message:", error?.message);
-    console.error("Error stack:", error?.stack);
-    console.error("===========================================");
-    return NextResponse.json(
+  } catch (error: any) {    return NextResponse.json(
       { 
         error: error.message || "Bildirim gönderilirken hata oluştu",
         details: error?.toString(),

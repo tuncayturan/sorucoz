@@ -35,9 +35,7 @@ export async function getAISettings(): Promise<AISettings | null> {
       maxTokens: 4000,
       temperature: 0.3,
     };
-  } catch (error) {
-    console.error("AI ayarları alınırken hata:", error);
-    // Fallback: Environment variable'dan Gemini API key
+  } catch (error) {    // Fallback: Environment variable'dan Gemini API key
     return {
       provider: "gemini",
       model: "gemini-2.0-flash-001",

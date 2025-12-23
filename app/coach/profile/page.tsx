@@ -16,9 +16,6 @@ export default function CoachProfilePage() {
   const { userData, loading: userDataLoading, refresh: refreshUserData } = useUserData();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [whatsappConnected, setWhatsappConnected] = useState(false);
-  const [whatsappConnecting, setWhatsappConnecting] = useState(false);
-  const [whatsappQRCode, setWhatsappQRCode] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -37,12 +34,6 @@ export default function CoachProfilePage() {
     type: "info",
     isVisible: false,
   });
-  
-  // WhatsApp bağlantı akışı için ref'ler (memory leak önleme)
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
-  const isConnectingRef = useRef(false);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type, isVisible: true });
@@ -51,24 +42,6 @@ export default function CoachProfilePage() {
   const hideToast = () => {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
-
-  // Component unmount kontrolü ve cleanup
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-      // Tüm interval ve timeout'ları temizle
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current);
-        checkIntervalRef.current = null;
-      }
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-        timeoutIdRef.current = null;
-      }
-    };
-  }, []);
 
   // Role check - redirect if not coach
   useEffect(() => {
@@ -91,59 +64,6 @@ export default function CoachProfilePage() {
       setEmail(userData.email || user?.email || "");
     }
   }, [userData, user]);
-
-  // WhatsApp durumunu sadece kontrol et (otomatik bağlanma yapma)
-  useEffect(() => {
-    if (!user || !userData || userData.role !== "coach") return;
-    if (whatsappConnecting) return; // Bağlanma işlemi devam ediyorsa kontrol etme
-
-    const checkWhatsAppStatus = async () => {
-      try {
-        // Firestore'dan durumu kontrol et
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          // Sadece durumu güncelle, bağlantı başlatma
-          if (data.whatsappConnected) {
-            setWhatsappConnected(true);
-            setWhatsappConnecting(false);
-            setWhatsappQRCode(null); // QR kod gösterme
-          }
-        }
-        
-        // API'den güncel durumu kontrol et (sadece durum kontrolü, bağlantı başlatma)
-        const response = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`);
-        if (response.ok) {
-          const data = await response.json();
-          // Sadece zaten bağlıysa durumu güncelle
-          if (data.isReady) {
-            setWhatsappConnected(true);
-            setWhatsappConnecting(false);
-            setWhatsappQRCode(null); // QR kod gösterme
-          } else {
-            // Bağlı değilse ve bağlanmıyorsa durumu sıfırla
-            if (!data.isInitializing) {
-              setWhatsappConnected(false);
-              setWhatsappConnecting(false);
-              setWhatsappQRCode(null);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("WhatsApp durum kontrolü hatası:", error);
-      }
-    };
-
-    checkWhatsAppStatus();
-    
-    // Sadece bağlı değilse ve bağlanmıyorsa durumu kontrol et (10 saniyede bir)
-    if (!whatsappConnected && !whatsappConnecting) {
-      const interval = setInterval(checkWhatsAppStatus, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [user, userData, whatsappConnected, whatsappConnecting]);
 
   // İptal butonuna tıklandığında değerleri sıfırla
   const handleCancel = () => {
@@ -195,9 +115,7 @@ export default function CoachProfilePage() {
 
       refreshUserData();
       showToast("Profil resmi başarıyla güncellendi!", "success");
-    } catch (error: any) {
-      console.error("Photo upload error:", error);
-      showToast(error?.message || "Profil resmi yüklenirken bir hata oluştu.", "error");
+    } catch (error: any) {      showToast(error?.message || "Profil resmi yüklenirken bir hata oluştu.", "error");
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) {
@@ -231,9 +149,7 @@ export default function CoachProfilePage() {
 
       refreshUserData();
       showToast("Profil başarıyla güncellendi!", "success");
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      showToast("Profil güncellenirken bir hata oluştu.", "error");
+    } catch (error: any) {      showToast("Profil güncellenirken bir hata oluştu.", "error");
     } finally {
       setSaving(false);
     }
@@ -267,9 +183,7 @@ export default function CoachProfilePage() {
 
       setPasswordData({ current: "", new: "", confirm: "" });
       showToast("Şifre başarıyla değiştirildi!", "success");
-    } catch (error: any) {
-      console.error("Password change error:", error);
-      if (error.code === "auth/wrong-password") {
+    } catch (error: any) {      if (error.code === "auth/wrong-password") {
         showToast("Mevcut şifre yanlış.", "error");
       } else if (error.code === "auth/weak-password") {
         showToast("Yeni şifre çok zayıf.", "error");
@@ -370,403 +284,6 @@ export default function CoachProfilePage() {
             <p className="text-xs text-gray-500 mt-1">E-posta adresi değiştirilemez</p>
           </div>
 
-          {/* WhatsApp Connection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bildirimleri Aç <span className="text-gray-500 font-normal">(Opsiyonel)</span>
-            </label>
-            <button
-              onClick={async () => {
-                // Race condition önleme: Eğer zaten bağlanıyorsa, yeni isteği engelle
-                if (isConnectingRef.current) {
-                  console.warn("⚠️ WhatsApp bağlantı işlemi zaten devam ediyor, yeni istek engellendi");
-                  return;
-                }
-                
-                if (!user) {
-                  showToast("Kullanıcı bilgisi bulunamadı. Lütfen tekrar giriş yapın.", "error");
-                  return;
-                }
-                
-                if (whatsappConnected) {
-                  showToast("Bildirimler zaten açık!", "info");
-                  return;
-                }
-                
-                // Önceki interval ve timeout'ları temizle (güvenlik için)
-                if (checkIntervalRef.current) {
-                  clearInterval(checkIntervalRef.current);
-                  checkIntervalRef.current = null;
-                }
-                if (timeoutIdRef.current) {
-                  clearTimeout(timeoutIdRef.current);
-                  timeoutIdRef.current = null;
-                }
-                
-                // Bağlantı durumunu ayarla
-                isConnectingRef.current = true;
-                setWhatsappConnecting(true);
-                setWhatsappQRCode(null);
-                
-                // Cleanup fonksiyonu
-                const cleanup = () => {
-                  if (checkIntervalRef.current) {
-                    clearInterval(checkIntervalRef.current);
-                    checkIntervalRef.current = null;
-                  }
-                  if (timeoutIdRef.current) {
-                    clearTimeout(timeoutIdRef.current);
-                    timeoutIdRef.current = null;
-                  }
-                  if (isMountedRef.current) {
-                    isConnectingRef.current = false;
-                  }
-                };
-                
-                try {
-                  // Başlatma zamanını Firestore'a kaydet
-                  try {
-                    const { db } = await import("@/lib/firebase");
-                    const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
-                    await updateDoc(doc(db, "users", user.uid), {
-                      whatsappConnectingStartTime: serverTimestamp(),
-                    });
-                  } catch (error) {
-                    console.error("Başlatma zamanı kaydetme hatası:", error);
-                  }
-                  
-                  // İlk bağlantı isteği - Modal zaten açık (whatsappConnecting = true)
-                  console.log("🚀 Bildirimler açılıyor...");
-                  
-                  // Network timeout kontrolü (10 saniye)
-                  const controller = new AbortController();
-                  const networkTimeout = setTimeout(() => controller.abort(), 10000);
-                  
-                  let response: Response;
-                  try {
-                    response = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`, {
-                      signal: controller.signal,
-                    });
-                    clearTimeout(networkTimeout);
-                  } catch (fetchError: any) {
-                    clearTimeout(networkTimeout);
-                    if (fetchError.name === 'AbortError') {
-                      console.error("❌ Network timeout: API yanıt vermedi");
-                      cleanup();
-                      if (isMountedRef.current) {
-                        setWhatsappConnecting(false);
-                        setWhatsappQRCode(null);
-                        showToast("Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.", "error");
-                      }
-                      return;
-                    }
-                    throw fetchError;
-                  }
-                  
-                  if (!response.ok) {
-                    let errorData: any = {};
-                    try {
-                      errorData = await response.json();
-                    } catch (e) {
-                      // JSON parse hatası
-                      errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-                    }
-                    console.error("❌ WhatsApp bağlantı hatası:", errorData);
-                    const errorMessage = errorData.error || "WhatsApp bağlantısı başlatılamadı";
-                    cleanup();
-                    if (isMountedRef.current) {
-                      setWhatsappConnecting(false);
-                      setWhatsappQRCode(null);
-                      showToast(errorMessage, "error");
-                    }
-                    return;
-                  }
-                  
-                  let data: any;
-                  try {
-                    data = await response.json();
-                  } catch (e) {
-                    console.error("❌ JSON parse hatası:", e);
-                    cleanup();
-                    if (isMountedRef.current) {
-                      setWhatsappConnecting(false);
-                      setWhatsappQRCode(null);
-                      showToast("Sunucu yanıtı işlenemedi. Lütfen tekrar deneyin.", "error");
-                    }
-                    return;
-                  }
-                  
-                  console.log("📊 İlk API yanıtı:", {
-                    isReady: data.isReady,
-                    isInitializing: data.isInitializing,
-                    hasQRCode: !!data.qrCode,
-                    qrCodeLength: data.qrCode ? data.qrCode.length : 0,
-                    warning: data.warning,
-                  });
-                  
-                  // Component unmount kontrolü
-                  if (!isMountedRef.current) {
-                    cleanup();
-                    return;
-                  }
-                  
-                  // Eğer session temizlendi uyarısı varsa
-                  if (data.warning) {
-                    cleanup();
-                    if (isMountedRef.current) {
-                      setWhatsappConnecting(false);
-                      setWhatsappQRCode(null);
-                      showToast(data.warning, "info");
-                    }
-                    return;
-                  }
-                  
-                  if (data.isReady) {
-                    // Zaten bağlıysa
-                    console.log("✅ Zaten bağlı!");
-                    cleanup();
-                    if (isMountedRef.current) {
-                      setWhatsappConnected(true);
-                      setWhatsappConnecting(false);
-                      setWhatsappQRCode(null);
-                      showToast("Artık bildirimleri WhatsApp'tan alabileceksiniz!", "success");
-                    }
-                    return;
-                  }
-                  
-                  // İlk QR kod kontrolü - eğer varsa hemen göster
-                  if (data.qrCode) {
-                    console.log("✅ İlk QR kod alındı! (uzunluk:", data.qrCode.length, ")");
-                    console.log("✅ QR kod preview:", data.qrCode.substring(0, 50) + "...");
-                    console.log("✅ QR kod base64 başlangıcı:", data.qrCode.startsWith("data:image") ? "Evet" : "Hayır");
-                    if (isMountedRef.current) {
-                      // QR kodun base64 formatında olduğundan emin ol
-                      const qrCodeToSet = data.qrCode.startsWith("data:image") 
-                        ? data.qrCode 
-                        : `data:image/png;base64,${data.qrCode}`;
-                      setWhatsappQRCode(qrCodeToSet);
-                      console.log("✅ QR kod state'e set edildi");
-                    }
-                  } else {
-                    console.log("⏳ QR kod henüz hazır değil, polling başlatılıyor... (isInitializing:", data.isInitializing, ")");
-                  }
-                          
-                  // QR kod güncellemelerini dinle (500ms'de bir)
-                  let attempts = 0;
-                  const maxAttempts = 120; // 60 saniye için (120 * 500ms)
-                  
-                  checkIntervalRef.current = setInterval(async () => {
-                    // Component unmount kontrolü
-                    if (!isMountedRef.current) {
-                      cleanup();
-                      return;
-                    }
-                    
-                    attempts++;
-                    try {
-                      const statusResponse = await fetch(`/api/whatsapp/connect?coachId=${user.uid}`);
-                      
-                      if (!statusResponse.ok) {
-                        const errorText = await statusResponse.text().catch(() => "");
-                        const errorData = await statusResponse.json().catch(() => ({}));
-                        console.error(`❌ [${attempts}] Durum kontrolü başarısız:`, statusResponse.status, errorText, errorData);
-                        
-                        // Eğer serverless hatası varsa, kullanıcıya bildir
-                        if (errorData.isServerless || errorData.error?.includes("serverless")) {
-                          cleanup();
-                          if (isMountedRef.current) {
-                            setWhatsappConnecting(false);
-                            setWhatsappQRCode(null);
-                            showToast("WhatsApp bağlantısı bu ortamda desteklenmemektedir.", "error");
-                          }
-                          return;
-                        }
-                        
-                        if (attempts > 15) {
-                          cleanup();
-                          if (isMountedRef.current) {
-                            setWhatsappConnecting(false);
-                            setWhatsappQRCode(null);
-                            showToast("WhatsApp bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.", "error");
-                          }
-                          return;
-                        }
-                        return; // Hata durumunda bir sonraki denemeye devam et
-                      }
-                      
-                      const statusData = await statusResponse.json();
-                      
-                      // Her 10 denemede bir log (spam önlemek için)
-                      if (attempts % 10 === 0 || statusData.qrCode || statusData.isReady) {
-                        console.log(`📊 [${attempts}] Durum kontrolü:`, {
-                          isReady: statusData.isReady,
-                          isInitializing: statusData.isInitializing,
-                          hasQRCode: !!statusData.qrCode,
-                          qrCodeLength: statusData.qrCode ? statusData.qrCode.length : 0,
-                          error: statusData.error || null,
-                        });
-                      }
-                      
-                      // Hata mesajı varsa göster
-                      if (statusData.error && !statusData.isInitializing) {
-                        console.error(`❌ [${attempts}] API hatası:`, statusData.error);
-                        if (attempts > 20) {
-                          cleanup();
-                          if (isMountedRef.current) {
-                            setWhatsappConnecting(false);
-                            setWhatsappQRCode(null);
-                            showToast(statusData.error || "WhatsApp bağlantısı kurulamadı.", "error");
-                          }
-                          return;
-                        }
-                      }
-                      
-                      // Firestore'dan da kontrol et (bağlantı kurulmuş mu?)
-                      let firestoreConnected = false;
-                      try {
-                        const { db } = await import("@/lib/firebase");
-                        const { doc, getDoc } = await import("firebase/firestore");
-                        const userDoc = await getDoc(doc(db, "users", user.uid));
-                        if (userDoc.exists()) {
-                          const userData = userDoc.data();
-                          firestoreConnected = !!(userData.whatsappConnected && userData.whatsappConnectedAt);
-                          if (firestoreConnected) {
-                            console.log(`✅ [${attempts}] Firestore'da bağlantı bilgileri kaydedilmiş!`);
-                          }
-                        }
-                      } catch (error) {
-                        console.error("Firestore kontrol hatası:", error);
-                      }
-                      
-                      if (statusData.isReady || firestoreConnected) {
-                        console.log(`✅ [${attempts}] Bağlantı kuruldu! (isReady: ${statusData.isReady}, Firestore: ${firestoreConnected})`);
-                        
-                        cleanup();
-                        
-                        // State'leri güncelle - modal kapanacak
-                        if (isMountedRef.current) {
-                          setWhatsappConnected(true);
-                          setWhatsappConnecting(false);
-                          setWhatsappQRCode(null);
-                          
-                          // UserData'yı yenile (Firestore'daki güncel bilgileri al)
-                          try {
-                            await refreshUserData();
-                          } catch (error) {
-                            console.error("UserData yenileme hatası:", error);
-                          }
-                          
-                          showToast("Artık bildirimleri WhatsApp'tan alabileceksiniz!", "success");
-                        }
-                        return;
-                      }
-                      
-                      if (statusData.qrCode) {
-                        // QR kod geldiğinde güncelle (yeni veya güncellenmiş)
-                        console.log(`✅ [${attempts}] QR kod alındı! (uzunluk: ${statusData.qrCode.length})`);
-                        console.log(`✅ [${attempts}] QR kod preview: ${statusData.qrCode.substring(0, 50)}...`);
-                        console.log(`✅ [${attempts}] QR kod base64 başlangıcı: ${statusData.qrCode.startsWith("data:image") ? "Evet" : "Hayır"}`);
-                        if (isMountedRef.current) {
-                          // QR kodun base64 formatında olduğundan emin ol
-                          const qrCodeToSet = statusData.qrCode.startsWith("data:image") 
-                            ? statusData.qrCode 
-                            : `data:image/png;base64,${statusData.qrCode}`;
-                          setWhatsappQRCode(qrCodeToSet);
-                          console.log(`✅ [${attempts}] QR kod state'e set edildi`);
-                        }
-                        // QR kod geldiğinde connecting durumunu koru ama modal açık kalsın
-                      } else if (attempts > 10 && attempts % 5 === 0) {
-                        // 10 denemeden sonra her 5 denemede bir logla
-                        console.warn(`⚠️ [${attempts}] QR kod henüz gelmedi, bekleniyor... (isInitializing: ${statusData.isInitializing})`);
-                      }
-                      
-                      // Eğer başlatma işlemi durduysa ve QR kod yoksa
-                      if (!statusData.isInitializing && !statusData.isReady && !statusData.qrCode && attempts > 40) {
-                        console.warn(`⚠️ [${attempts}] Başlatma durdu ve QR kod yok`);
-                        console.warn(`⚠️ Detaylar:`, {
-                          isReady: statusData.isReady,
-                          isInitializing: statusData.isInitializing,
-                          hasQRCode: !!statusData.qrCode,
-                          error: statusData.error,
-                        });
-                        
-                        // Auth failure durumunda hata mesajı göster
-                        if (statusData.error && (statusData.error.includes("auth") || statusData.error.includes("session"))) {
-                          cleanup();
-                          if (isMountedRef.current) {
-                            setWhatsappConnecting(false);
-                            setWhatsappQRCode(null);
-                            showToast("Session hatası tespit edildi. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
-                          }
-                          return;
-                        }
-                        
-                        // 80 denemeden sonra hala QR kod yoksa, hata mesajı göster
-                        if (attempts > 80) {
-                          cleanup();
-                          if (isMountedRef.current) {
-                            setWhatsappConnecting(false);
-                            setWhatsappQRCode(null);
-                            showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
-                          }
-                          return;
-                        }
-                      }
-                      
-                      // Timeout kontrolü
-                      if (attempts >= maxAttempts) {
-                        console.error(`❌ [${attempts}] Timeout: QR kod oluşturulamadı`);
-                        cleanup();
-                        if (isMountedRef.current) {
-                          setWhatsappConnecting(false);
-                          setWhatsappQRCode(null);
-                          showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin.", "error");
-                        }
-                        return;
-                      }
-                    } catch (error) {
-                      console.error(`❌ [${attempts}] Durum kontrolü hatası:`, error);
-                      // Hata durumunda da devam et, sadece logla
-                      if (attempts > 20) {
-                        console.warn("❌ Çok fazla hata, durduruluyor...");
-                        cleanup();
-                        if (isMountedRef.current) {
-                          setWhatsappConnecting(false);
-                          setWhatsappQRCode(null);
-                          showToast("WhatsApp bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.", "error");
-                        }
-                        return;
-                      }
-                    }
-                  }, 500); // 500ms'de bir kontrol et
-                  
-                  // 60 saniye sonra timeout (bağlantı kurulamazsa)
-                  timeoutIdRef.current = setTimeout(() => {
-                    cleanup();
-                    if (isMountedRef.current) {
-                      setWhatsappConnecting(false);
-                      setWhatsappQRCode(null);
-                      showToast("QR kod oluşturulamadı. Lütfen sayfayı yenileyip tekrar deneyin veya destek ekibiyle iletişime geçin.", "error");
-                    }
-                  }, 60000); // 60 saniye (maxAttempts ile uyumlu)
-                } catch (error: any) {
-                  console.error("WhatsApp bağlantı hatası:", error);
-                  cleanup();
-                  if (isMountedRef.current) {
-                    setWhatsappConnecting(false);
-                    setWhatsappQRCode(null);
-                    const errorMessage = error?.message || "WhatsApp bağlantısı kurulamadı. Lütfen tekrar deneyin.";
-                    showToast(errorMessage, "error");
-                  }
-                }
-              }}
-              disabled={whatsappConnecting || whatsappConnected}
-              className="w-full px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {whatsappConnecting ? "Bağlanıyor..." : whatsappConnected ? "Bildirimler Açık" : "Bildirimleri Aç"}
-            </button>
-          </div>
-
           {/* Role (Read-only) */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Rol</label>
@@ -853,80 +370,6 @@ export default function CoachProfilePage() {
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
-
-      {/* QR Code Popup Modal */}
-      {whatsappConnecting && !whatsappConnected && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
-            <div className="flex justify-end items-center mb-4">
-              <button
-                onClick={() => {
-                  // Cleanup işlemleri
-                  if (checkIntervalRef.current) {
-                    clearInterval(checkIntervalRef.current);
-                    checkIntervalRef.current = null;
-                  }
-                  if (timeoutIdRef.current) {
-                    clearTimeout(timeoutIdRef.current);
-                    timeoutIdRef.current = null;
-                  }
-                  isConnectingRef.current = false;
-                  
-                  setWhatsappConnecting(false);
-                  setWhatsappQRCode(null);
-                }}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex flex-col items-center gap-4">
-              {whatsappQRCode ? (
-                <>
-                  <div className="p-4 bg-white rounded-xl border-2 border-gray-200 flex items-center justify-center">
-                    <img
-                      src={whatsappQRCode}
-                      alt="QR Code"
-                      className="w-64 h-64 object-contain"
-                      onError={(e) => {
-                        console.error("QR kod yüklenemedi, QR kod:", whatsappQRCode?.substring(0, 100));
-                        console.error("QR kod uzunluğu:", whatsappQRCode?.length);
-                        e.currentTarget.style.display = "none";
-                      }}
-                      onLoad={() => {
-                        console.log("✅ QR kod başarıyla yüklendi");
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    QR kodu WhatsApp uygulamanızla tarayın
-                  </p>
-                  <p className="text-xs text-gray-400 text-center mt-1">
-                    WhatsApp → Ayarlar → Bağlı Cihazlar → Cihaz Bağla
-                  </p>
-                </>
-              ) : (
-                <>
-                  <div className="w-64 h-64 flex items-center justify-center bg-gray-100 rounded-xl border-2 border-gray-200">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-sm text-gray-600 font-medium">QR kod hazırlanıyor...</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 text-center">
-                    Lütfen bekleyin, QR kod oluşturuluyor
-                  </p>
-                  <p className="text-xs text-gray-400 text-center mt-2">
-                    Bu işlem 10-30 saniye sürebilir
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

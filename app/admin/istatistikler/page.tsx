@@ -87,9 +87,7 @@ export default function AdminIstatistiklerPage() {
         totalRevenue,
         monthlyRevenue,
       });
-    } catch (error) {
-      console.error("İstatistikler yüklenirken hata:", error);
-      showToast("İstatistikler yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("İstatistikler yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }

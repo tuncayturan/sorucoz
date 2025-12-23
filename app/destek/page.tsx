@@ -171,12 +171,7 @@ function DestekPageContent() {
   useEffect(() => {
     if (selectedMessage && destekMesajlari.length > 0) {
       const updated = destekMesajlari.find(m => m.id === selectedMessage.id);
-      if (updated) {
-        console.log("🟢 [STUDENT REAL-TIME] Updating selectedMessage with new data");
-        console.log("  - updated.yanitlar:", updated.yanitlar);
-        console.log("  - updated.yanit:", updated.yanit);
-        console.log("  - updated.yanitlar length:", updated.yanitlar?.length || 0);
-        setSelectedMessage(updated);
+      if (updated) {        setSelectedMessage(updated);
         // Scroll to bottom after update - use multiple timeouts to ensure it works
         setTimeout(() => scrollToBottom(), 200);
         setTimeout(() => scrollToBottom(), 400);
@@ -248,9 +243,7 @@ function DestekPageContent() {
                 await updateDoc(destekRef, { readByStudent: true });
               }
             }
-          } catch (error) {
-            console.error("Mesaj okunma durumu güncelleme hatası:", error);
-          }
+          } catch (error) {          }
         };
         
         markAdminMessagesAsRead();
@@ -292,9 +285,7 @@ function DestekPageContent() {
       });
 
       setDestekMesajlari(mesajlar);
-    } catch (error) {
-      console.error("Destek mesajları yüklenirken hata:", error);
-    } finally {
+    } catch (error) {    } finally {
       setLoadingMessages(false);
     }
   };
@@ -365,9 +356,7 @@ function DestekPageContent() {
             },
           }),
         });
-      } catch (notifError) {
-        console.error("Admin bildirim gönderme hatası:", notifError);
-      }
+      } catch (notifError) {      }
 
       // Başarı mesajı göster
       setSubmitted(true);
@@ -380,9 +369,7 @@ function DestekPageContent() {
       
       // 5 saniye sonra başarı mesajını gizle
       setTimeout(() => setSubmitted(false), 5000);
-    } catch (error) {
-      console.error("Destek mesajı gönderilirken hata:", error);
-      showToast("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.", "error");
+    } catch (error) {      showToast("Mesaj gönderilirken bir hata oluştu. Lütfen tekrar deneyin.", "error");
     } finally {
       setSubmitting(false);
       setUploadingFiles(false);
@@ -521,9 +508,7 @@ function DestekPageContent() {
             },
           }),
         });
-      } catch (notifError) {
-        console.error("Admin bildirim gönderme hatası:", notifError);
-      }
+      } catch (notifError) {      }
 
       // Update local state
       const newReplyForState = {
@@ -572,9 +557,7 @@ function DestekPageContent() {
       setReplyText("");
       setReplyFiles([]);
       setReplyFilePreviews([]);
-    } catch (error) {
-      console.error("Cevap gönderme hatası:", error);
-      showToast("Cevap gönderilirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Cevap gönderilirken bir hata oluştu.", "error");
     } finally {
       setReplying(false);
       setUploadingReplyFiles(false);
@@ -980,15 +963,9 @@ function DestekPageContent() {
                     }
 
                     // Add admin replies (from array or legacy field)
-                    console.log("🔵 [STUDENT VIEW] selectedMessage.yanitlar:", selectedMessage.yanitlar);
-                    console.log("🔵 [STUDENT VIEW] selectedMessage.yanit:", selectedMessage.yanit);
-                    console.log("🔵 [STUDENT VIEW] selectedMessage object:", selectedMessage);
-                    
                     if (selectedMessage.yanitlar && Array.isArray(selectedMessage.yanitlar) && selectedMessage.yanitlar.length > 0) {
                       // New array format
-                      console.log("✅ [STUDENT VIEW] Found yanitlar array with", selectedMessage.yanitlar.length, "messages");
                       selectedMessage.yanitlar.forEach((yanit: any, index: number) => {
-                        console.log(`  - Admin reply ${index + 1}:`, yanit.content?.substring(0, 50) || "no content", "timestamp:", yanit.timestamp);
                         allMessages.push({
                           type: 'admin',
                           timestamp: yanit.timestamp?.toDate?.() || (yanit.timestamp ? new Date(yanit.timestamp.seconds * 1000) : new Date()),
@@ -999,7 +976,6 @@ function DestekPageContent() {
                       });
                     } else if (selectedMessage.yanit || (selectedMessage.yanitAttachments && selectedMessage.yanitAttachments.length > 0)) {
                       // Legacy single field format
-                      console.log("⚠️ [STUDENT VIEW] Using legacy yanit field");
                       allMessages.push({
                         type: 'admin',
                         timestamp: selectedMessage.yanitTarihi?.toDate?.() || (selectedMessage.yanitTarihi ? new Date(selectedMessage.yanitTarihi.seconds * 1000) : new Date()),
@@ -1007,13 +983,7 @@ function DestekPageContent() {
                         attachments: selectedMessage.yanitAttachments || [],
                         readByStudent: selectedMessage.readByStudent || false, // Öğrenci okudu mu
                       });
-                    } else {
-                      console.log("❌ [STUDENT VIEW] No admin replies found");
-                    }
-                    
-                    console.log("🔵 [STUDENT VIEW] Total allMessages after admin replies:", allMessages.length);
-
-                    // Add student replies (from array or legacy field)
+                    } else {                    }                    // Add student replies (from array or legacy field)
                     if (selectedMessage.ogrenciYanitlar && Array.isArray(selectedMessage.ogrenciYanitlar) && selectedMessage.ogrenciYanitlar.length > 0) {
                       // New array format
                       selectedMessage.ogrenciYanitlar.forEach((ogrenciYanit: any) => {

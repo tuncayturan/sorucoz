@@ -169,9 +169,7 @@ export async function sendExpoPushNotifications(
       const chunkTickets = await expo.sendPushNotificationsAsync(chunk);
       tickets.push(...chunkTickets);
       console.log(`[Expo Push] ✅ Chunk sent: ${chunk.length} message(s)`);
-    } catch (error: any) {
-      console.error(`[Expo Push] ❌ Error sending chunk:`, error);
-      // Mark all messages in this chunk as failed
+    } catch (error: any) {      // Mark all messages in this chunk as failed
       chunk.forEach((msg) => {
         results.failureCount++;
         results.errors.push({

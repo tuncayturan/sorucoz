@@ -53,7 +53,7 @@ export default function VerifyEmailPage() {
       if (userData?.emailVerified !== true) {
         updateDoc(doc(db, "users", user.uid), {
           emailVerified: true,
-        }).catch(console.error);
+        }).catch(() => {});
       }
       router.replace("/home");
       return;
@@ -74,12 +74,8 @@ export default function VerifyEmailPage() {
         handleCodeInApp: false,
       };
       
-      await sendEmailVerification(user, actionCodeSettings);
-      console.log("[Verify Email] ✅ Email verification resent successfully");
-      showToast("Doğrulama emaili tekrar gönderildi. Email kutunuzu kontrol edin.", "success");
-    } catch (error: any) {
-      console.error("[Verify Email] ❌ Email verification resend error:", error);
-      if (error.code === "auth/too-many-requests") {
+      await sendEmailVerification(user, actionCodeSettings);      showToast("Doğrulama emaili tekrar gönderildi. Email kutunuzu kontrol edin.", "success");
+    } catch (error: any) {      if (error.code === "auth/too-many-requests") {
         showToast("Çok fazla istek gönderdiniz. Lütfen birkaç dakika bekleyin.", "error");
       } else {
         showToast(`Email gönderilemedi: ${error.message || "Bilinmeyen hata"}. Lütfen tekrar deneyin.`, "error");
@@ -99,10 +95,7 @@ export default function VerifyEmailPage() {
         try {
           await updateDoc(doc(db, "users", user.uid), {
             emailVerified: true,
-          });
-          console.log("[Verify Email] ✅ Firestore emailVerified updated to true");
-        } catch (firestoreError) {
-          console.error("[Verify Email] ⚠️ Firestore update error (non-critical):", firestoreError);
+          });        } catch (firestoreError) {
           // Firestore hatası kritik değil, yine de devam et
         }
         
@@ -113,9 +106,7 @@ export default function VerifyEmailPage() {
       } else {
         showToast("Email henüz doğrulanmamış. Lütfen email kutunuzu kontrol edin.", "info");
       }
-    } catch (error) {
-      console.error("[Verify Email] ❌ Check verified error:", error);
-      showToast("Doğrulama kontrolü yapılamadı. Lütfen tekrar deneyin.", "error");
+    } catch (error) {      showToast("Doğrulama kontrolü yapılamadı. Lütfen tekrar deneyin.", "error");
     }
   };
 

@@ -120,9 +120,7 @@ export default function CoachStudentsPage() {
 
       setStudents(studentsWithStats);
       setFilteredStudents(studentsWithStats);
-    } catch (error) {
-      console.error("Öğrenciler yüklenirken hata:", error);
-      showToast("Öğrenciler yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Öğrenciler yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }

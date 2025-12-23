@@ -62,9 +62,7 @@ export default function AdminOdemeGecmisiPage() {
       });
 
       setOdemeler(payments);
-    } catch (error) {
-      console.error("Ödemeler yüklenirken hata:", error);
-      // Collection yoksa boş liste göster
+    } catch (error) {      // Collection yoksa boş liste göster
       setOdemeler([]);
     } finally {
       setLoading(false);

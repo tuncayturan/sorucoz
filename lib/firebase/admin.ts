@@ -40,29 +40,20 @@ export function getAdminApp(): App {
   try {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     
-    if (serviceAccount) {
-      console.log("[Firebase Admin] Service account key found, parsing...");
-      // Parse JSON string from environment variable
+    if (serviceAccount) {      // Parse JSON string from environment variable
       const serviceAccountJson = JSON.parse(serviceAccount);
       adminApp = initializeApp({
         credential: cert(serviceAccountJson),
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      });
-      console.log("[Firebase Admin] Initialized successfully with service account");
-    } else {
-      console.warn("[Firebase Admin] No service account key found, using project ID only (limited functionality)");
+      });    } else {
       // Fallback: Try to use default credentials (for Firebase hosting/Cloud Functions)
       // Or use project ID only (limited functionality)
       adminApp = initializeApp({
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      });
-      console.log("[Firebase Admin] Initialized with project ID only");
-    }
+      });    }
 
     return adminApp;
-  } catch (error) {
-    console.error("[Firebase Admin] Initialization error:", error);
-    throw error;
+  } catch (error) {    throw error;
   }
 }
 
@@ -130,36 +121,24 @@ export async function sendPushNotification(
     expoFailed: 0,
   };
   try {
-    if (tokens.length === 0) {
-      console.log("[Push Notification] No tokens to send to");
-      return results;
+    if (tokens.length === 0) {      return results;
     }
 
     // Token deduplication - remove duplicate tokens
     const uniqueTokens = [...new Set(tokens)];
     
     if (uniqueTokens.length !== tokens.length) {
-      console.log(`[Push Notification] ⚠️ Removed ${tokens.length - uniqueTokens.length} duplicate token(s)`);
     }
 
-    console.log(`[Push Notification] Preparing to send to ${uniqueTokens.length} unique token(s)`);
-    console.log(`[Push Notification] Title: ${title}, Body: ${body}, Icon: ${icon || 'default'}, Sound: ${sound || 'default'}`);
-    
     // Separate FCM and Expo tokens
     const { fcmTokens, expoTokens, invalidTokens } = separateTokens(uniqueTokens);
     
     if (invalidTokens.length > 0) {
-      console.warn(`[Push Notification] ⚠️ Found ${invalidTokens.length} invalid token(s), skipping...`);
-    }
-    
-    console.log(`[Push Notification] Token breakdown: ${fcmTokens.length} FCM, ${expoTokens.length} Expo, ${invalidTokens.length} invalid`);
-    
-    const adminMessaging = getAdminMessaging();
+    }    const adminMessaging = getAdminMessaging();
     
     // Send Expo Push Notifications (mobile)
     if (expoTokens.length > 0) {
       try {
-        console.log(`[Push Notification] 📱 Sending ${expoTokens.length} Expo Push notification(s)...`);
         const expoResults = await sendExpoPushNotifications(
           expoTokens,
           title,
@@ -169,20 +148,13 @@ export async function sendPushNotification(
         );
         
         results.expoSent = expoResults.successCount;
-        results.expoFailed = expoResults.failureCount;
-        
-        console.log(`[Push Notification] ✅ Expo: ${expoResults.successCount} sent, ${expoResults.failureCount} failed`);
-        
-        // Extract invalid tokens for cleanup (optional - can be handled separately)
+        results.expoFailed = expoResults.failureCount;        // Extract invalid tokens for cleanup (optional - can be handled separately)
         if (expoResults.errors.length > 0) {
           const invalidExpoTokens = extractInvalidTokensFromExpoErrors(expoResults.errors);
           if (invalidExpoTokens.length > 0) {
-            console.warn(`[Push Notification] ⚠️ ${invalidExpoTokens.length} invalid Expo token(s) detected (should be removed from database)`);
           }
         }
-      } catch (expoError: any) {
-        console.error(`[Push Notification] ❌ Expo Push error:`, expoError);
-        results.expoFailed = expoTokens.length;
+      } catch (expoError: any) {        results.expoFailed = expoTokens.length;
       }
     }
 
@@ -256,31 +228,18 @@ export async function sendPushNotification(
         try {
           const response = await adminMessaging.sendEachForMulticast(message);
           results.fcmSent += response.successCount;
-          results.fcmFailed += response.failureCount;
-          
-          console.log(`[Push Notification] ✅ FCM batch: ${response.successCount} sent, ${response.failureCount} failed`);
-          
-          // Log failures for debugging
+          results.fcmFailed += response.failureCount;          // Log failures for debugging
           if (response.failureCount > 0) {
             response.responses.forEach((resp, idx) => {
               if (!resp.success) {
-                console.error(`[Push Notification] ❌ FCM failed for token ${batch[idx].substring(0, 20)}...:`, resp.error?.code || resp.error);
               }
             });
           }
-        } catch (error: any) {
-          console.error("[Push Notification] ❌ Error sending FCM batch:", error);
-          results.fcmFailed += batch.length;
+        } catch (error: any) {          results.fcmFailed += batch.length;
         }
       }
-    }
-    
-    console.log(`[Push Notification] 📊 Final results: FCM ${results.fcmSent}/${fcmTokens.length}, Expo ${results.expoSent}/${expoTokens.length}`);
-    
-    return results;
-  } catch (error: any) {
-    console.error("[Push Notification] ❌ Fatal error:", error);
-    // Don't throw - notification sending failure shouldn't break the main flow
+    }    return results;
+  } catch (error: any) {    // Don't throw - notification sending failure shouldn't break the main flow
     return results;
   }
 }

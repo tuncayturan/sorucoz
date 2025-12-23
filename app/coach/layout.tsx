@@ -175,9 +175,7 @@ export default function CoachLayout({
 
           unsubscribeFunctions.push(unsubscribe);
         });
-      } catch (error) {
-        console.error("Coach real-time listener kurulum hatası:", error);
-      }
+      } catch (error) {      }
     };
 
     setupRealTimeListeners();
@@ -202,11 +200,7 @@ export default function CoachLayout({
       try {
         // CRITICAL: Update Firestore notification document
         const bildirimRef = doc(db, "users", user.uid, "bildirimler", bildirim.id);
-        await updateDoc(bildirimRef, { read: true });
-        console.log("[Coach Layout] ✅ Notification marked as read in Firestore:", bildirim.id);
-      } catch (error) {
-        console.error("[Coach Layout] ❌ Error marking notification as read:", error);
-      }
+        await updateDoc(bildirimRef, { read: true });      } catch (error) {      }
       
       // Update local state
       readNotificationsRef.current.add(bildirim.id);
@@ -221,9 +215,7 @@ export default function CoachLayout({
       try {
         const mesajRef = doc(db, "conversations", bildirim.data.conversationId, "messages", bildirim.data.messageId);
         await updateDoc(mesajRef, { readByCoach: true });
-      } catch (error) {
-        console.error("Mesaj okuma hatası:", error);
-      }
+      } catch (error) {      }
     }
     
     if (bildirim.data?.type === "message" && bildirim.data?.conversationId) {

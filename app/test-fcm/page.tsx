@@ -32,9 +32,7 @@ export default function TestFCMPage() {
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
-    console.log(`[FCM Test] ${message}`);
-  };
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);  };
 
   // Service Worker durumunu kontrol et
   useEffect(() => {
@@ -164,9 +162,7 @@ export default function TestFCMPage() {
       }
       
     } catch (error: any) {
-      addLog(`❌ HATA: ${error.message || error}`);
-      console.error("FCM Test Error:", error);
-      showToast("Hata: " + (error.message || error), "error");
+      addLog(`❌ HATA: ${error.message || error}`);      showToast("Hata: " + (error.message || error), "error");
     } finally {
       setLoading(false);
     }

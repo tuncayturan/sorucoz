@@ -29,8 +29,24 @@ const SUBJECT_COLORS: { [key: string]: string } = {
   "Felsefe": "from-indigo-500 to-purple-600",
   "Vatandaşlık": "from-blue-500 to-cyan-600",
   "Güncel": "from-gray-500 to-slate-600",
+  "Güncel Olaylar": "from-gray-500 to-slate-600",
+  "Beden Eğitimi": "from-orange-500 to-red-600",
+  "Edebiyat": "from-pink-500 to-rose-600",
   "Fen Bilgisi": "from-emerald-500 to-teal-600",
   "Sosyal Bilgiler": "from-orange-500 to-amber-600",
+  "Sayısal Mantık": "from-violet-500 to-purple-600",
+  "Sözel Mantık": "from-cyan-500 to-blue-600",
+  "Geometri": "from-indigo-500 to-blue-600",
+  "Eğitim Bilimleri": "from-emerald-500 to-green-600",
+  "Gelişim": "from-pink-500 to-rose-600",
+  "Din Kültürü ve Ahlak Bilgisi": "from-amber-500 to-yellow-600",
+  "Okul Öncesi": "from-purple-500 to-pink-600",
+  "Rehberlik": "from-teal-500 to-cyan-600",
+  "Sınıf Öğretmenliği": "from-orange-500 to-red-600",
+  "İngilizce": "from-red-500 to-pink-600",
+  "Almanca": "from-yellow-500 to-amber-600",
+  "İtalyanca": "from-green-500 to-emerald-600",
+  "Arapça": "from-slate-500 to-gray-600",
   "Bilinmeyen": "from-gray-500 to-gray-600",
 };
 
@@ -45,8 +61,24 @@ const SUBJECT_ICONS: { [key: string]: string } = {
   "Felsefe": "💭",
   "Vatandaşlık": "📋",
   "Güncel": "📰",
+  "Güncel Olaylar": "📰",
+  "Beden Eğitimi": "⚽",
+  "Edebiyat": "📚",
   "Fen Bilgisi": "🔬",
   "Sosyal Bilgiler": "🌐",
+  "Sayısal Mantık": "🔢",
+  "Sözel Mantık": "💡",
+  "Geometri": "📐",
+  "Eğitim Bilimleri": "🎓",
+  "Gelişim": "🌱",
+  "Din Kültürü ve Ahlak Bilgisi": "🕌",
+  "Okul Öncesi": "🧸",
+  "Rehberlik": "🤝",
+  "Sınıf Öğretmenliği": "👨‍🏫",
+  "İngilizce": "🇬🇧",
+  "Almanca": "🇩🇪",
+  "İtalyanca": "🇮🇹",
+  "Arapça": "🇸🇦",
   "Bilinmeyen": "❓",
 };
 
@@ -193,9 +225,7 @@ export default function IstatistiklerPage() {
       setTodayQuestions(todayCount);
       setWeekQuestions(weekCount);
       setMonthQuestions(monthCount);
-    } catch (error) {
-      console.error("İstatistikler yüklenirken hata:", error);
-    } finally {
+    } catch (error) {    } finally {
       setLoading(false);
     }
   };

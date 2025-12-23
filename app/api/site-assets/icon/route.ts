@@ -32,9 +32,7 @@ export async function GET(request: NextRequest) {
     
     // Fallback: varsayılan icon
     return NextResponse.redirect(new URL("/img/logo.png", request.url));
-  } catch (error) {
-    console.error("Icon serve hatası:", error);
-    return NextResponse.redirect(new URL("/img/logo.png", request.url));
+  } catch (error) {    return NextResponse.redirect(new URL("/img/logo.png", request.url));
   }
 }
 

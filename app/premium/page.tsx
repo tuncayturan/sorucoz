@@ -115,9 +115,7 @@ export default function PremiumPage() {
         id: codeId,
       });
       showToast(`%${codeData.discountPercent} indirim kodu uygulandı!`, "success");
-    } catch (error) {
-      console.error("Referans kodu doğrulanırken hata:", error);
-      showToast("Kod doğrulanırken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Kod doğrulanırken bir hata oluştu.", "error");
       setValidatedReferralCode(null);
     } finally {
       setValidatingCode(false);
@@ -159,9 +157,7 @@ export default function PremiumPage() {
         await initializeIyzicoPayment(plan, isYearly);
         return;
       }
-    } catch (error) {
-      console.error("Ödeme yöntemi kontrolü hatası:", error);
-    }
+    } catch (error) {    }
 
     // Manuel ödeme (fallback)
     await handleManualPayment(plan, isYearly);
@@ -220,9 +216,7 @@ export default function PremiumPage() {
       } else {
         throw new Error("Ödeme formu alınamadı");
       }
-    } catch (error: any) {
-      console.error("iyzico ödeme hatası:", error);
-      showToast(error.message || "Ödeme başlatılamadı. Manuel ödeme ile devam ediliyor...", "error");
+    } catch (error: any) {      showToast(error.message || "Ödeme başlatılamadı. Manuel ödeme ile devam ediliyor...", "error");
       // Hata durumunda manuel ödemeye geç
       await handleManualPayment(plan, isYearly);
     } finally {
@@ -248,9 +242,7 @@ export default function PremiumPage() {
           await updateDoc(codeRef, {
             usageCount: increment(1),
           });
-        } catch (error) {
-          console.error("Referans kodu kullanım sayısı güncellenirken hata:", error);
-        }
+        } catch (error) {        }
       }
 
       // Lite'dan Premium'a geçiş
@@ -296,9 +288,7 @@ export default function PremiumPage() {
       setTimeout(() => {
         router.push("/home");
       }, 1500);
-    } catch (error) {
-      console.error("Purchase error:", error);
-      showToast("Ödeme işlemi başarısız. Lütfen tekrar deneyin.", "error");
+    } catch (error) {      showToast("Ödeme işlemi başarısız. Lütfen tekrar deneyin.", "error");
     } finally {
       setProcessing(null);
     }

@@ -52,9 +52,7 @@ export default function AdminAboneliklerPage() {
       });
 
       setKullanicilar(users);
-    } catch (error) {
-      console.error("Kullanıcılar yüklenirken hata:", error);
-      showToast("Kullanıcılar yüklenirken bir hata oluştu.", "error");
+    } catch (error) {      showToast("Kullanıcılar yüklenirken bir hata oluştu.", "error");
     } finally {
       setLoading(false);
     }

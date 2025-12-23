@@ -71,9 +71,7 @@ export default function VoiceMessage({ audioUrl, isOwnMessage = false, onDelete 
     if (isPlaying) {
       audio.pause();
     } else {
-      audio.play().catch((err) => {
-        console.error("Playback error:", err);
-      });
+      audio.play().catch((err) => {      });
     }
   };
 

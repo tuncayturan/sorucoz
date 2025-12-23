@@ -80,20 +80,13 @@ export default function LoginPage() {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         requestNotificationPermission()
           .then((token) => {
-            if (token) {
-              console.log("[Login] FCM token received, saving to Firestore...");
-              return saveFCMTokenToUser(cred.user.uid, token);
+            if (token) {              return saveFCMTokenToUser(cred.user.uid, token);
             } else {
-              console.warn("[Login] No FCM token received (permission granted but token null)");
             }
           })
-          .catch((error) => {
-            console.error("[Login] Error in FCM token process:", error);
-            // Token kaydetme hatası login işlemini durdurmaz
+          .catch((error) => {            // Token kaydetme hatası login işlemini durdurmaz
           });
-      } else {
-        console.log("[Login] Notification permission not granted, FCMTokenManager will handle it");
-      }
+      } else {      }
 
       showToast("Giriş başarılı! Yönlendiriliyorsunuz...", "success");
       
@@ -104,9 +97,7 @@ export default function LoginPage() {
         else router.replace("/home");
       }, 500);
 
-    } catch (err: any) {
-      console.error(err);
-      let errorMessage = "Giriş başarısız.";
+    } catch (err: any) {      let errorMessage = "Giriş başarısız.";
       
       if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
         errorMessage = "Email veya şifre hatalı.";
@@ -163,20 +154,13 @@ export default function LoginPage() {
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
         requestNotificationPermission()
           .then((token) => {
-            if (token) {
-              console.log("[Google Login] FCM token received, saving to Firestore...");
-              return saveFCMTokenToUser(user.uid, token);
+            if (token) {              return saveFCMTokenToUser(user.uid, token);
             } else {
-              console.warn("[Google Login] No FCM token received (permission granted but token null)");
             }
           })
-          .catch((error) => {
-            console.error("[Google Login] Error in FCM token process:", error);
-            // Token kaydetme hatası login işlemini durdurmaz
+          .catch((error) => {            // Token kaydetme hatası login işlemini durdurmaz
           });
-      } else {
-        console.log("[Google Login] Notification permission not granted, FCMTokenManager will handle it");
-      }
+      } else {      }
 
       const role = snap.exists() ? snap.data().role : "student";
 
@@ -186,13 +170,8 @@ export default function LoginPage() {
 
     } catch (err: any) {
       // Popup kapatıldığında sessizce görmezden gel
-      if (err?.code === "auth/cancelled-popup-request" || err?.code === "auth/popup-closed-by-user") {
-        console.log("Google popup kapatıldı");
-        return;
-      }
-      
-      console.error("Google Login Error:", err);
-      showToast("Google ile giriş başarısız. Lütfen tekrar deneyin.", "error");
+      if (err?.code === "auth/cancelled-popup-request" || err?.code === "auth/popup-closed-by-user") {        return;
+      }      showToast("Google ile giriş başarısız. Lütfen tekrar deneyin.", "error");
     }
   };
 
