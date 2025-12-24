@@ -55,8 +55,12 @@ function RegisterPageContent() {
 
   // URL'den google parametresini kontrol et ve otomatik Google Sign-In başlat
   useEffect(() => {
-    const googleParam = searchParams?.get('google');
-    const redirectParam = searchParams?.get('redirect');
+    // URL'den direkt parametreleri al (searchParams henüz hazır olmayabilir)
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleParam = urlParams.get('google') || searchParams?.get('google');
+    const redirectParam = urlParams.get('redirect') || searchParams?.get('redirect');
+    
+    console.log('Checking for google parameter:', googleParam, 'redirect:', redirectParam);
     
     // Eğer google=true parametresi varsa, otomatik Google Sign-In başlat
     // Browser plugin ile açılan sayfa normal web tarayıcısı gibi çalışır
@@ -112,12 +116,12 @@ function RegisterPageContent() {
         }
       };
       
-      // Biraz bekle ki sayfa tam yüklensin
+      // Biraz bekle ki sayfa tam yüklensin ve Firebase hazır olsun
       setTimeout(() => {
         handleGoogleRegister();
-      }, 1000);
+      }, 1500);
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   // Redirect sonucunu yakala (Mobil için)
   useEffect(() => {
