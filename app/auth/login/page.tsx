@@ -54,76 +54,90 @@ function LoginPageContent() {
   // URL'den google parametresini kontrol et ve otomatik Google Sign-In başlat
   useEffect(() => {
     // URL'den direkt parametreleri al (searchParams henüz hazır olmayabilir)
-    const urlParams = new URLSearchParams(window.location.search);
-    const googleParam = urlParams.get('google') || searchParams?.get('google');
-    const redirectParam = urlParams.get('redirect') || searchParams?.get('redirect');
-    
-    console.log('Checking for google parameter:', googleParam, 'redirect:', redirectParam);
-    
-    // Eğer google=true parametresi varsa, otomatik Google Sign-In başlat
-    // Browser plugin ile açılan sayfa normal web tarayıcısı gibi çalışır
-    if (googleParam === 'true') {
-      console.log('Auto-starting Google Sign-In from URL parameter, redirect:', redirectParam);
+    const checkAndStartGoogleLogin = () => {
+      if (typeof window === 'undefined') return;
       
-      // loginWithGoogle fonksiyonunu çağır
-      const handleGoogleLogin = async () => {
-        try {
-          console.log('Starting Google Sign-In popup...');
-          const result = await signInWithPopup(auth, googleProvider);
-          const user = result.user;
+      const urlParams = new URLSearchParams(window.location.search);
+      const googleParam = urlParams.get('google') || searchParams?.get('google');
+      const redirectParam = urlParams.get('redirect') || searchParams?.get('redirect');
+      
+      console.log('Checking for google parameter:', googleParam, 'redirect:', redirectParam, 'window.location:', window.location.href);
+      
+      // Eğer google=true parametresi varsa, otomatik Google Sign-In başlat
+      // Browser plugin ile açılan sayfa normal web tarayıcısı gibi çalışır
+      if (googleParam === 'true') {
+        console.log('Auto-starting Google Sign-In from URL parameter, redirect:', redirectParam);
+        
+        // loginWithGoogle fonksiyonunu çağır
+        const handleGoogleLogin = async () => {
+          try {
+            console.log('Starting Google Sign-In popup...');
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
 
-          console.log('Google Sign-In successful, user:', user.email);
+            console.log('Google Sign-In successful, user:', user.email);
 
-          const ref = doc(db, "users", user.uid);
-          const snap = await getDoc(ref);
+            const ref = doc(db, "users", user.uid);
+            const snap = await getDoc(ref);
 
-          if (!snap.exists()) {
-            const trialData = createTrialData();
-            await setDoc(ref, {
-              name: user.displayName,
-              email: user.email,
-              role: "student",
-              premium: false,
-              createdAt: serverTimestamp(),
-              emailVerified: true,
-              photoURL: user.photoURL || null,
-              fcmTokens: [],
-              ...trialData,
-            });
-          } else {
-            const existingData = snap.data();
-            if (user.photoURL && !existingData.photoURL) {
+            if (!snap.exists()) {
+              const trialData = createTrialData();
               await setDoc(ref, {
-                photoURL: user.photoURL,
-              }, { merge: true });
+                name: user.displayName,
+                email: user.email,
+                role: "student",
+                premium: false,
+                createdAt: serverTimestamp(),
+                emailVerified: true,
+                photoURL: user.photoURL || null,
+                fcmTokens: [],
+                ...trialData,
+              });
+            } else {
+              const existingData = snap.data();
+              if (user.photoURL && !existingData.photoURL) {
+                await setDoc(ref, {
+                  photoURL: user.photoURL,
+                }, { merge: true });
+              }
+            }
+
+            // Eğer redirect parametresi varsa (mobilden geldiyse), deep link ile geri dön
+            if (redirectParam) {
+              console.log('Redirecting to deep link:', redirectParam);
+              window.location.href = redirectParam;
+            } else {
+              const role = snap.exists() ? snap.data().role : "student";
+              if (role === "admin") router.replace("/admin");
+              else if (role === "coach") router.replace("/coach");
+              else router.replace("/home");
+            }
+          } catch (err: any) {
+            console.error("Google login error:", err);
+            if (redirectParam) {
+              window.location.href = redirectParam + '?error=' + encodeURIComponent(err.message);
+            } else {
+              showToast("Google ile giriş başarısız: " + err.message, "error");
             }
           }
-
-          // Eğer redirect parametresi varsa (mobilden geldiyse), deep link ile geri dön
-          if (redirectParam) {
-            console.log('Redirecting to deep link:', redirectParam);
-            window.location.href = redirectParam;
-          } else {
-            const role = snap.exists() ? snap.data().role : "student";
-            if (role === "admin") router.replace("/admin");
-            else if (role === "coach") router.replace("/coach");
-            else router.replace("/home");
-          }
-        } catch (err: any) {
-          console.error("Google login error:", err);
-          if (redirectParam) {
-            window.location.href = redirectParam + '?error=' + encodeURIComponent(err.message);
-          } else {
-            showToast("Google ile giriş başarısız: " + err.message, "error");
-          }
-        }
-      };
-      
-      // Biraz bekle ki sayfa tam yüklensin ve Firebase hazır olsun
-      setTimeout(() => {
-        handleGoogleLogin();
-      }, 1500);
-    }
+        };
+        
+        // Biraz bekle ki sayfa tam yüklensin ve Firebase hazır olsun
+        setTimeout(() => {
+          handleGoogleLogin();
+        }, 2000);
+      }
+    };
+    
+    // İlk kontrol
+    checkAndStartGoogleLogin();
+    
+    // URL değiştiğinde tekrar kontrol et (Next.js router için)
+    const interval = setInterval(() => {
+      checkAndStartGoogleLogin();
+    }, 500);
+    
+    return () => clearInterval(interval);
   }, [searchParams, router]);
 
   // Redirect sonucunu yakala (Mobil için)
