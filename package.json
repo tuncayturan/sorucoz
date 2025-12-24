@@ -10,6 +10,9 @@
     "postinstall": "node -e \"try { require('puppeteer'); } catch(e) { console.log('Puppeteer optional'); }\""
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/browser": "^6.0.6",
+    "@capacitor/core": "^6.2.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "expo-server-sdk": "^3.15.0",
@@ -26,6 +29,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

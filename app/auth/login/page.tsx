@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  GoogleAuthProvider,
+  signInWithCredential,
+  getRedirectResult,
 } from "firebase/auth";
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
+// import { GoogleAuth } from '@capacitor-community/google-auth';
 import { auth, db, googleProvider } from "@/lib/firebase";
+import { firebaseConfig } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 import { createTrialData } from "@/lib/subscriptionUtils";
@@ -17,6 +25,7 @@ import Toast from "@/components/ui/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { settings } = useSiteSettings();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -41,6 +50,109 @@ export default function LoginPage() {
   const hideToast = () => {
     setToast((prev) => ({ ...prev, isVisible: false }));
   };
+
+  // URL'den google parametresini kontrol et ve otomatik Google Sign-In başlat
+  useEffect(() => {
+    const googleParam = searchParams?.get('google');
+    const redirectParam = searchParams?.get('redirect');
+    
+    // Eğer google=true parametresi varsa, otomatik Google Sign-In başlat
+    // Browser plugin ile açılan sayfa normal web tarayıcısı gibi çalışır
+    if (googleParam === 'true') {
+      console.log('Auto-starting Google Sign-In from URL parameter, redirect:', redirectParam);
+      
+      // loginWithGoogle fonksiyonunu çağır
+      const handleGoogleLogin = async () => {
+        try {
+          console.log('Starting Google Sign-In popup...');
+          const result = await signInWithPopup(auth, googleProvider);
+          const user = result.user;
+
+          console.log('Google Sign-In successful, user:', user.email);
+
+          const ref = doc(db, "users", user.uid);
+          const snap = await getDoc(ref);
+
+          if (!snap.exists()) {
+            const trialData = createTrialData();
+            await setDoc(ref, {
+              name: user.displayName,
+              email: user.email,
+              role: "student",
+              premium: false,
+              createdAt: serverTimestamp(),
+              emailVerified: true,
+              photoURL: user.photoURL || null,
+              fcmTokens: [],
+              ...trialData,
+            });
+          } else {
+            const existingData = snap.data();
+            if (user.photoURL && !existingData.photoURL) {
+              await setDoc(ref, {
+                photoURL: user.photoURL,
+              }, { merge: true });
+            }
+          }
+
+          // Eğer redirect parametresi varsa (mobilden geldiyse), deep link ile geri dön
+          if (redirectParam) {
+            console.log('Redirecting to deep link:', redirectParam);
+            window.location.href = redirectParam;
+          } else {
+            const role = snap.exists() ? snap.data().role : "student";
+            if (role === "admin") router.replace("/admin");
+            else if (role === "coach") router.replace("/coach");
+            else router.replace("/home");
+          }
+        } catch (err: any) {
+          console.error("Google login error:", err);
+          if (redirectParam) {
+            window.location.href = redirectParam + '?error=' + encodeURIComponent(err.message);
+          } else {
+            showToast("Google ile giriş başarısız: " + err.message, "error");
+          }
+        }
+      };
+      
+      // Biraz bekle ki sayfa tam yüklensin
+      setTimeout(() => {
+        handleGoogleLogin();
+      }, 1000);
+    }
+  }, [searchParams]);
+
+  // Redirect sonucunu yakala (Mobil için)
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'web') {
+      getRedirectResult(auth)
+        .then(async (result) => {
+          if (result) {
+            const user = result.user;
+            const ref = doc(db, "users", user.uid);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) {
+              await setDoc(ref, {
+                uid: user.uid,
+                email: user.email,
+                name: user.displayName || "Kullanıcı",
+                role: "student",
+                createdAt: serverTimestamp(),
+              });
+            }
+            
+            const role = snap.exists() ? snap.data().role : "student";
+            if (role === "admin") router.replace("/admin");
+            else if (role === "coach") router.replace("/coach");
+            else router.replace("/home");
+          }
+        })
+        .catch((error) => {
+          console.error("Redirect Error:", error);
+          showToast("Giriş hatası: " + error.message, "error");
+        });
+    }
+  }, []);
 
   // ----------------------------
   // EMAIL LOGIN
@@ -119,8 +231,36 @@ export default function LoginPage() {
   // ----------------------------
   const loginWithGoogle = async () => {
     try {
+      let user;
+      
+      // Mobilde dış tarayıcıda aç (Android WebView sorununu çözmek için)
+      if (Capacitor.getPlatform() !== 'web') {
+        try {
+          // Railway URL'ini kullanarak Google Sign-In'i web'de aç
+          // Web'de çalışan Google Sign-In'i kullan, sonra deep link ile geri dön
+          const webAuthUrl = `https://sorucoz-production-8e36.up.railway.app/auth/login?google=true&redirect=${encodeURIComponent('com.sorucoz.app://auth/callback')}`;
+          
+          console.log('Opening browser with URL:', webAuthUrl);
+          
+          // Browser plugin ile dış tarayıcıda aç
+          await Browser.open({ 
+            url: webAuthUrl
+          });
+          
+          console.log('Browser opened successfully');
+          
+          // Redirect sonucu getRedirectResult ile yakalanacak
+          // Deep link ile geri dönüş sağlanacak
+          return;
+        } catch (error: any) {
+          console.error('Browser.open error:', error);
+          showToast("Tarayıcı açılamadı: " + error.message, "error");
+          return;
+        }
+      }
+      
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
+      user = result.user;
 
       const ref = doc(db, "users", user.uid);
       const snap = await getDoc(ref);
