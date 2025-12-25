@@ -93,9 +93,6 @@ function RegisterPageContent() {
   // ----------------------------------------------------
   // GOOGLE REGISTER / LOGIN
   // ----------------------------------------------------
-  // ----------------------------------------------------
-  // GOOGLE REGISTER / LOGIN
-  // ----------------------------------------------------
   const registerWithGoogle = async () => {
     try {
       // Mobilde signInWithRedirect kullan (Custom Chrome Tab'ta popup çalışmaz)

@@ -164,16 +164,8 @@ function LoginPageContent() {
         try {
           console.log('Starting Google Sign-In with redirect on mobile...');
           
-          // Firebase'in redirect URL'ini manuel olarak oluştur
-          // Deep link ile geri dönüş için callback sayfasına yönlendir
-          const redirectUrl = 'com.sorucoz.app://auth/callback';
-          
-          // Firebase auth domain'i al
-          const authDomain = auth.config.authDomain || 'sorucoz-6deb3.firebaseapp.com';
-          
-          // Google Sign-In URL'ini oluştur
-          // Firebase'in signInWithRedirect'i otomatik olarak sistem tarayıcısını açmalı
-          // Ancak emin olmak için önce signInWithRedirect'i çağırıyoruz
+          // Firebase'in signInWithRedirect'i otomatik olarak sistem tarayıcısını açar
+          // Deep link ile geri dönüş callback sayfasında handle edilecek
           await signInWithRedirect(auth, googleProvider);
           
           // signInWithRedirect async olarak çalışır, redirect otomatik olur
