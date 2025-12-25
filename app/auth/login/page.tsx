@@ -18,7 +18,6 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 import { createTrialData } from "@/lib/subscriptionUtils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import IOSInstallPrompt from "@/components/IOSInstallPrompt";
 import Toast from "@/components/ui/Toast";
 
 function LoginPageContent() {
@@ -312,7 +311,7 @@ function LoginPageContent() {
 
   return (
     <>
-      <IOSInstallPrompt />
+      {/* IOS Install Prompt - REMOVED */}
       <div className="h-screen w-full flex justify-center items-center bg-gradient-to-br from-[#f3f4f8] to-[#e5e7f1] px-6 overflow-hidden relative">
         {/* Decorative gradient circles */}
       <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl"></div>

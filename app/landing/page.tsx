@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import Image from "next/image";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -666,8 +665,7 @@ export default function LandingPage() {
         </svg>
       </button>
 
-      {/* PWA Install Prompt */}
-      <PWAInstallPrompt />
+      {/* PWA Install Prompt - REMOVED */}
     </div>
   );
 }
