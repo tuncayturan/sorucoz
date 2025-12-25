@@ -1,7 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import FCMTokenManager from "@/components/FCMTokenManager";
 import type { Metadata, Viewport } from "next";
 export const viewport: Viewport = {
   width: "device-width",
@@ -33,7 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ServiceWorkerRegistration />
         <AuthProvider>
           {children}
-          <FCMTokenManager />
         </AuthProvider>
       </body>
     </html>

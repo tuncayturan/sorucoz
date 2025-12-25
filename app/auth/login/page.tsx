@@ -170,17 +170,21 @@ function LoginPageContent() {
   // GOOGLE LOGIN
   // ----------------------------
   const loginWithGoogle = async () => {
+    if (loading) return; // Loading guard
+    
     try {
       // Mobilde native Google Sign-In kullan (daha hızlı ve güvenilir)
       if (Capacitor.getPlatform() !== 'web' && GoogleSignIn.isAvailable()) {
         try {
           console.log('Starting native Google Sign-In on mobile...');
+          setLoading(true); // Giriş sürecini başlat
           
           // Native Google Sign-In başlat
           const result = await GoogleSignIn.signIn();
           
           if (!result.idToken) {
             showToast("Google ile giriş başarısız: Token alınamadı", "error");
+            setLoading(false);
             return;
           }
 
@@ -218,7 +222,7 @@ function LoginPageContent() {
 
           // FCM token'ı al ve kaydet
           if (typeof window !== "undefined" && "Notification" in window) {
-            // İzin verilmişse direkt al, verilmemişse FCMTokenManager halledecek
+            // İzin verilmişse direkt al.
             if (Notification.permission === "granted") {
               requestNotificationPermission()
                 .then((token) => {
@@ -239,6 +243,15 @@ function LoginPageContent() {
           return;
         } catch (error: any) {
           console.error('Native Google Sign-In error:', error);
+          setLoading(false); // Hata durumunda loading'i kapat
+
+          // 12502 Hatası: Zaten bir giriş işlemi devam ediyor demek.
+          // Bu durumda fallback tetiklememek en iyisi.
+          if (error.message && error.message.includes('12502')) {
+            console.log('Sign-in already in progress, ignoring duplicate call.');
+            return;
+          }
+
           // Native Sign-In başarısız olursa, fallback olarak redirect kullan
           console.log('Falling back to signInWithRedirect...');
           try {

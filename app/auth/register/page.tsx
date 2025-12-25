@@ -91,30 +91,33 @@ function RegisterPageContent() {
     }
   }, []);
 
-  // ----------------------------------------------------
-  // GOOGLE REGISTER / LOGIN
-  // ----------------------------------------------------
+  // ------------------------  // ----------------------------
+  // GOOGLE LOGIN (Kayıt ekranında da aynı mantık)
+  // ----------------------------
   const registerWithGoogle = async () => {
+    if (loading) return; // Loading guard
+    
     try {
-      // Mobilde native Google Sign-In kullan (daha hızlı ve güvenilir)
+      // Mobilde native Google Sign-In kullan
       if (Capacitor.getPlatform() !== 'web' && GoogleSignIn.isAvailable()) {
         try {
           console.log('Starting native Google Sign-In on mobile...');
+          setLoading(true);
           
-          // Native Google Sign-In başlat
           const result = await GoogleSignIn.signIn();
           
           if (!result.idToken) {
             showToast("Google ile kayıt başarısız: Token alınamadı", "error");
+            setLoading(false);
             return;
           }
 
-          // Firebase credential oluştur ve giriş yap
+          // Firebase credential
           const credential = GoogleAuthProvider.credential(result.idToken);
           const userCredential = await signInWithCredential(auth, credential);
           const user = userCredential.user;
 
-          // Kullanıcı verilerini kontrol et ve gerekirse oluştur
+          // Firestore kontrol/oluşturma
           const ref = doc(db, "users", user.uid);
           const snap = await getDoc(ref);
 
@@ -142,28 +145,34 @@ function RegisterPageContent() {
           }
 
           // FCM token'ı al ve kaydet
-          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-            requestNotificationPermission()
-              .then((token) => {
-                if (token) {
-                  return saveFCMTokenToUser(user.uid, token);
-                }
-              })
-              .catch((error) => {
-                // Token kaydetme hatası kayıt işlemini durdurmaz
-              });
+          if (typeof window !== "undefined" && "Notification" in window) {
+            if (Notification.permission === "granted") {
+              requestNotificationPermission()
+                .then((token) => {
+                  if (token) {
+                    return saveFCMTokenToUser(user.uid, token);
+                  }
+                })
+                .catch(() => {});
+            }
           }
 
           const role = snap.exists() ? snap.data().role : "student";
-
           if (role === "admin") router.replace("/admin");
           else if (role === "coach") router.replace("/coach");
           else router.replace("/home");
 
+          setLoading(false);
           return;
         } catch (error: any) {
           console.error('Native Google Sign-In error:', error);
-          // Native Sign-In başarısız olursa, fallback olarak redirect kullan
+          setLoading(false);
+
+          if (error.message && error.message.includes('12502')) {
+            console.log('Sign-in already in progress, ignoring duplicate call.');
+            return;
+          }
+
           console.log('Falling back to signInWithRedirect...');
           try {
             await signInWithRedirect(auth, googleProvider);

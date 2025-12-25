@@ -3,7 +3,7 @@
 ## ✅ Tamamlanan Adımlar
 
 1. ✅ Android build.gradle'a Google Sign-In dependency eklendi
-2. ✅ Capacitor plugin oluşturuldu (GoogleSignInPlugin.java)
+26. ✅ Capacitor plugin mantığı `MainActivity.java` içine eklendi (Inline Implementation)
 3. ✅ JavaScript bridge eklendi (lib/google-sign-in.ts)
 4. ✅ Login sayfasında native Google Sign-In entegrasyonu yapıldı
 5. ✅ Firebase ile credential entegrasyonu tamamlandı
