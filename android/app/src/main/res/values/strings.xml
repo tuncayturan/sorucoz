@@ -4,4 +4,7 @@
     <string name="title_activity_main">SoruÇöz</string>
     <string name="package_name">com.sorucoz.app</string>
     <string name="custom_url_scheme">com.sorucoz.app</string>
+    <!-- Firebase Web Client ID - Firebase Console > Project Settings > General > Your apps > Web app > OAuth 2.0 Client ID -->
+    <!-- Format: XXXX-XXXX.apps.googleusercontent.com -->
+    <string name="default_web_client_id">1026488924758-ph73nddcqp9skmtp5nn6l47d09beo2oe.apps.googleusercontent.com</string>
 </resources>

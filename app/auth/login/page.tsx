@@ -13,6 +13,7 @@ import {
 } from "firebase/auth";
 import { Capacitor } from '@capacitor/core';
 import { auth, db, googleProvider } from "@/lib/firebase";
+import { GoogleSignIn } from "@/lib/google-sign-in";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
 import { createTrialData } from "@/lib/subscriptionUtils";
@@ -159,17 +160,90 @@ function LoginPageContent() {
   // ----------------------------
   const loginWithGoogle = async () => {
     try {
-      // Mobilde signInWithRedirect kullan (Custom Chrome Tab'ta popup çalışmaz)
+      // Mobilde native Google Sign-In kullan (daha hızlı ve güvenilir)
+      if (Capacitor.getPlatform() !== 'web' && GoogleSignIn.isAvailable()) {
+        try {
+          console.log('Starting native Google Sign-In on mobile...');
+          
+          // Native Google Sign-In başlat
+          const result = await GoogleSignIn.signIn();
+          
+          if (!result.idToken) {
+            showToast("Google ile giriş başarısız: Token alınamadı", "error");
+            return;
+          }
+
+          // Firebase credential oluştur ve giriş yap
+          const credential = GoogleAuthProvider.credential(result.idToken);
+          const userCredential = await signInWithCredential(auth, credential);
+          const user = userCredential.user;
+
+          // Kullanıcı verilerini kontrol et ve gerekirse oluştur
+          const ref = doc(db, "users", user.uid);
+          const snap = await getDoc(ref);
+
+          if (!snap.exists()) {
+            const trialData = createTrialData();
+            await setDoc(ref, {
+              name: user.displayName || result.displayName || "Kullanıcı",
+              email: user.email || result.email,
+              role: "student",
+              premium: false,
+              createdAt: serverTimestamp(),
+              emailVerified: true,
+              photoURL: user.photoURL || result.photoUrl || null,
+              fcmTokens: [],
+              ...trialData,
+            });
+          } else {
+            // Mevcut kullanıcı için photoURL güncelle (eğer yoksa)
+            const existingData = snap.data();
+            if ((user.photoURL || result.photoUrl) && !existingData.photoURL) {
+              await setDoc(ref, {
+                photoURL: user.photoURL || result.photoUrl,
+              }, { merge: true });
+            }
+          }
+
+          // FCM token'ı al ve kaydet
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            requestNotificationPermission()
+              .then((token) => {
+                if (token) {
+                  return saveFCMTokenToUser(user.uid, token);
+                }
+              })
+              .catch((error) => {
+                // Token kaydetme hatası login işlemini durdurmaz
+              });
+          }
+
+          const role = snap.exists() ? snap.data().role : "student";
+
+          if (role === "admin") router.replace("/admin");
+          else if (role === "coach") router.replace("/coach");
+          else router.replace("/home");
+
+          return;
+        } catch (error: any) {
+          console.error('Native Google Sign-In error:', error);
+          // Native Sign-In başarısız olursa, fallback olarak redirect kullan
+          console.log('Falling back to signInWithRedirect...');
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return;
+          } catch (redirectError: any) {
+            showToast("Google ile giriş başarısız: " + error.message, "error");
+            return;
+          }
+        }
+      }
+      
+      // Web'de veya native Sign-In mevcut değilse redirect kullan
       if (Capacitor.getPlatform() !== 'web') {
         try {
           console.log('Starting Google Sign-In with redirect on mobile...');
-          
-          // Firebase'in signInWithRedirect'i otomatik olarak sistem tarayıcısını açar
-          // Deep link ile geri dönüş callback sayfasında handle edilecek
           await signInWithRedirect(auth, googleProvider);
-          
-          // signInWithRedirect async olarak çalışır, redirect otomatik olur
-          // Geri dönüş callback sayfasında handle edilecek
           return;
         } catch (error: any) {
           console.error('signInWithRedirect error:', error);
