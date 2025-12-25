@@ -1,5 +1,10 @@
 # Chrome 83+ desteği için (Android WebView uyumluluğu)
+# Eski WebView uyumluluğu için daha spesifik target
 Chrome >= 83
+ChromeAndroid >= 83
 Android >= 7
 iOS >= 12
+# Modern syntax'ı transpile et
+not dead
+not op_mini all
 

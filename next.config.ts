@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   reactCompiler: false,
   // Server-side packages - whatsapp-web.js, puppeteer ve iyzipay sadece server-side'da çalışır
   serverExternalPackages: ["whatsapp-web.js", "qrcode-terminal", "puppeteer", "puppeteer-core", "iyzipay"],
+  // Eski WebView uyumluluğu için - Chrome 83+ desteği
+  // browserslist ile otomatik transpile edilir
+  compiler: {
+    // Modern JavaScript syntax'ını eski syntax'a çevir
+    removeConsole: false,
+  },
   images: {
     remotePatterns: [
       {
