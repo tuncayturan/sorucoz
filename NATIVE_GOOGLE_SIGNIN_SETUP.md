@@ -8,6 +8,47 @@
 4. ✅ Login sayfasında native Google Sign-In entegrasyonu yapıldı
 5. ✅ Firebase ile credential entegrasyonu tamamlandı
 
+## ⚠️ ÖNEMLİ: Google Privacy Policy Gereksinimleri
+
+Google Sign-In kullanırken **Google Cloud Console'da OAuth consent screen yapılandırması** yapmanız **ZORUNLUDUR**:
+
+1. **Privacy Policy URL** - Zorunlu
+2. **Terms of Service URL** - Zorunlu (genellikle)
+3. **App name, logo, support email** - Zorunlu
+
+Eğer bu yapılandırma yapılmazsa:
+- Google Sign-In çalışmayabilir
+- "Error 10: Developer Error" hatası alabilirsiniz
+- Google uygulamanızı reddedebilir
+
+### OAuth Consent Screen Yapılandırması
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → Projenizi seçin
+2. **APIs & Services** → **OAuth consent screen**
+3. **User Type** seçin (External veya Internal)
+4. **App information** bölümünü doldurun:
+   - **App name**: SoruÇöz
+   - **User support email**: Email adresiniz
+   - **App logo**: (Opsiyonel)
+   - **Application home page**: `https://sorucoz-production-8e36.up.railway.app`
+   - **Privacy Policy link**: `https://sorucoz-production-8e36.up.railway.app/privacy` (oluşturmanız gerekiyor)
+   - **Terms of Service link**: `https://sorucoz-production-8e36.up.railway.app/terms` (oluşturmanız gerekiyor)
+   - **Authorized domains**: `sorucoz-production-8e36.up.railway.app`
+5. **Scopes** bölümünde:
+   - `email`
+   - `profile`
+   - `openid`
+6. **Test users** (Development modunda): Test edecek email adreslerini ekleyin
+7. **Save and Continue**
+
+### Privacy Policy ve Terms of Service Sayfaları Oluşturma
+
+Bu sayfaları oluşturmanız gerekiyor:
+- `/privacy` - Privacy Policy sayfası
+- `/terms` - Terms of Service sayfası
+
+Basit bir şekilde oluşturabilirsiniz veya hazır template kullanabilirsiniz.
+
 ## 🔧 Yapılması Gerekenler
 
 ### 1. Firebase Console'dan Web Client ID Alın
