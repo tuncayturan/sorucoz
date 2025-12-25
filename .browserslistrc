@@ -1,7 +1,6 @@
-# Chrome 83+ desteği için (Android WebView uyumluluğu)
-# Eski WebView uyumluluğu için daha spesifik target
+# Chrome 80+ desteği için (Android WebView uyumluluğu)
 # Chrome 83 (2020) - Logical assignment operators (??=, ||=, &&=) desteklemiyor
-# Bu yüzden daha eski bir target belirtiyoruz
+# Chrome 80 (2020) - Daha güvenli target, modern syntax'ları transpile eder
 Chrome >= 80
 ChromeAndroid >= 80
 Android >= 7
@@ -9,7 +8,4 @@ iOS >= 12
 # Modern syntax'ı transpile et
 not dead
 not op_mini all
-# Daha agresif transpilation için
-last 2 Chrome versions
-last 2 ChromeAndroid versions
 

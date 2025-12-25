@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
     private static final int RC_SIGN_IN = 9001;
     private static final String TAG = "MainActivity";
     private GoogleSignInClient mGoogleSignInClient;
+    private com.getcapacitor.Bridge mBridge;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -40,25 +41,24 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onBridgeReady(com.getcapacitor.Bridge bridge) {
+        super.onBridgeReady(bridge);
+        
+        // Bridge'i sakla
+        mBridge = bridge;
         
         // Bridge hazır olduğunda JavaScript interface ekle
-        // Capacitor bridge'in hazır olmasını bekle
-        this.getBridge().getWebView().post(() -> {
-            if (this.getBridge() != null && this.getBridge().getWebView() != null) {
-                WebView webView = this.getBridge().getWebView();
-                
-                // Geliştirme için: WebView cache'ini temizle (opsiyonel - gerekirse açın)
-                // Uncomment the following lines to clear cache on each app start:
-                // webView.clearCache(true);
-                // webView.clearHistory();
-                // Log.d(TAG, "WebView cache cleared");
-                
+        try {
+            WebView webView = bridge.getWebView();
+            if (webView != null) {
                 webView.addJavascriptInterface(new GoogleSignInJSInterface(), "AndroidGoogleSignIn");
                 Log.d(TAG, "GoogleSignIn JavaScript interface added");
+            } else {
+                Log.e(TAG, "WebView is null in onBridgeReady");
             }
-        });
+        } catch (Exception e) {
+            Log.e(TAG, "Error adding JavaScript interface", e);
+        }
     }
 
     @Override
@@ -100,9 +100,11 @@ public class MainActivity extends BridgeActivity {
                 );
                 
                 runOnUiThread(() -> {
-                    WebView webView = this.getBridge().getWebView();
-                    if (webView != null) {
-                        webView.evaluateJavascript(jsCode, null);
+                    if (mBridge != null) {
+                        WebView webView = mBridge.getWebView();
+                        if (webView != null) {
+                            webView.evaluateJavascript(jsCode, null);
+                        }
                     }
                 });
             }
@@ -118,9 +120,11 @@ public class MainActivity extends BridgeActivity {
             );
             
             runOnUiThread(() -> {
-                WebView webView = this.getBridge().getWebView();
-                if (webView != null) {
-                    webView.evaluateJavascript(jsCode, null);
+                if (mBridge != null) {
+                    WebView webView = mBridge.getWebView();
+                    if (webView != null) {
+                        webView.evaluateJavascript(jsCode, null);
+                    }
                 }
             });
         }

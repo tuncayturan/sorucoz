@@ -6,15 +6,19 @@ const nextConfig: NextConfig = {
   reactCompiler: false,
   // Server-side packages - whatsapp-web.js, puppeteer ve iyzipay sadece server-side'da çalışır
   serverExternalPackages: ["whatsapp-web.js", "qrcode-terminal", "puppeteer", "puppeteer-core", "iyzipay"],
-  // Eski WebView uyumluluğu için - Chrome 83+ desteği
+  // Eski WebView uyumluluğu için - Chrome 80+ desteği
   // browserslist ile otomatik transpile edilir
   compiler: {
     // Modern JavaScript syntax'ını eski syntax'a çevir
     removeConsole: false,
   },
-  // Output format - eski browser uyumluluğu için
-  // Standalone output modern syntax kullanabilir, normal output daha uyumlu
-  output: undefined, // Varsayılan output kullan (standalone değil)
+  // SWC compiler ayarları - eski browser desteği için
+  // Next.js 16'da SWC zaten browserslist'i okuyor
+  // Ancak daha agresif transpilation için experimental ayarlar
+  experimental: {
+    // Modern syntax'ları daha agresif transpile et
+    optimizePackageImports: ['firebase', '@capacitor/core'],
+  },
   images: {
     remotePatterns: [
       {
