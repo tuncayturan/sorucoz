@@ -2,11 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  reactCompiler: true,
+  // React Compiler geçici olarak devre dışı - Railway build sorununu çözmek için
+  reactCompiler: false,
   // Server-side packages - whatsapp-web.js, puppeteer ve iyzipay sadece server-side'da çalışır
   serverExternalPackages: ["whatsapp-web.js", "qrcode-terminal", "puppeteer", "puppeteer-core", "iyzipay"],
-  // Turbopack devre dışı - Railway build'de sorun çıkarıyor, standart webpack kullan
-  // turbopack: {},
   images: {
     remotePatterns: [
       {

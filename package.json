@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cross-env NEXT_TELEMETRY_DISABLED=1 next build",
+    "build": "cross-env NEXT_TELEMETRY_DISABLED=1 TURBOPACK=0 next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "node -e \"try { require('puppeteer'); } catch(e) { console.log('Puppeteer optional'); }\""
