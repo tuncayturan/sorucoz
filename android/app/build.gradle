@@ -24,11 +24,7 @@ android {
     }
 }
 
-repositories {
-    flatDir{
-        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
-    }
-}
+// Local repositories handled by root build.gradle
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
@@ -42,6 +38,8 @@ dependencies {
     implementation project(':capacitor-cordova-android-plugins')
     // Google Sign-In for native authentication
     implementation 'com.google.android.gms:play-services-auth:21.0.0'
+    // Firebase Cloud Messaging
+    implementation 'com.google.firebase:firebase-messaging:24.0.0'
 }
 
 apply from: 'capacitor.build.gradle'
