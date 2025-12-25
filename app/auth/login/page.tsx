@@ -57,6 +57,18 @@ function LoginPageContent() {
         .then(async (result) => {
           if (result) {
             const user = result.user;
+
+            // FCM token'ı al ve kaydet
+            if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+              requestNotificationPermission()
+                .then((token) => {
+                  if (token) {
+                    return saveFCMTokenToUser(user.uid, token);
+                  }
+                })
+                .catch(() => {});
+            }
+
             const ref = doc(db, "users", user.uid);
             const snap = await getDoc(ref);
             if (!snap.exists()) {
@@ -205,16 +217,17 @@ function LoginPageContent() {
           }
 
           // FCM token'ı al ve kaydet
-          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-            requestNotificationPermission()
-              .then((token) => {
-                if (token) {
-                  return saveFCMTokenToUser(user.uid, token);
-                }
-              })
-              .catch((error) => {
-                // Token kaydetme hatası login işlemini durdurmaz
-              });
+          if (typeof window !== "undefined" && "Notification" in window) {
+            // İzin verilmişse direkt al, verilmemişse FCMTokenManager halledecek
+            if (Notification.permission === "granted") {
+              requestNotificationPermission()
+                .then((token) => {
+                  if (token) {
+                    return saveFCMTokenToUser(user.uid, token);
+                  }
+                })
+                .catch(() => {});
+            }
           }
 
           const role = snap.exists() ? snap.data().role : "student";

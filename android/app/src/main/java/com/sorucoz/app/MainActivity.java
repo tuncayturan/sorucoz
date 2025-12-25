@@ -6,6 +6,8 @@ import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
+import com.google.firebase.messaging.FirebaseMessaging;
+
 import com.getcapacitor.BridgeActivity;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -153,6 +155,32 @@ public class MainActivity extends BridgeActivity {
                 Intent signInIntent = mGoogleSignInClient.getSignInIntent();
                 startActivityForResult(signInIntent, RC_SIGN_IN);
             });
+        }
+
+        @JavascriptInterface
+        public void getFCMToken() {
+            FirebaseMessaging.getInstance().getToken()
+                    .addOnCompleteListener(task -> {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+                            return;
+                        }
+
+                        // Get new FCM registration token
+                        String token = task.getResult();
+
+                        // Send to JS
+                        String jsCode = String.format(
+                                "if (window.handleNativeFCMToken) { window.handleNativeFCMToken('%s'); }", token);
+                        runOnUiThread(() -> {
+                            if (mBridge != null) {
+                                WebView webView = mBridge.getWebView();
+                                if (webView != null) {
+                                    webView.evaluateJavascript(jsCode, null);
+                                }
+                            }
+                        });
+                    });
         }
     }
 }

@@ -220,19 +220,19 @@ function RegisterPageContent() {
         }
       }
 
-      // FCM token'ı al ve kaydet (async, register'i bloklamaz)
-      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
-      // Sadece izin zaten verilmişse token almayı dene
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        requestNotificationPermission()
-          .then((token) => {
-            if (token) {              return saveFCMTokenToUser(user.uid, token);
-            } else {
-            }
-          })
-          .catch((error) => {            // Token kaydetme hatası kayıt işlemini durdurmaz
-          });
-      } else {      }
+      // FCM token'ı al ve kaydet
+      if (typeof window !== "undefined" && "Notification" in window) {
+        // İzin verilmişse direkt al, verilmemişse FCMTokenManager halledecek
+        if (Notification.permission === "granted") {
+          requestNotificationPermission()
+            .then((token) => {
+              if (token) {
+                return saveFCMTokenToUser(user.uid, token);
+              }
+            })
+            .catch(() => {});
+        }
+      }
 
       const role = snap.exists() ? snap.data().role : "student";
 
@@ -293,19 +293,19 @@ function RegisterPageContent() {
         ...trialData, // 7 günlük trial başlat
       });
 
-      // FCM token'ı al ve kaydet (async, register'i bloklamaz)
-      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
-      // Sadece izin zaten verilmişse token almayı dene
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        requestNotificationPermission()
-          .then((token) => {
-            if (token) {              return saveFCMTokenToUser(cred.user.uid, token);
-            } else {
-            }
-          })
-          .catch((error) => {            // Token kaydetme hatası kayıt işlemini durdurmaz
-          });
-      } else {      }
+      // FCM token'ı al ve kaydet
+      if (typeof window !== "undefined" && "Notification" in window) {
+        // İzin verilmişse direkt al, verilmemişse FCMTokenManager halledecek
+        if (Notification.permission === "granted") {
+          requestNotificationPermission()
+            .then((token) => {
+              if (token) {
+                return saveFCMTokenToUser(cred.user.uid, token);
+              }
+            })
+            .catch(() => {});
+        }
+      }
 
       showToast("Kayıt başarılı! Email doğrulama sayfasına yönlendiriliyorsunuz...", "success");
       

@@ -1,7 +1,17 @@
 import { getMessagingInstance, db } from "./firebase";
 import { getToken, onMessage } from "firebase/messaging";
-import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
+import { doc, updateDoc, arrayRemove, getDoc } from "firebase/firestore";
 import { defaultVapidKey } from "./firebase/config";
+
+declare global {
+  interface Window {
+    AndroidGoogleSignIn?: {
+      signIn: () => void;
+      getFCMToken: () => void;
+    };
+    handleNativeFCMToken?: (token: string) => void;
+  }
+}
 
 /**
  * Service worker'ı kaydeder ve aktif olmasını bekler
@@ -16,7 +26,7 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
   try {
     // Önce mevcut service worker'ı kontrol et (Firebase'in scope'u ile)
     let registration = await navigator.serviceWorker.getRegistration("/firebase-cloud-messaging-push-scope");
-    
+
     if (!registration) {
       // Yeni service worker kaydet - Firebase'in varsayılan scope'unu kullan
       registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
@@ -51,7 +61,8 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
     }
 
     return registration;
-  } catch (error) {    return null;
+  } catch (error) {
+    return null;
   }
 }
 
@@ -61,6 +72,26 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
  */
 export async function getFCMToken(): Promise<string | null> {
   try {
+    // 0. Android Native Bridge desteği
+    if (typeof window !== "undefined" && window.AndroidGoogleSignIn) {
+      try {
+        return await new Promise((resolve) => {
+          const timeout = setTimeout(() => {
+            resolve(null);
+          }, 5000);
+
+          window.handleNativeFCMToken = (token: string) => {
+            clearTimeout(timeout);
+            resolve(token);
+          };
+
+          window.AndroidGoogleSignIn?.getFCMToken();
+        });
+      } catch (nativeError) {
+        // Hata olursa web yöntemine devam et
+      }
+    }
+
     // 1. Service Worker kontrolü ve kaydı
     if (!("serviceWorker" in navigator)) {
       throw new Error("Service Worker not supported");
@@ -71,18 +102,18 @@ export async function getFCMToken(): Promise<string | null> {
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
     const isIOSSafari = isIOS && /Version\/[\d.]+/i.test(ua) && !/CriOS|FxiOS|EdgiOS/i.test(ua);
     const swScope = isIOSSafari ? "/" : "/firebase-cloud-messaging-push-scope";
-    
+
     // iOS PWA kontrolü - iOS'ta bildirimler sadece PWA modunda çalışır
     const isPWA = typeof window !== "undefined" && (
-      window.matchMedia('(display-mode: standalone)').matches || 
+      window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true
     );
-    
+
     if (isIOS && !isPWA) {
       // iOS'ta PWA değilse token almayı deneyebiliriz ama bildirimler çalışmayabilir
     }
     let registration = await navigator.serviceWorker.getRegistration(swScope);
-    
+
     if (!registration) {
       try {
         registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
@@ -92,14 +123,14 @@ export async function getFCMToken(): Promise<string | null> {
       } catch (regError: any) {
         throw new Error(`Service Worker registration failed: ${regError.message}`);
       }
-      
+
       // Service worker'ın aktif olmasını bekle
       if (registration.installing) {
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error("Service Worker activation timeout"));
           }, 10000); // 10 saniye timeout
-          
+
           registration!.installing!.addEventListener("statechange", function () {
             if (this.state === "activated") {
               clearTimeout(timeout);
@@ -124,18 +155,18 @@ export async function getFCMToken(): Promise<string | null> {
     }
     // 3. VAPID key
     const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || defaultVapidKey;
-    
+
     if (!vapidKey) {
       throw new Error("VAPID key not configured");
     }
 
     // 4. Token al
     try {
-      const token = await getToken(messaging, { 
+      const token = await getToken(messaging, {
         vapidKey,
         serviceWorkerRegistration: registration,
       });
-      
+
       if (token) {
         return token;
       } else {
@@ -157,7 +188,7 @@ export async function getFCMToken(): Promise<string | null> {
 export async function saveFCMTokenToUser(userId: string, token: string): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
-    
+
     // AGGRESSIVE: Önce mevcut token'ları kontrol et
     try {
       const userSnap = await getDoc(userRef);
@@ -167,7 +198,7 @@ export async function saveFCMTokenToUser(userId: string, token: string): Promise
         if (existingTokens.length === 1 && existingTokens[0] === token) {
           return;
         }
-        
+
         // Duplicate token kontrolü
         const uniqueTokens = [...new Set(existingTokens)];
         if (uniqueTokens.length !== existingTokens.length) {
@@ -175,14 +206,14 @@ export async function saveFCMTokenToUser(userId: string, token: string): Promise
       }
     } catch (error) {
     }
-    
+
     // SADECE YENİ TOKEN'I KAYDET - TÜM ESKİLERİ SİL
     // Bu duplicate notification sorununu %100 çözer
     await updateDoc(userRef, {
       fcmTokens: [token], // Array'e sadece yeni token'ı koy, eski tüm token'ları sil
       lastTokenUpdate: new Date(),
     });
-    
+
     // Token'ın gerçekten kaydedildiğini doğrula
     try {
       const verifySnap = await getDoc(userRef);
@@ -267,11 +298,11 @@ export async function requestNotificationPermission(): Promise<string | null> {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       const token = await getFCMToken();
-      
+
       if (token) {
       } else {
       }
-      
+
       return token;
     } else if (permission === "denied") {
       throw new Error("User denied notification permission");
