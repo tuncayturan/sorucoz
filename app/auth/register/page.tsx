@@ -230,17 +230,17 @@ function RegisterPageContent() {
       }
 
       // FCM token'ı al ve kaydet
-      if (typeof window !== "undefined" && "Notification" in window) {
-        // İzin verilmişse direkt al, verilmemişse FCMTokenManager halledecek
-        if (Notification.permission === "granted") {
-          requestNotificationPermission()
-            .then((token) => {
-              if (token) {
-                return saveFCMTokenToUser(user.uid, token);
-              }
-            })
-            .catch(() => {});
-        }
+      const isAndroidNative = typeof window !== "undefined" && !!(window as any).AndroidGoogleSignIn;
+      const hasNotificationPermission = typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+
+      if (isAndroidNative || hasNotificationPermission) {
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              return saveFCMTokenToUser(user.uid, token);
+            }
+          })
+          .catch(() => {});
       }
 
       const role = snap.exists() ? snap.data().role : "student";
@@ -303,17 +303,17 @@ function RegisterPageContent() {
       });
 
       // FCM token'ı al ve kaydet
-      if (typeof window !== "undefined" && "Notification" in window) {
-        // İzin verilmişse direkt al, verilmemişse FCMTokenManager halledecek
-        if (Notification.permission === "granted") {
-          requestNotificationPermission()
-            .then((token) => {
-              if (token) {
-                return saveFCMTokenToUser(cred.user.uid, token);
-              }
-            })
-            .catch(() => {});
-        }
+      const isAndroidNative_reg = typeof window !== "undefined" && !!(window as any).AndroidGoogleSignIn;
+      const hasNotificationPermission_reg = typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+
+      if (isAndroidNative_reg || hasNotificationPermission_reg) {
+        requestNotificationPermission()
+          .then((token) => {
+            if (token) {
+              return saveFCMTokenToUser(cred.user.uid, token);
+            }
+          })
+          .catch(() => {});
       }
 
       showToast("Kayıt başarılı! Email doğrulama sayfasına yönlendiriliyorsunuz...", "success");

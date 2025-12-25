@@ -72,15 +72,20 @@ async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null
  */
 export async function getFCMToken(): Promise<string | null> {
   try {
-    // 0. Android Native Bridge desteği
-    if (typeof window !== "undefined" && window.AndroidGoogleSignIn) {
+    // 0. Android Native Bridge desteği - BİRİNCİ ÖNCELİK
+    const isAndroidNative = typeof window !== "undefined" && !!window.AndroidGoogleSignIn;
+
+    if (isAndroidNative) {
+      console.log("[fcmUtils] 📱 Using Android Native bridge for token retrieval...");
       try {
         return await new Promise((resolve) => {
           const timeout = setTimeout(() => {
+            console.warn("[fcmUtils] ⚠️ Native FCM token timeout after 10s");
             resolve(null);
-          }, 5000);
+          }, 10000); // 10 saniye bekle
 
           window.handleNativeFCMToken = (token: string) => {
+            console.log("[fcmUtils] ✅ Received token from native bridge");
             clearTimeout(timeout);
             resolve(token);
           };
@@ -88,7 +93,8 @@ export async function getFCMToken(): Promise<string | null> {
           window.AndroidGoogleSignIn?.getFCMToken();
         });
       } catch (nativeError) {
-        // Hata olursa web yöntemine devam et
+        console.error("[fcmUtils] ❌ Native bridge error:", nativeError);
+        // Hata olursa (nadir) web yöntemine devam et
       }
     }
 
@@ -276,21 +282,26 @@ export function onMessageListener(): Promise<any> {
  */
 export async function requestNotificationPermission(): Promise<string | null> {
   try {
-    // Notification API kontrolü
-    if (!("Notification" in window)) {
+    // 0. Android Native Bridge check - if present, bypass web Notification API check
+    const isAndroidNative = typeof window !== "undefined" && !!window.AndroidGoogleSignIn;
+
+    // Notification API kontrolü (Sadece web/iOS için zorunlu)
+    if (!isAndroidNative && !("Notification" in window)) {
       throw new Error("Notification API not available");
     }
 
-    // Mevcut izin durumu
-    const currentPermission = Notification.permission;
-    // İzin zaten verilmişse direkt token al
-    if (currentPermission === "granted") {
+    // Mevcut izin durumu (Android native ise web durumuna bakma)
+    const currentPermission = isAndroidNative ? "granted" : (typeof Notification !== 'undefined' ? Notification.permission : "default");
+
+    // İzin zaten verilmişse (veya Android ise) direkt token al
+    if (currentPermission === "granted" || isAndroidNative) {
+      console.log("[fcmUtils] Silent token retrieval started...");
       const token = await getFCMToken();
       return token;
     }
 
-    // İzin reddedilmişse
-    if (currentPermission === "denied") {
+    // İzin reddedilmişse (Android'de bilemeyiz ama web seviyesinde bakıyoruz)
+    if (!isAndroidNative && currentPermission === "denied") {
       throw new Error("Notification permission was denied");
     }
 

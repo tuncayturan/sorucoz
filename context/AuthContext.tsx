@@ -61,28 +61,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               
               // 2. SONRA: Notification permission kontrol
               // Mobilde Notification.requestPermission() user gesture gerektirir
-              // Bu yüzden FCMTokenManager component'i kullanıcıya popup gösterecek
-              
-              if ('Notification' in window && Notification.permission === 'granted') {
-                console.log("[AuthContext] ✅ Notification permission already granted");
-                console.log("[AuthContext] 📱 Trying to get token silently...");
+              // Eğer Android Native Bridge varsa, web iznine bakmadan sessizce token almayı dene
+              const isAndroidNative = typeof window !== "undefined" && !!(window as any).AndroidGoogleSignIn;
+              const hasNotificationPermission = 'Notification' in window && Notification.permission === 'granted';
+
+              if (isAndroidNative || hasNotificationPermission) {
+                if (isAndroidNative) {
+                  console.log("[AuthContext] 📱 Android Native bridge detected, triggered silent registration");
+                } else {
+                  console.log("[AuthContext] ✅ Notification permission already granted");
+                }
                 
-                // İzin zaten verilmişse, arka planda token almayı dene
+                // Arka planda token almayı dene
                 setTimeout(async () => {
                   try {
                     const token = await requestNotificationPermission();
                     if (token) {
-                      console.log("[AuthContext] ✅ Token received silently");
+                      console.log("[AuthContext] ✅ Token received silently:", token.substring(0, 10) + "...");
                       await saveFCMTokenToUser(u.uid, token);
                       console.log("[AuthContext] ✅ Token saved to Firestore");
                     }
                   } catch (error) {
-                    console.log("[AuthContext] ⚠️ Silent token fetch failed (this is OK)");
-                    // Hata durumunda FCMTokenManager popup gösterecek
+                    console.log("[AuthContext] ⚠️ Silent token fetch failed:", error);
                   }
                 }, 2000);
               } else {
-                console.log("[AuthContext] ℹ️ Permission not granted yet, FCMTokenManager will show popup");
+                console.log("[AuthContext] ℹ️ Permission not granted, and no native bridge found.");
               }
             }
           });

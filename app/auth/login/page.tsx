@@ -127,18 +127,18 @@ function LoginPageContent() {
       }
 
       // FCM token'ı al ve kaydet (async, login'i bloklamaz)
-      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
-      // Sadece izin zaten verilmişse token almayı dene
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      const isAndroidNative = typeof window !== "undefined" && !!(window as any).AndroidGoogleSignIn;
+      const hasNotificationPermission = typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+
+      if (isAndroidNative || hasNotificationPermission) {
         requestNotificationPermission()
           .then((token) => {
-            if (token) {              return saveFCMTokenToUser(cred.user.uid, token);
-            } else {
+            if (token) {
+              return saveFCMTokenToUser(cred.user.uid, token);
             }
           })
-          .catch((error) => {            // Token kaydetme hatası login işlemini durdurmaz
-          });
-      } else {      }
+          .catch(() => {});
+      }
 
       showToast("Giriş başarılı! Yönlendiriliyorsunuz...", "success");
       
@@ -221,17 +221,17 @@ function LoginPageContent() {
           }
 
           // FCM token'ı al ve kaydet
-          if (typeof window !== "undefined" && "Notification" in window) {
-            // İzin verilmişse direkt al.
-            if (Notification.permission === "granted") {
-              requestNotificationPermission()
-                .then((token) => {
-                  if (token) {
-                    return saveFCMTokenToUser(user.uid, token);
-                  }
-                })
-                .catch(() => {});
-            }
+          const isAndroidNative = typeof window !== "undefined" && !!(window as any).AndroidGoogleSignIn;
+          const hasNotificationPermission = typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+
+          if (isAndroidNative || hasNotificationPermission) {
+            requestNotificationPermission()
+              .then((token) => {
+                if (token) {
+                  return saveFCMTokenToUser(user.uid, token);
+                }
+              })
+              .catch(() => {});
           }
 
           const role = snap.exists() ? snap.data().role : "student";
@@ -309,18 +309,18 @@ function LoginPageContent() {
       }
 
       // FCM token'ı al ve kaydet (async, login'i bloklamaz)
-      // NOT: Mobilde user gesture olmadan çalışmayabilir, bu yüzden FCMTokenManager buton ile çalışacak
-      // Sadece izin zaten verilmişse token almayı dene
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      const isAndroidNative_web = typeof window !== "undefined" && !!(window as any).AndroidGoogleSignIn;
+      const hasNotificationPermission_web = typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted";
+
+      if (isAndroidNative_web || hasNotificationPermission_web) {
         requestNotificationPermission()
           .then((token) => {
-            if (token) {              return saveFCMTokenToUser(user.uid, token);
-            } else {
+            if (token) {
+              return saveFCMTokenToUser(user.uid, token);
             }
           })
-          .catch((error) => {            // Token kaydetme hatası login işlemini durdurmaz
-          });
-      } else {      }
+          .catch(() => {});
+      }
 
       const role = snap.exists() ? snap.data().role : "student";
 
