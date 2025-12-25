@@ -23,10 +23,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         // Firebase Web Client ID - strings.xml'den al
-        String webClientId = getString(getResources().getIdentifier("default_web_client_id", "string", getPackageName()));
-        
+        String webClientId = getString(
+                getResources().getIdentifier("default_web_client_id", "string", getPackageName()));
+
         if (webClientId == null || webClientId.isEmpty() || webClientId.contains("YOUR_WEB_CLIENT_ID")) {
             Log.e(TAG, "default_web_client_id is not set in strings.xml");
             webClientId = "1026488924758-ph73nddcqp9skmtp5nn6l47d09beo2oe.apps.googleusercontent.com";
@@ -41,23 +42,39 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onBridgeReady(com.getcapacitor.Bridge bridge) {
-        super.onBridgeReady(bridge);
-        
-        // Bridge'i sakla
-        mBridge = bridge;
-        
+    public void onStart() {
+        super.onStart();
+
         // Bridge hazır olduğunda JavaScript interface ekle
+        // Capacitor bridge'in hazır olmasını bekle
         try {
-            WebView webView = bridge.getWebView();
-            if (webView != null) {
-                webView.addJavascriptInterface(new GoogleSignInJSInterface(), "AndroidGoogleSignIn");
-                Log.d(TAG, "GoogleSignIn JavaScript interface added");
+            com.getcapacitor.Bridge bridge = getBridge();
+            if (bridge != null) {
+                mBridge = bridge;
+                WebView webView = bridge.getWebView();
+                if (webView != null) {
+                    webView.post(() -> {
+                        try {
+                            webView.getSettings().setUseWideViewPort(true);
+                            webView.getSettings().setLoadWithOverviewMode(true);
+                            webView.getSettings().setSupportZoom(true);
+                            webView.getSettings().setBuiltInZoomControls(true);
+                            webView.getSettings().setDisplayZoomControls(false);
+
+                            webView.addJavascriptInterface(new GoogleSignInJSInterface(), "AndroidGoogleSignIn");
+                            Log.d(TAG, "GoogleSignIn JavaScript interface added");
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error adding JavaScript interface", e);
+                        }
+                    });
+                } else {
+                    Log.w(TAG, "WebView is null, will retry later");
+                }
             } else {
-                Log.e(TAG, "WebView is null in onBridgeReady");
+                Log.w(TAG, "Bridge is null, will retry later");
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error adding JavaScript interface", e);
+            Log.e(TAG, "Error in onStart", e);
         }
     }
 
@@ -74,31 +91,29 @@ public class MainActivity extends BridgeActivity {
     private void handleSignInResult(Task<GoogleSignInAccount> completedTask) {
         try {
             GoogleSignInAccount account = completedTask.getResult(ApiException.class);
-            
+
             if (account != null) {
                 // JavaScript'e sonucu gönder - JSON string'i düzgün escape et
                 String idToken = account.getIdToken() != null ? account.getIdToken() : "";
                 String email = account.getEmail() != null ? account.getEmail() : "";
                 String displayName = account.getDisplayName() != null ? account.getDisplayName() : "";
                 String photoUrl = account.getPhotoUrl() != null ? account.getPhotoUrl().toString() : "";
-                
+
                 // JSON string'i düzgün escape et
                 idToken = idToken.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
                 email = email.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
                 displayName = displayName.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
                 photoUrl = photoUrl.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
-                
+
                 // JSON oluştur ve JavaScript'e gönder
                 String jsonResult = String.format(
-                    "{\"idToken\":\"%s\",\"email\":\"%s\",\"displayName\":\"%s\",\"photoUrl\":\"%s\",\"accessToken\":null,\"serverAuthCode\":null}",
-                    idToken, email, displayName, photoUrl
-                );
-                
+                        "{\"idToken\":\"%s\",\"email\":\"%s\",\"displayName\":\"%s\",\"photoUrl\":\"%s\",\"accessToken\":null,\"serverAuthCode\":null}",
+                        idToken, email, displayName, photoUrl);
+
                 String jsCode = String.format(
-                    "if (window.handleNativeGoogleSignIn) { window.handleNativeGoogleSignIn(%s); }",
-                    jsonResult
-                );
-                
+                        "if (window.handleNativeGoogleSignIn) { window.handleNativeGoogleSignIn(%s); }",
+                        jsonResult);
+
                 runOnUiThread(() -> {
                     if (mBridge != null) {
                         WebView webView = mBridge.getWebView();
@@ -110,15 +125,15 @@ public class MainActivity extends BridgeActivity {
             }
         } catch (ApiException e) {
             Log.e(TAG, "signInResult:failed code=" + e.getStatusCode());
-            
+
             // Hata durumunda JavaScript'e gönder
-            String errorMessage = e.getMessage() != null ? e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"") : "Unknown error";
+            String errorMessage = e.getMessage() != null ? e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"")
+                    : "Unknown error";
             String errorJson = String.format("{\"error\":\"%s\",\"code\":%d}", errorMessage, e.getStatusCode());
             String jsCode = String.format(
-                "if (window.handleNativeGoogleSignInError) { window.handleNativeGoogleSignInError(%s); }",
-                errorJson
-            );
-            
+                    "if (window.handleNativeGoogleSignInError) { window.handleNativeGoogleSignInError(%s); }",
+                    errorJson);
+
             runOnUiThread(() -> {
                 if (mBridge != null) {
                     WebView webView = mBridge.getWebView();

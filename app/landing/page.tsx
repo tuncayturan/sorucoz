@@ -188,7 +188,7 @@ export default function LandingPage() {
 
             {/* Modern Headline with Video Background - Premium */}
             <h1
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 leading-tight"
+              className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-4 sm:mb-6 leading-tight"
               style={{
                 transform: `translateY(${scrollY * 0.05}px)`,
                 transition: "transform 0.1s ease-out",
@@ -203,7 +203,7 @@ export default function LandingPage() {
 
             {/* Modern Subheadline - Premium */}
             <p
-              className="text-xl sm:text-2xl md:text-3xl text-white mb-8 max-w-3xl mx-auto leading-relaxed font-bold"
+              className="text-lg sm:text-2xl md:text-3xl text-white mb-8 max-w-3xl mx-auto leading-relaxed font-bold"
               style={{
                 transform: `translateY(${scrollY * 0.03}px)`,
                 transition: "transform 0.1s ease-out",

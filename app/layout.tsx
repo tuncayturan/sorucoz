@@ -1,8 +1,6 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
-import AddToHomeScreenPrompt from "@/components/AddToHomeScreenPrompt";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import type { Metadata, Viewport } from "next";
 export const viewport: Viewport = {
   width: "device-width",
@@ -35,8 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           {children}
           {/* <FCMTokenManager /> Mobil bildirim popup'ı kaldırıldı */}
-          <AddToHomeScreenPrompt />
-          <PWAInstallPrompt />
         </AuthProvider>
       </body>
     </html>
