@@ -47,7 +47,15 @@ public class MainActivity extends BridgeActivity {
         // Capacitor bridge'in hazır olmasını bekle
         this.getBridge().getWebView().post(() -> {
             if (this.getBridge() != null && this.getBridge().getWebView() != null) {
-                this.getBridge().getWebView().addJavascriptInterface(new GoogleSignInJSInterface(), "AndroidGoogleSignIn");
+                WebView webView = this.getBridge().getWebView();
+                
+                // Geliştirme için: WebView cache'ini temizle (opsiyonel - gerekirse açın)
+                // Uncomment the following lines to clear cache on each app start:
+                // webView.clearCache(true);
+                // webView.clearHistory();
+                // Log.d(TAG, "WebView cache cleared");
+                
+                webView.addJavascriptInterface(new GoogleSignInJSInterface(), "AndroidGoogleSignIn");
                 Log.d(TAG, "GoogleSignIn JavaScript interface added");
             }
         });

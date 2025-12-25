@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
     // Modern JavaScript syntax'ını eski syntax'a çevir
     removeConsole: false,
   },
+  // Output format - eski browser uyumluluğu için
+  // Standalone output modern syntax kullanabilir, normal output daha uyumlu
+  output: undefined, // Varsayılan output kullan (standalone değil)
   images: {
     remotePatterns: [
       {
