@@ -15,9 +15,10 @@ const nextConfig: NextConfig = {
   // SWC compiler ayarları - eski browser desteği için
   // Next.js 16'da SWC zaten browserslist'i okuyor
   // Ancak daha agresif transpilation için experimental ayarlar
+  // Eski WebView'ler için dependency'leri transpile et
+  transpilePackages: ['firebase', '@capacitor/core', '@capacitor/android', 'react', 'react-dom'],
   experimental: {
-    // Modern syntax'ları daha agresif transpile et
-    optimizePackageImports: ['firebase', '@capacitor/core'],
+    // optimizePackageImports yerine transpilePackages kullanıyoruz
   },
   images: {
     remotePatterns: [

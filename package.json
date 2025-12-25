@@ -44,9 +44,9 @@
     "typescript": "^5"
   },
   "browserslist": [
-    "Chrome >= 80",
-    "ChromeAndroid >= 80",
-    "Android >= 7",
+    "Chrome >= 60",
+    "ChromeAndroid >= 60",
+    "Android >= 6",
     "iOS >= 12",
     "not dead",
     "not op_mini all"
