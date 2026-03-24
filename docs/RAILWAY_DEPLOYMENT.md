@@ -32,10 +32,11 @@ FIREBASE_ADMIN_PROJECT_ID=your_firebase_project_id
 FIREBASE_ADMIN_CLIENT_EMAIL=your_firebase_admin_client_email
 FIREBASE_ADMIN_PRIVATE_KEY=your_firebase_admin_private_key
 
-# Cloudinary (Eğer kullanıyorsanız)
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
+# Cloudinary (soru/resim yükleme için zorunlu — isimler kodla uyumlu olmalı)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+NEXT_PUBLIC_CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+# İsteğe bağlı: sunucu tarafı ayrıca CLOUDINARY_CLOUD_NAME ve CLOUDINARY_API_KEY de kabul edilir
 
 # Gemini API (Eğer kullanıyorsanız)
 GEMINI_API_KEY=your_gemini_api_key

@@ -14,6 +14,7 @@ import { db, auth } from "@/lib/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider, type UserInfo } from "firebase/auth";
 import Toast from "@/components/ui/Toast";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 export default function AyarlarPage() {
   const router = useRouter();
@@ -138,10 +139,7 @@ export default function AyarlarPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetchCloudinaryUpload(formData);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

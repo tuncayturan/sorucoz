@@ -34,6 +34,10 @@ const nextConfig: NextConfig = {
   experimental: {
     // optimizePackageImports yerine transpilePackages kullanıyoruz
     forceSwcTransforms: true,
+    // Büyük formData / dosya yüklemeleri (soru resmi vb.)
+    serverActions: {
+      bodySizeLimit: "15mb",
+    },
   },
   images: {
     remotePatterns: [

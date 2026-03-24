@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Toast from "@/components/ui/Toast";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 interface PopupMesaj {
   enabled: boolean;
@@ -282,10 +283,7 @@ export default function AdminPopupMesajPage() {
                     const formData = new FormData();
                     formData.append("file", file);
 
-                    const response = await fetch("/api/cloudinary/upload", {
-                      method: "POST",
-                      body: formData,
-                    });
+                    const response = await fetchCloudinaryUpload(formData);
 
                     if (!response.ok) {
                       const error = await response.json();

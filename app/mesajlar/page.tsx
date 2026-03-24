@@ -32,6 +32,7 @@ import EmojiPicker from "@/components/EmojiPicker";
 import VoiceMessage from "@/components/ui/VoiceMessage";
 import MessageContextMenu from "@/components/ui/MessageContextMenu";
 import { requestNotificationPermission, saveFCMTokenToUser } from "@/lib/fcmUtils";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 interface Mesaj {
   id: string;
@@ -681,10 +682,7 @@ function MesajlarContent() {
       const fileName = `voice_${Date.now()}.${audioBlob.type.includes('webm') ? 'webm' : 'mp4'}`;
       formData.append("file", audioBlob, fileName);
 
-      const uploadResponse = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const uploadResponse = await fetchCloudinaryUpload(formData);
 
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();        throw new Error("Ses dosyası yüklenemedi");
@@ -784,10 +782,7 @@ function MesajlarContent() {
         const formData = new FormData();
         formData.append("file", file);
 
-        const uploadResponse = await fetch("/api/cloudinary/upload", {
-          method: "POST",
-          body: formData,
-        });
+        const uploadResponse = await fetchCloudinaryUpload(formData);
 
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();

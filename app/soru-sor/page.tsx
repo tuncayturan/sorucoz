@@ -13,6 +13,7 @@ import Toast from "@/components/ui/Toast";
 import { canAskQuestion, getDailyQuestionLimit, hasAIAccess, isFreemiumMode, type SubscriptionPlan } from "@/lib/subscriptionUtils";
 import { checkSubscriptionStatus } from "@/lib/subscriptionUtils";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 export default function SoruSorPage() {
   const router = useRouter();
@@ -334,13 +335,11 @@ export default function SoruSorPage() {
       const formData = new FormData();
       formData.append("file", selectedImage);
 
-      const uploadResponse = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const uploadResponse = await fetchCloudinaryUpload(formData);
 
       if (!uploadResponse.ok) {
-        throw new Error("Resim yükleme başarısız");
+        const errBody = await uploadResponse.json().catch(() => ({} as { error?: string }));
+        throw new Error(errBody.error || "Resim yükleme başarısız");
       }
 
       const uploadData = await uploadResponse.json();

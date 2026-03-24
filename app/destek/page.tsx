@@ -11,6 +11,7 @@ import SideMenu from "@/components/SideMenu";
 import StudentFooter from "@/components/StudentFooter";
 import { shouldRedirectToPremium } from "@/lib/subscriptionGuard";
 import Toast from "@/components/ui/Toast";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 interface DestekMesaji {
   id: string;
@@ -312,10 +313,7 @@ function DestekPageContent() {
         const formDataUpload = new FormData();
         formDataUpload.append("file", file);
 
-        const uploadResponse = await fetch("/api/cloudinary/upload", {
-          method: "POST",
-          body: formDataUpload,
-        });
+        const uploadResponse = await fetchCloudinaryUpload(formDataUpload);
 
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();
@@ -459,10 +457,7 @@ function DestekPageContent() {
         const formDataUpload = new FormData();
         formDataUpload.append("file", file);
 
-        const uploadResponse = await fetch("/api/cloudinary/upload", {
-          method: "POST",
-          body: formDataUpload,
-        });
+        const uploadResponse = await fetchCloudinaryUpload(formDataUpload);
 
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();

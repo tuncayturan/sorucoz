@@ -9,6 +9,7 @@ import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 import { updateProfile, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import Toast from "@/components/ui/Toast";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 export default function CoachProfilePage() {
   const router = useRouter();
@@ -91,10 +92,7 @@ export default function CoachProfilePage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetchCloudinaryUpload(formData);
 
       if (!response.ok) {
         throw new Error("Yükleme başarısız oldu");

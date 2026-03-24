@@ -1,10 +1,24 @@
 import { v2 as cloudinary } from "cloudinary";
 
-// Cloudinary yapılandırması
+/** Railway / panodan yapıştırmada sonda gelen boşluk veya satır sonu imzayı bozabilir. */
+export function getCloudinaryCredentials() {
+  const t = (v: string | undefined) => (v ?? "").trim();
+  return {
+    cloud_name:
+      t(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME) ||
+      t(process.env.CLOUDINARY_CLOUD_NAME),
+    api_key:
+      t(process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY) ||
+      t(process.env.CLOUDINARY_API_KEY),
+    api_secret: t(process.env.CLOUDINARY_API_SECRET),
+  };
+}
+
+const _cloudinaryCreds = getCloudinaryCredentials();
 cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "",
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "",
-  api_secret: process.env.CLOUDINARY_API_SECRET || "",
+  cloud_name: _cloudinaryCreds.cloud_name,
+  api_key: _cloudinaryCreds.api_key,
+  api_secret: _cloudinaryCreds.api_secret,
 });
 
 /**
@@ -20,8 +34,12 @@ export async function uploadImageToCloudinary(
     formData.append("upload_preset", "sorucozApp");
     formData.append("folder", folder);
 
+    const cn =
+      getCloudinaryCredentials().cloud_name ||
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+      process.env.CLOUDINARY_CLOUD_NAME;
     fetch(
-      `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${cn}/image/upload`,
       {
         method: "POST",
         body: formData,

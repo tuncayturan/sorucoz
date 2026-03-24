@@ -6,6 +6,7 @@ import { collection, query, getDocs, orderBy, doc, updateDoc, deleteDoc, Timesta
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import Toast from "@/components/ui/Toast";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 interface DestekMesaji {
   id: string;
@@ -426,10 +427,7 @@ export default function AdminDestekPage() {
         const formData = new FormData();
         formData.append("file", file);
 
-        const uploadResponse = await fetch("/api/cloudinary/upload", {
-          method: "POST",
-          body: formData,
-        });
+        const uploadResponse = await fetchCloudinaryUpload(formData);
 
         if (uploadResponse.ok) {
           const uploadData = await uploadResponse.json();

@@ -5,6 +5,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Toast from "@/components/ui/Toast";
 import Image from "next/image";
+import { fetchCloudinaryUpload } from "@/lib/cloudinaryUploadClient";
 
 interface SiteSettings {
   logo?: string;
@@ -111,10 +112,7 @@ export default function AdminAyarlarPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/cloudinary/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetchCloudinaryUpload(formData);
 
       if (!response.ok) {
         const error = await response.json();
