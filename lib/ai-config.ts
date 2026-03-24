@@ -1,5 +1,6 @@
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getAdminFirestore } from "@/lib/firebase/admin";
 
 export interface AISettings {
   provider: "gemini" | "openai" | "groq" | "together";
@@ -12,37 +13,52 @@ export interface AISettings {
   temperature?: number;
 }
 
+function defaultFromEnv(): AISettings {
+  return {
+    provider: "gemini",
+    model: "gemini-2.0-flash-001",
+    geminiApiKey: process.env.GEMINI_API_KEY || "",
+    maxTokens: 4000,
+    temperature: 0.3,
+  };
+}
+
 /**
- * Firestore'dan AI ayarlarını alır
+ * Firestore'dan AI ayarlarını alır.
+ * Sunucuda (API route) Firebase Admin kullanılır — istemci SDK ile okuma kurallar yüzünden genelde başarısız olur;
+ * bu yüzden admin panelden kaydedilen key'ler ancak Admin SDK ile okunabilir.
  */
 export async function getAISettings(): Promise<AISettings | null> {
   try {
+    if (typeof window === "undefined") {
+      try {
+        const adminDb = getAdminFirestore();
+        const snap = await adminDb.collection("siteSettings").doc("main").get();
+        if (snap.exists) {
+          const data = snap.data();
+          if (data?.aiSettings && typeof data.aiSettings === "object") {
+            return data.aiSettings as AISettings;
+          }
+        }
+      } catch {
+        // Admin yapılandırması yok veya Firestore hatası — env'e düş
+      }
+      return defaultFromEnv();
+    }
+
     const settingsRef = doc(db, "siteSettings", "main");
     const snapshot = await getDoc(settingsRef);
-    
+
     if (snapshot.exists()) {
       const data = snapshot.data();
       if (data.aiSettings) {
         return data.aiSettings as AISettings;
       }
     }
-    
-    // Varsayılan ayarlar (Gemini)
-    return {
-      provider: "gemini",
-      model: "gemini-2.0-flash-001",
-      geminiApiKey: process.env.GEMINI_API_KEY || "",
-      maxTokens: 4000,
-      temperature: 0.3,
-    };
-  } catch (error) {    // Fallback: Environment variable'dan Gemini API key
-    return {
-      provider: "gemini",
-      model: "gemini-2.0-flash-001",
-      geminiApiKey: process.env.GEMINI_API_KEY || "",
-      maxTokens: 4000,
-      temperature: 0.3,
-    };
+
+    return defaultFromEnv();
+  } catch {
+    return defaultFromEnv();
   }
 }
 
@@ -50,17 +66,18 @@ export async function getAISettings(): Promise<AISettings | null> {
  * Seçilen provider'a göre API key'i döndürür
  */
 export function getAPIKey(settings: AISettings): string {
+  const e = (v: string | undefined) => (v ?? "").trim();
   switch (settings.provider) {
     case "gemini":
-      return settings.geminiApiKey || process.env.GEMINI_API_KEY || "";
+      return e(settings.geminiApiKey) || e(process.env.GEMINI_API_KEY) || "";
     case "openai":
-      return settings.openaiApiKey || process.env.OPENAI_API_KEY || "";
+      return e(settings.openaiApiKey) || e(process.env.OPENAI_API_KEY) || "";
     case "groq":
-      return settings.groqApiKey || process.env.GROQ_API_KEY || "";
+      return e(settings.groqApiKey) || e(process.env.GROQ_API_KEY) || "";
     case "together":
-      return settings.togetherApiKey || process.env.TOGETHER_API_KEY || "";
+      return e(settings.togetherApiKey) || e(process.env.TOGETHER_API_KEY) || "";
     default:
-      return process.env.GEMINI_API_KEY || "";
+      return e(process.env.GEMINI_API_KEY) || "";
   }
 }
 

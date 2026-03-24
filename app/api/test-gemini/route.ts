@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAISettings, getAPIKey } from "@/lib/ai-config";
 
 /**
  * Gemini API Test Endpoint
@@ -6,14 +7,18 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function GET(request: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    
+    const settings = await getAISettings();
+    const apiKey = settings
+      ? getAPIKey({ ...settings, provider: "gemini" })
+      : "";
+
     if (!apiKey || apiKey.trim() === "") {
       return NextResponse.json(
-        { 
-          error: "GEMINI_API_KEY bulunamadı",
+        {
+          error:
+            "Gemini API anahtarı bulunamadı. Admin → AI Yönetimi veya GEMINI_API_KEY ortam değişkeni gerekli.",
           apiKeyExists: false,
-          apiKeyLength: 0
+          apiKeyLength: 0,
         },
         { status: 500 }
       );

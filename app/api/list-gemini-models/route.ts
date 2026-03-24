@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAISettings, getAPIKey } from "@/lib/ai-config";
 
 /**
  * Gemini API'de mevcut modelleri listeler
  */
 export async function GET(request: NextRequest) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    
+    const settings = await getAISettings();
+    const apiKey = settings
+      ? getAPIKey({ ...settings, provider: "gemini" })
+      : "";
+
     if (!apiKey || apiKey.trim() === "") {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY bulunamadı" },
+        {
+          error:
+            "Gemini API anahtarı bulunamadı. Admin panel → AI Yönetimi veya ortam değişkeni GEMINI_API_KEY ekleyin.",
+        },
         { status: 500 }
       );
     }

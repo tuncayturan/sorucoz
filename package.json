@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:3333": "next dev -p 3333",
     "build": "cross-env NEXT_TELEMETRY_DISABLED=1 TURBOPACK=0 next build",
     "start": "next start",
     "lint": "eslint",

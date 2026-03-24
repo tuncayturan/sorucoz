@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { solveQuestion } from "@/lib/ai-service";
+import { getAISettings, getAPIKey } from "@/lib/ai-config";
 
 /**
  * AI servisi kullanarak soruyu adım adım çözer
@@ -294,11 +295,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "ders gerekli" }, { status: 400 });
     }
 
-    // API key kontrolü (POST handler'da)
-    const apiKeyCheck = process.env.GEMINI_API_KEY;
-    if (!apiKeyCheck || apiKeyCheck.trim() === "") {
-      throw new Error("GEMINI_API_KEY_NOT_FOUND");
+    // Firestore (Admin) + ortam değişkeni — sadece GEMINI_API_KEY kontrolü Railway'de paneldeki key'i yok sayıyordu
+    const aiSettings = await getAISettings();
+    if (!aiSettings) {
+      return NextResponse.json(
+        {
+          error: "AI ayarları okunamadı. FIREBASE_SERVICE_ACCOUNT_KEY ve Firestore siteSettings/main tanımlı mı kontrol edin.",
+          code: "AI_SETTINGS_UNAVAILABLE",
+        },
+        { status: 500 }
+      );
     }
+    const apiKeyCheck = getAPIKey(aiSettings);
+    if (!apiKeyCheck?.trim()) {
+      return NextResponse.json(
+        {
+          error:
+            "API anahtarı yok. Admin → AI Yönetimi'nde key kaydedin veya sunucuda GEMINI_API_KEY (ve seçilen sağlayıcı için ilgili env) tanımlayın.",
+          code: "API_KEY_NOT_FOUND",
+        },
+        { status: 500 }
+      );
+    }
+
     // AI servisi ile soruyu çöz (Firestore ayarlarına göre)
     let solution;
     try {
@@ -316,23 +335,48 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     const errorMessage = error.message || "Soruyu çözerken bir hata oluştu";
     
-    // Gemini API key yoksa
-    if (errorMessage.includes("GEMINI_API_KEY") || errorMessage === "GEMINI_API_KEY_NOT_FOUND") {
+    // Gemini API key yoksa (eski hata metinleri)
+    if (
+      errorMessage.includes("GEMINI_API_KEY") ||
+      errorMessage === "GEMINI_API_KEY_NOT_FOUND"
+    ) {
       return NextResponse.json(
-        { 
-          error: "Gemini API anahtarı yapılandırılmamış. Lütfen .env.local dosyasına GEMINI_API_KEY=your_api_key_here ekleyin ve development server'ı yeniden başlatın.",
-          code: "API_KEY_NOT_FOUND"
+        {
+          error:
+            "Gemini API anahtarı yapılandırılmamış. Admin → AI Yönetimi veya ortam değişkeni GEMINI_API_KEY kullanın.",
+          code: "API_KEY_NOT_FOUND",
         },
         { status: 500 }
       );
     }
-    
-    // Invalid API key hatası
-    if (errorMessage === "INVALID_API_KEY" || errorMessage.toLowerCase().includes("invalid") || errorMessage.toLowerCase().includes("api key")) {
+
+    // İstemci tarafında "key yok" — 401 değil 500 (401 yalnızca Google'ın reddettiği key için)
+    if (errorMessage === "API key bulunamadı" || errorMessage.includes("API key bulunamadı")) {
       return NextResponse.json(
-        { 
-          error: "Gemini API anahtarı geçersiz veya yetkisiz. Lütfen Google AI Studio'dan yeni bir API key oluşturun ve .env.local dosyasına ekleyin.",
-          code: "INVALID_API_KEY"
+        {
+          error:
+            "API anahtarı bulunamadı. Admin panelden AI ayarlarını kaydedin veya sunucu ortam değişkenlerini kontrol edin.",
+          code: "API_KEY_NOT_FOUND",
+        },
+        { status: 500 }
+      );
+    }
+
+    // Geçersiz / yetkisiz API key (Gemini veya mesajda açık yetkilendirme hatası)
+    const lower = errorMessage.toLowerCase();
+    const looksLikeGoogleAuthFailure =
+      errorMessage === "INVALID_API_KEY" ||
+      /\b401\b/.test(errorMessage) ||
+      /invalid\s*api\s*key|api\s*key\s*not\s*valid|api[_\s]?key\s*invalid|permission\s*denied|request\s*had\s*invalid\s*authentication/i.test(
+        lower
+      );
+
+    if (looksLikeGoogleAuthFailure) {
+      return NextResponse.json(
+        {
+          error:
+            "Gemini API anahtarı geçersiz veya yetkisiz. Google AI Studio'dan yeni key oluşturun; kısıtlamalarda sunucu istekleri için 'HTTP referrer' sınırı kullanmayın.",
+          code: "INVALID_API_KEY",
         },
         { status: 401 }
       );
